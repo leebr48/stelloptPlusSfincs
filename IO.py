@@ -3,14 +3,16 @@
 def listifyBEAMS3DFile(inputFile):
     
     '''
-    Input:  STELLOPT input.namelist file with a BEAMS3D section.
-    Output: The variable assignment data in the BEAMS3D section
-            as a list of lists. Each sublist contains the variable
-            name as its first element. Each subsequent element is 
-            a value assigned to the variable. This means that 
-            singly-valued variables will have lists with length 2
-            and vector-valued variables will have lists with length 
-            len(vector)+1.
+    Inputs:  
+        inputFile: STELLOPT input.namelist file with a BEAMS3D section.
+    Outputs: 
+        The variable assignment data in the BEAMS3D section
+        as a list of lists. Each sublist contains the variable
+        name as its first element. Each subsequent element is 
+        a value assigned to the variable. This means that 
+        singly-valued variables will have lists with length 2
+        and vector-valued variables will have lists with length 
+        len(vector)+1.
     '''
 
     with open(inputFile,'r') as f:
@@ -47,3 +49,44 @@ def listifyBEAMS3DFile(inputFile):
         listifiedData.append(cleaned)
 
     return listifiedData
+
+def makeProfileNames(listOfPrefixes):
+
+    '''
+    Inputs:
+        listOfPrefixes: A list of the form ['name1','name2',...].
+                        Typical names are NE, TI, and so forth.
+    Outputs:
+        A list of BEAMS3D variables using listOfPrefixes, such as
+        [name1_AUX_S, name1_AUX_F, ...].
+    '''
+    
+    output_names = []
+    for prefix in set(listOfPrefixes):
+        s = prefix.lower().strip() + '_aux_s'
+        f = prefix.lower() + '_aux_f'
+        output_names.append(s)
+        output_names.append(f)
+
+    return output_names
+
+def extractDataList(inputList,nameList):
+
+    '''
+    Inputs:  
+        inputList: A list of lists, as from the listifyBEAMS3DFile function,
+                   with a string as the first element and length >= 2.
+        nameList: A list containing strings to search for in inputList.
+    Outputs:
+        The sublist in inputList whose first element matches nameString.
+    '''
+    
+    matched = []
+    for sublist in inputList:
+        if sublist[0] in nameList:
+            matched.append(sublist)
+
+    if len(matched) == 0:
+        raise IOError('The searched variable was not found.')
+
+    return matched

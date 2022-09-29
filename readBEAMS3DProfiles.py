@@ -2,7 +2,7 @@
 
 # Import necessary packages
 import argparse
-from IO import listifyBEAMS3DFile
+from IO import listifyBEAMS3DFile, extractDataList, makeProfileNames
 
 # Specify and explain command line arguments
 parser = argparse.ArgumentParser()
@@ -21,4 +21,9 @@ if args.outFile == None:
 else:
     outFile = args.outFile[0]
 
-out = listifyBEAMS3DFile(inFile)
+# Extract the data from the BEAMS3D file.
+listifiedInFile = listifyBEAMS3DFile(inFile)
+
+prefixesOfInterest = ['NE', 'TE', 'TI', 'ZEFF', 'POT']
+varsOfInterest = makeProfileNames(prefixesOfInterest)
+dataOfInterest = extractDataList(listifiedInFile, varsOfInterest)
