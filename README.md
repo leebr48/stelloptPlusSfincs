@@ -1,2 +1,2 @@
 # vmecPlusSfincs
-Scripts for interfacing between VMEC and SFINCS
+Scripts for interfacing between VMEC and SFINCS.
