@@ -70,23 +70,29 @@ def makeProfileNames(listOfPrefixes):
 
     return output_names
 
-def extractDataList(inputList,nameList):
+def extractDataList(dataList,nameList):
 
     '''
     Inputs:  
-        inputList: A list of lists, as from the listifyBEAMS3DFile function,
+        dataList: A list of lists, as from the listifyBEAMS3DFile function,
                    with a string as the first element and length >= 2.
-        nameList: A list containing strings to search for in inputList.
+        nameList: A list of lists. Each sublist contains a pair of strings
+                  to search for in dataList.
     Outputs:
-        The sublist in inputList whose first element matches nameString.
+        A list of lists of lists. Each sublist contains a pair of lists that
+        correspond to a pair of strings passed to this function in nameList.
     '''
-    
+
     matched = []
-    for sublist in inputList:
-        if sublist[0] in nameList:
-            matched.append(sublist)
+    for namePair in nameList:
+        matchedPair = []
+        for name in namePair:
+            for dataVec in dataList:
+                if dataVec[0] == name:
+                    matchedPair.append(dataVec)
+        matched.append(matchedPair)
 
-    if len(matched) == 0:
-        raise IOError('The searched variable was not found.')
-
+    if not any(matched):
+        raise IOError('No searched variables were found.')
+    
     return matched
