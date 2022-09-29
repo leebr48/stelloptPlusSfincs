@@ -65,8 +65,8 @@ def makeProfileNames(listOfPrefixes):
     for prefix in set(listOfPrefixes):
         s = prefix.lower().strip() + '_aux_s'
         f = prefix.lower() + '_aux_f'
-        output_names.append(s)
-        output_names.append(f)
+        appendor = [s, f]
+        output_names.append(appendor)
 
     return output_names
 
