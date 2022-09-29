@@ -82,14 +82,20 @@ def extractDataList(dataList,nameList):
         A list of lists of lists. Each sublist contains a pair of lists that
         correspond to a pair of strings passed to this function in nameList.
     '''
-
+    
+    import warnings
+    
     matched = []
     for namePair in nameList:
         matchedPair = []
         for name in namePair:
+            foundMatch = False
             for dataVec in dataList:
                 if dataVec[0] == name:
                     matchedPair.append(dataVec)
+                    foundMatch = True
+            if not foundMatch:
+                warnings.warn('No match could be found for the variable "{}" in the given dataList!'.format(name))
         matched.append(matchedPair)
 
     if not any(matched):
