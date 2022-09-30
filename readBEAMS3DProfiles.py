@@ -37,3 +37,5 @@ listifiedInFile = listifyBEAMS3DFile(inFile)
 prefixesOfInterest = ['NE', 'TE', 'TI', 'ZEFF', 'POT'] #FIXME how deal with ZEFF and POT?
 varsOfInterest = makeProfileNames(prefixesOfInterest)
 dataOfInterest = extractDataList(listifiedInFile, varsOfInterest)
+# FIXME now we need to select which vectors to pull, and probably stack them correctly (progress from top of column to bottom)
+# This might best be done in extractDataList function

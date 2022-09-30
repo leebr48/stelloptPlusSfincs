@@ -12,9 +12,12 @@ def listifyBEAMS3DFile(inputFile):
         a value assigned to the variable. This means that 
         singly-valued variables will have lists with length 2
         and vector-valued variables will have lists with length 
-        len(vector)+1.
+        len(vector)+1. Note that any duplicate sublists are
+        filtered such that only one copy remains.
     '''
-
+    
+    import itertools
+        
     with open(inputFile,'r') as f:
         beams3dSectionStartFlag = False
         beams3dSectionEndFlag = False
@@ -48,7 +51,11 @@ def listifyBEAMS3DFile(inputFile):
 
         listifiedData.append(cleaned)
 
-    return listifiedData
+    listifiedData.sort()
+
+    redundanciesRemoved = list(listifiedData for listifiedData,_ in itertools.groupby(listifiedData))
+
+    return redundanciesRemoved
 
 def makeProfileNames(listOfPrefixes):
 
@@ -58,11 +65,16 @@ def makeProfileNames(listOfPrefixes):
                         Typical names are NE, TI, and so forth.
     Outputs:
         A list of BEAMS3D variables using listOfPrefixes, such as
-        [name1_AUX_S, name1_AUX_F, ...].
+        [name1_AUX_S, name1_AUX_F, ...]. Note that the radial
+        name (S) always comes before the value name (F).
     '''
-    
+  
+    import itertools
+
+    redundanciesRemoved = list(listOfPrefixes for listOfPrefixes,_ in itertools.groupby(listOfPrefixes))
+
     output_names = []
-    for prefix in set(listOfPrefixes):
+    for prefix in redundanciesRemoved:
         s = prefix.lower().strip() + '_aux_s'
         f = prefix.lower() + '_aux_f'
         appendor = [s, f]
@@ -70,14 +82,15 @@ def makeProfileNames(listOfPrefixes):
 
     return output_names
 
-def extractDataList(dataList,nameList):
+def extractDataList(dataList, nameList):
 
     '''
     Inputs:  
         dataList: A list of lists, as from the listifyBEAMS3DFile function,
                    with a string as the first element and length >= 2.
-        nameList: A list of lists. Each sublist contains a pair of strings
-                  to search for in dataList.
+        nameList: A list of lists, as from the makeProfileNames function. 
+                  Each sublist contains a pair of strings to search for in 
+                  dataList.
     Outputs:
         A list of lists of lists. Each sublist contains a pair of lists that
         correspond to a pair of strings passed to this function in nameList.
