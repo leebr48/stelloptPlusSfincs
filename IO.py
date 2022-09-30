@@ -63,18 +63,18 @@ def makeProfileNames(listOfPrefixes):
     Inputs:
         listOfPrefixes: A list of the form ['name1','name2',...].
                         Typical names are NE, TI, and so forth.
+                        Note that repeated inputs are possible -
+                        this is useful for, say, using the same
+                        profiles for two different variables,
+                        such as NI and NE.
     Outputs:
         A list of BEAMS3D variables using listOfPrefixes, such as
         [name1_AUX_S, name1_AUX_F, ...]. Note that the radial
         name (S) always comes before the value name (F).
     '''
   
-    import itertools
-
-    redundanciesRemoved = list(listOfPrefixes for listOfPrefixes,_ in itertools.groupby(listOfPrefixes))
-
     output_names = []
-    for prefix in redundanciesRemoved:
+    for prefix in listOfPrefixes:
         s = prefix.lower().strip() + '_aux_s'
         f = prefix.lower() + '_aux_f'
         appendor = [s, f]
