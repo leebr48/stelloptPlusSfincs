@@ -92,24 +92,27 @@ def extractDataList(dataList, nameList):
                   Each sublist contains a pair of strings to search for in 
                   dataList.
     Outputs:
-        A list with two elements. The first is nameList. The second is a 
-        list of lists of lists. Within this second item, each sublist 
-        contains a pair of lists that correspond to a pair of strings 
-        passed to this function in nameList. This function preserves
-        order - for instance, the name in output[0][0][0] corresponds
-        to the data in output[1][0][0].
+        A list with two elements. The first is a list with all the unique 
+        prefixes in nameList. The second is a list with interpolation 
+        objects corresponding to the prefixes in the first list. The 
+        independent (radial) variable for these interpolations is the 
+        normalized toriodal flux. 
     '''
     
     import warnings
     
+    strippedNames = []
     matched = []
     for namePair in nameList:
+        strippedName = namePair[0].split('_')[0]
+        strippedNames.append(strippedName)
+
         matchedPair = []
         for name in namePair:
             foundMatch = False
             for dataVec in dataList:
                 if dataVec[0] == name:
-                    matchedPair.append(dataVec[1:])
+                    matchedPair.append([float(i) for i in dataVec[1:]])
                     foundMatch = True
             if not foundMatch:
                 warnings.warn('No match could be found for the variable "{}" in the given dataList!'.format(name))
@@ -118,4 +121,4 @@ def extractDataList(dataList, nameList):
     if not any(matched):
         raise IOError('No searched variables were found.')
     
-    return [nameList,matched]
+    return [strippedNames, matched]

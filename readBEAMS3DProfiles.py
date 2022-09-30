@@ -4,6 +4,7 @@
 import argparse
 import os
 from IO import listifyBEAMS3DFile, extractDataList, makeProfileNames
+from dataProc import linearInterp
 
 # Specify and explain command line arguments
 parser = argparse.ArgumentParser()
@@ -13,7 +14,6 @@ parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=None
 args = parser.parse_args()
 
 # Name input and output files
-#inFile = args.inFile[0].strip()
 inFile = os.path.abspath(args.inFile[0])
 inFileName = inFile.split('/')[-1]
 filesSuffix = inFileName.replace('input.','')
@@ -37,5 +37,8 @@ listifiedInFile = listifyBEAMS3DFile(inFile)
 prefixesOfInterest = ['NE', 'TE', 'TI', 'ZEFF', 'POT'] #FIXME how deal with ZEFF and POT?
 varsOfInterest = makeProfileNames(prefixesOfInterest)
 dataOfInterest = extractDataList(listifiedInFile, varsOfInterest)
-# FIXME now we need to select which vectors to pull, and probably stack them correctly (progress from top of column to bottom)
-# This might best be done in extractDataList function
+
+# FIXME we need to do some linear interpolation... Note that you DO NOT need to change the r coordinate if you use option 1 in sfincdScan (psiN). Note also that you might need a non-linear spline if you end up having to take derivatives for the potential...
+
+# Interpolate the data in case the radial lists do not all contain the same points.
+interpolatedData = linearInterp(dataOfInterest)
