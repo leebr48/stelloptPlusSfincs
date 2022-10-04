@@ -5,7 +5,7 @@ import argparse
 import os
 import numpy as np
 from IO import listifyBEAMS3DFile, extractDataList, makeProfileNames
-from dataProc import linearInterp
+from dataProc import scaleData, nonlinearInterp
 
 # Specify and explain command line arguments
 parser = argparse.ArgumentParser()
@@ -16,6 +16,9 @@ parser.add_argument('--minRad', type=float, nargs=1, required=False, default=0.0
 parser.add_argument('--maxRad', type=float, nargs=1, required=False, default=0.95, help='Maximum value of the generalized radial coordinate for the scan.')
 parser.add_argument('--numRad', type=float, nargs=1, required=False, default=16, help='Number of radial surfaces on which to perform the scan.')
 parser.add_argument('--noEr', action='store_true', required=False, help='Ignore the scan over the radial electric field.')
+parser.add_argument('--phiBar', type=float, nargs=1, required=False, default=1, help='Reference electrostatic potential in units of kV.')
+parser.add_argument('--nBar', type=float, nargs=1, required=False, default=1e20, help='Reference density in units of m^(-3). Note that Python "E" notation is equivalent to Fortran "D" notation.')
+parser.add_argument('--TBar', type=float, nargs=1, required=False, default=1, help='Reference temperature in units of keV.')
 args = parser.parse_args()
 
 # Name input and output files
@@ -36,21 +39,27 @@ else:
 
 outFile = outFilePath + '/' + outFileName
 
-# Extract the data from the BEAMS3D file.
+# Extract the data from the BEAMS3D file and scale it.
 listifiedInFile = listifyBEAMS3DFile(inFile)
 
-prefixesOfInterest = ['POT', 'NE', 'TI', 'NE', 'TE'] # Note that the order must match the column order of the profiles.xxx file! Repeated prefixes are fine. #FIXME how deal with ZEFF and POT? #FIXME this list could/should probably be an input
+prefixesOfInterest = ['NE', 'TI', 'NE', 'TE'] # Note that the order must match the column order of the profiles.xxx file! Repeated prefixes are fine. #FIXME how deal with ZEFF and POT? #FIXME this list could/should probably be an input
+
 if args.noEr:
-    del prefixesOfInterest[0] # Relies on the fact that Er data is specified before species data in the profiles.xxx file.
+    for item in prefixesOfInterest:
+        if item.lower() == 'pot':
+            raise IOError('If you are not calculating the electric field, you should not specify the potential.')
 
 varsOfInterest = makeProfileNames(prefixesOfInterest)
 dataOfInterest = extractDataList(listifiedInFile, varsOfInterest)
 
+# Scale the data according to the reference variable values.
+scaledData = scaleData(dataOfInterest, args.phiBar, args.nBar, args.TBar)
+
 # Interpolate the data in case the radial lists do not all contain the same points.
-interpolatedData = linearInterp(dataOfInterest) #FIXME you might need a non-linear spline if you end up having to take derivatives for the potential...
+interpolatedData = nonlinearInterp(scaledData)
 
 # Gather the components of the profile.xxx file
-radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is the VMEC S.
+radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is the VMEC S. #FIXME move to top of file, or make an input?
 
 radii = np.linspace(start=args.minRad, stop=args.maxRad, num=args.numRad, endpoint=True)
 
@@ -59,7 +68,13 @@ if args.noEr:
     NErs_vec = zeroList
     generalEr_min_vec = zeroList
     generalEr_max_vec = zeroList
+    # Note that these quantities only must be specified for scanType = 5. They are ignored if scanType = 4.
 else:
     raise AssertionError('FIXME: I cannot handle radial electric fields yet!')
 
-stringToWrite = ''
+stringToWrite = '# This is an integer specifying the radial coordinate used in this file, which can be different from the one specified by inputRadialCoordinate in input.namelist.\n'
+stringToWrite += '{}\n'.format(str(radial_coordinate_ID))
+stringToWrite += '# The following lines contain profile information in this format:\n'
+stringToWrite += '# radius\tNErs\tgeneralEr_min\tgeneralEr_max\tnHat(species 1)\tTHat(species 1)\tnHat(species 2)\tTHat(species 2)\t...\n'
+stringToWrite += '# The format of the generalEr_* profiles is set by inputRadialCoordinateForGradients in input.namelist. The default is Er.\n'
+
