@@ -4,7 +4,7 @@
 import argparse
 import os
 import numpy as np
-from IO import listifyBEAMS3DFile, extractDataList, makeProfileNames
+from IO import listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble
 from dataProc import scaleData, nonlinearInterp
 
 # Specify and explain command line arguments
@@ -64,17 +64,13 @@ radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is the
 radii = np.linspace(start=args.minRad, stop=args.maxRad, num=args.numRad, endpoint=True)
 
 if args.noEr:
-    zeroList = ['0']*len(radii)
-    NErs_vec = zeroList
-    generalEr_min_vec = zeroList
-    generalEr_max_vec = zeroList
+    NErs = lambda x: 0
+    generalEr_min = lambda x: 0
+    generalEr_max = lambda x: 0
     # Note that these quantities only must be specified for scanType = 5. They are ignored if scanType = 4.
 else:
     raise AssertionError('FIXME: I cannot handle radial electric fields yet!')
 
-stringToWrite = '# This is an integer specifying the radial coordinate used in this file, which can be different from the one specified by inputRadialCoordinate in input.namelist.\n'
-stringToWrite += '{}\n'.format(str(radial_coordinate_ID))
-stringToWrite += '# The following lines contain profile information in this format:\n'
-stringToWrite += '# radius\tNErs\tgeneralEr_min\tgeneralEr_max\tnHat(species 1)\tTHat(species 1)\tnHat(species 2)\tTHat(species 2)\t...\n'
-stringToWrite += '# The format of the generalEr_* profiles is set by inputRadialCoordinateForGradients in input.namelist. The default is Er.\n'
+stringToWrite = generatePreamble(radial_coordinate_ID)
 
+partString = ''

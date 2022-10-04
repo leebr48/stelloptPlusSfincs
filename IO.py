@@ -122,3 +122,21 @@ def extractDataList(dataList, nameList):
         raise IOError('No searched variables were found.')
     
     return [strippedNames, matched]
+
+def generatePreamble(radial_coordinate_ID):
+
+    '''
+    Inputs:
+        The (integer) ID for the radial coordinate used in profiles.xxx. 0 = psiHat, 1 = psiN, 2 = rHat, 3 = rN.
+    Outputs:
+        String containing the preamble to the profiles.xxx file.
+    '''
+
+    stringToWrite = '# This is an integer specifying the radial coordinate used in this file, which can be different from the one specified by inputRadialCoordinate in input.namelist.\n'
+    stringToWrite += '{}\n'.format(str(radial_coordinate_ID))
+    stringToWrite += '# The following lines contain profile information in this format:\n'
+    stringToWrite += '# radius\tNErs\tgeneralEr_min\tgeneralEr_max\tnHat(species 1)\tTHat(species 1)\tnHat(species 2)\tTHat(species 2)\t...\n'
+    stringToWrite += '# The format of the generalEr_* profiles is set by inputRadialCoordinateForGradients in input.namelist. The default is Er.\n'
+    stringToWrite += '\n'
+
+    return stringToWrite
