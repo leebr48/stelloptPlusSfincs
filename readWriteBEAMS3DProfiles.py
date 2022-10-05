@@ -42,7 +42,7 @@ outFile = outFilePath + '/' + outFileName
 # Extract the data from the BEAMS3D file and scale it.
 listifiedInFile = listifyBEAMS3DFile(inFile)
 
-prefixesOfInterest = ['NE', 'TI', 'NE', 'TE'] # Note that the order must match the column order of the profiles.xxx file! Repeated prefixes are fine. #FIXME how deal with ZEFF and POT? #FIXME this list could/should probably be an input
+prefixesOfInterest = ['NE', 'TI', 'NE', 'TE'] # Note that the order must match the column order of the profiles.xxx file! Repeated prefixes are fine. #FIXME how deal with ZEFF and POT? #FIXME this list could/should probably be an input. It should also be strip()'ed and lower()'ed right off the bat, if it isn't already. (Doing that immediately would probably help for later.)
 
 if args.noEr:
     for item in prefixesOfInterest:

@@ -92,20 +92,20 @@ def extractDataList(dataList, nameList):
                   Each sublist contains a pair of strings to search for in 
                   dataList.
     Outputs:
-        A list with two elements. The first is a list with all the unique 
-        prefixes in nameList. The second is a list with interpolation 
-        objects corresponding to the prefixes in the first list. The 
-        independent (radial) variable for these interpolations is the 
-        normalized toriodal flux. 
+        A dictionary. Each key is a unique prefix from nameList. Each value
+        contains a list with two sublists. The first sublist is the radial
+        coordinate (normalized toroidal flux) vector for the given variable. 
+        The second sublist gives the vector of values corresponding to those
+        radial coordinates.
     '''
-    
+
     import warnings
     
-    strippedNames = []
     matched = []
+    dataDict = {}
     for namePair in nameList:
+        
         strippedName = namePair[0].split('_')[0]
-        strippedNames.append(strippedName)
 
         matchedPair = []
         for name in namePair:
@@ -117,11 +117,12 @@ def extractDataList(dataList, nameList):
             if not foundMatch:
                 warnings.warn('No match could be found for the variable "{}" in the given dataList!'.format(name))
         matched.append(matchedPair)
+        dataDict[strippedName] = matchedPair
 
     if not any(matched):
         raise IOError('No searched variables were found.')
     
-    return [strippedNames, matched]
+    return dataDict
 
 def generatePreamble(radial_coordinate_ID):
 
