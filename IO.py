@@ -1,5 +1,22 @@
 # This file contains IO helper functions.
 
+def cleanStrings(inputList):
+
+    '''
+    Inputs:
+        List of strings.
+    Outputs:
+        inputList, but without spaces and with all other 
+        characters lowercase.
+    '''
+
+    outList = []
+    for item in inputList:
+        cleaned = item.strip().lower()
+        outList.append(cleaned)
+
+    return outList
+
 def listifyBEAMS3DFile(inputFile):
     
     '''
@@ -75,8 +92,8 @@ def makeProfileNames(listOfPrefixes):
   
     output_names = []
     for prefix in listOfPrefixes:
-        s = prefix.lower().strip() + '_aux_s'
-        f = prefix.lower() + '_aux_f'
+        s = prefix + '_aux_s'
+        f = prefix + '_aux_f'
         appendor = [s, f]
         output_names.append(appendor)
 
@@ -124,11 +141,14 @@ def extractDataList(dataList, nameList):
     
     return dataDict
 
-def generatePreamble(radial_coordinate_ID):
+def generatePreamble(radial_coordinate_ID=1):
 
     '''
     Inputs:
-        The (integer) ID for the radial coordinate used in profiles.xxx. 0 = psiHat, 1 = psiN, 2 = rHat, 3 = rN.
+        The (integer) ID for the radial coordinate used in profiles.xxx:
+        0 = psiHat, 1 = psiN, 2 = rHat, 3 = rN.
+        Note that BEAMS3D always uses the normalized toroidal flux, which
+        corresponds to ID=1 in this context.
     Outputs:
         String containing the preamble to the profiles.xxx file.
     '''
@@ -137,7 +157,43 @@ def generatePreamble(radial_coordinate_ID):
     stringToWrite += '{}\n'.format(str(radial_coordinate_ID))
     stringToWrite += '# The following lines contain profile information in this format:\n'
     stringToWrite += '# radius\tNErs\tgeneralEr_min\tgeneralEr_max\tnHat(species 1)\tTHat(species 1)\tnHat(species 2)\tTHat(species 2)\t...\n'
-    stringToWrite += '# The format of the generalEr_* profiles is set by inputRadialCoordinateForGradients in input.namelist. The default is Er.\n'
+    stringToWrite += '# The meaning of the generalEr_* variables is set by inputRadialCoordinateForGradients in input.namelist. The default is Er_*.\n'
     stringToWrite += '\n'
 
     return stringToWrite
+
+def generateDataText(radii, *funcs):
+
+    '''
+    Inputs:
+        radii: A list of radii at which to evaulate *funcs.
+        *funcs: functions that can take one element of radii
+        at a time and output a single value (each) needed in the
+        profiles.xxx file.
+    Outputs:
+        Text constituting all the computer-readable information 
+        in profiles.xxx except for radial_coordinate_ID.
+    '''
+    
+    def stringifyItem(item, endOfLine=False, endOfFile=False):
+        
+        if endOfFile:
+            out = str(item)
+        elif endOfLine:
+            out = str(item) + '\n'
+        else:
+            out = str(item) + '\t'
+
+        return out
+        
+    stringOut = ''
+    for radInd, radius in enumerate(radii):
+        stringOut += stringifyItem(radius)
+        for func in funcs[:-1]:
+            stringOut += stringifyItem(func(radius))
+        if radInd == (len(radii)-1):
+            stringOut += stringifyItem(funcs[-1](radius), endOfLine=True, endOfFile=True)
+        else:
+            stringOut += stringifyItem(funcs[-1](radius), endOfLine=True)
+
+    return stringOut
