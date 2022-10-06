@@ -179,7 +179,7 @@ def generateDataText(radii, *funcs):
         if endOfLine:
             out = str(item) + '\n' # Note that the last line in the file should have a \n (UNIX standard)
         else:
-            out = str(item) + '    ' # Note that the tab character would break sfincsScan
+            out = str(item) + '\t'
 
         return out
         
