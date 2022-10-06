@@ -1,5 +1,31 @@
 # This file contains functions for data processing.
 
+def findMinMax(dataOfInterest):
+
+    '''
+    Inputs:
+        Dictionary, as from the extractDataList function.
+    Outputs:
+        Dictionary that indicates the largest minimum bound
+        and smallest maximum bound from the independent
+        variables in dataOfInterest. This information 
+        would typically be used to determine the appropriate
+        radial domain over which all the profile information
+        could be accurately specified.
+    '''
+    
+    out = {}
+    mins = []
+    maxes = []
+    for key,data in dataOfInterest.items():
+        mins.append(min(data['iv']))
+        maxes.append(max(data['iv']))
+
+    out['min'] = max(mins)
+    out['max'] = min(maxes)
+
+    return out
+
 def scaleData(dataOfInterest, phiBar, nBar, TBar):
 
     '''

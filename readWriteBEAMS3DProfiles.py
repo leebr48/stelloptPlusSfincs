@@ -5,16 +5,14 @@ import argparse
 import os
 import numpy as np
 from IO import cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText
-from dataProc import scaleData, nonlinearInterp
+from dataProc import findMinMax, scaleData, nonlinearInterp
 
 # Specify and explain command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--inFile', type=str, nargs=1, required=True, help='Input file name, with path if necessary.')
 parser.add_argument("--vars", type=str, nargs='*', required=True, help='''Prefixes of variables to be read, normalized, and written, IN ORDER. You should enter each variable in quotes and put spaces between variables. The input names are not case sensitive. If Er should be included in the calculation, 'POT' should come first. If Er is not included, do not include 'POT'. Whether or not 'POT' is included, the density and temperature data should come in the format <'N1' 'T1' 'N2' 'T2' ...> where '1' and '2' often indicate species identifiers (such as 'I' or 'E'). Note that you can write duplicate data by repeating entries. For instance, inputting <'NE' 'TI' 'NE' 'TE'> enforces NI=NE. The order in which the species information is specified should match that in input.namelist.''')
 parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=None, help='Location in which to save profiles. Defaults to <inFile> location.')
-parser.add_argument('--minRad', type=float, nargs=1, required=False, default=[0.05], help='Minimum value of the generalized radial coordinate for the scan.')
-parser.add_argument('--maxRad', type=float, nargs=1, required=False, default=[0.95], help='Maximum value of the generalized radial coordinate for the scan.')
-parser.add_argument('--numRad', type=float, nargs=1, required=False, default=[16], help='Number of radial surfaces on which to perform the scan.')
+parser.add_argument('--numRad', type=float, nargs=1, required=False, default=[16], help='Number of radial surfaces on which to calculate interpolated profile data.')
 parser.add_argument('--noEr', action='store_true', required=False, help='Ignore the scan over the radial electric field.')
 parser.add_argument('--phiBar', type=float, nargs=1, required=False, default=[1], help='Reference electrostatic potential in units of kV.')
 parser.add_argument('--nBar', type=float, nargs=1, required=False, default=[1e20], help='Reference density in units of m^(-3). Note that Python "E" notation is equivalent to Fortran "D" notation.')
@@ -49,6 +47,8 @@ listifiedInFile = listifyBEAMS3DFile(inFile)
 varsOfInterest = makeProfileNames(prefixesOfInterest)
 dataOfInterest = extractDataList(listifiedInFile, varsOfInterest)
 
+radialBounds = findMinMax(dataOfInterest)
+
 # Scale the data according to the reference variable values.
 scaledData = scaleData(dataOfInterest, args.phiBar[0], args.nBar[0], args.TBar[0])
 
@@ -58,7 +58,7 @@ interpolatedData = nonlinearInterp(scaledData)
 # Gather the components of profiles file
 radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is the VMEC S.
 
-radii = list(np.linspace(start=args.minRad[0], stop=args.maxRad[0], num=args.numRad[0], endpoint=True))
+radii = list(np.linspace(start=radialBounds['min'], stop=radialBounds['max'], num=args.numRad[0], endpoint=True))
 
 if args.noEr:
     NErs = lambda x: 0
