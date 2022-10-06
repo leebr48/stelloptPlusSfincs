@@ -86,8 +86,7 @@ def makeProfileNames(listOfPrefixes):
                         such as NI and NE.
     Outputs:
         A list of BEAMS3D variables using listOfPrefixes, such as
-        [name1_AUX_S, name1_AUX_F, ...]. Note that the radial
-        name (S) always comes before the value name (F).
+        [name1_AUX_S, name1_AUX_F, ...].
     '''
   
     output_names = []
@@ -110,9 +109,9 @@ def extractDataList(dataList, nameList):
                   dataList.
     Outputs:
         A dictionary. Each key is a unique prefix from nameList. Each value
-        contains a list with two sublists. The first sublist is the radial
-        coordinate (normalized toroidal flux) vector for the given variable. 
-        The second sublist gives the vector of values corresponding to those
+        contains a dictionary with two entries. The 'iv' entry is the radial
+        coordinate (normalized toroidal flux) list for the given variable. 
+        The 'dv' entry gives the list of values corresponding to those
         radial coordinates.
     '''
 
@@ -124,15 +123,27 @@ def extractDataList(dataList, nameList):
         
         strippedName = namePair[0].split('_')[0]
 
-        matchedPair = []
+        matchedPair = {}
         for name in namePair:
             foundMatch = False
+
             for dataVec in dataList:
+                
                 if dataVec[0] == name:
-                    matchedPair.append([float(i) for i in dataVec[1:]])
+                    floats = [float(i) for i in dataVec[1:]]
+                    
+                    if name[-1] == 's':
+                        matchedPair['iv'] = floats
+                    elif name[-1] == 'f':
+                        matchedPair['dv'] = floats
+                    else:
+                        raise IOError('The read variable suffix is not "S" or "F". Something is wrong.')
+                    
                     foundMatch = True
+
             if not foundMatch:
                 warnings.warn('No match could be found for the variable "{}" in the given dataList!'.format(name))
+        
         matched.append(matchedPair)
         dataDict[strippedName] = matchedPair
 

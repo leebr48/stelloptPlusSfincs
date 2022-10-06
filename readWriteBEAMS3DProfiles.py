@@ -43,7 +43,7 @@ if args.noEr:
         if item.lower() == 'pot':
             raise IOError('If you are not calculating the electric field, you should not specify the potential.')
 
-# Extract the data from the BEAMS3D input file and scale it.
+# Extract the data from the BEAMS3D input file
 listifiedInFile = listifyBEAMS3DFile(inFile)
 
 varsOfInterest = makeProfileNames(prefixesOfInterest)
