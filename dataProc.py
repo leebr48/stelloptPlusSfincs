@@ -70,7 +70,7 @@ def nonlinearInterp(inputData, s=0, k=3, der=0):
         der: order of derivative to be taken
     Outputs:
         inputData, but with SciPy interpolation objects in place
-        of the sublists in output[1].
+        of the data.
     '''
 
     from scipy.interpolate import splrep, splev

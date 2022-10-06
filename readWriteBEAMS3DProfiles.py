@@ -7,7 +7,7 @@ import numpy as np
 from IO import cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText
 from dataProc import findMinMax, scaleData, nonlinearInterp
 
-# Specify and explain command line arguments
+# Specify command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--inFile', type=str, nargs=1, required=True, help='Input file name, with path if necessary.')
 parser.add_argument("--vars", type=str, nargs='*', required=True, help='''Prefixes of variables to be read, normalized, and written, IN ORDER. You should enter each variable in quotes and put spaces between variables. The input names are not case sensitive. If Er should be included in the calculation, 'POT' should come first. If Er is not included, do not include 'POT'. Whether or not 'POT' is included, the density and temperature data should come in the format <'N1' 'T1' 'N2' 'T2' ...> where '1' and '2' often indicate species identifiers (such as 'I' or 'E'). Note that you can write duplicate data by repeating entries. For instance, inputting <'NE' 'TI' 'NE' 'TE'> enforces NI=NE. The order in which the species information is specified should match that in input.namelist.''')
