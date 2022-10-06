@@ -145,12 +145,12 @@ def generatePreamble(radial_coordinate_ID=1):
 
     '''
     Inputs:
-        The (integer) ID for the radial coordinate used in profiles.xxx:
+        The (integer) ID for the radial coordinate used in profiles file:
         0 = psiHat, 1 = psiN, 2 = rHat, 3 = rN.
         Note that BEAMS3D always uses the normalized toroidal flux, which
         corresponds to ID=1 in this context.
     Outputs:
-        String containing the preamble to the profiles.xxx file.
+        String containing the preamble to the profiles file.
     '''
 
     stringToWrite = '# This is an integer specifying the radial coordinate used in this file, which can be different from the one specified by inputRadialCoordinate in input.namelist.\n'
@@ -158,7 +158,6 @@ def generatePreamble(radial_coordinate_ID=1):
     stringToWrite += '# The following lines contain profile information in this format:\n'
     stringToWrite += '# radius\tNErs\tgeneralEr_min\tgeneralEr_max\tnHat(species 1)\tTHat(species 1)\tnHat(species 2)\tTHat(species 2)\t...\n'
     stringToWrite += '# The meaning of the generalEr_* variables is set by inputRadialCoordinateForGradients in input.namelist. The default is Er_*.\n'
-    stringToWrite += '\n'
 
     return stringToWrite
 
@@ -169,31 +168,26 @@ def generateDataText(radii, *funcs):
         radii: A list of radii at which to evaulate *funcs.
         *funcs: functions that can take one element of radii
         at a time and output a single value (each) needed in the
-        profiles.xxx file.
+        profiles file.
     Outputs:
         Text constituting all the computer-readable information 
-        in profiles.xxx except for radial_coordinate_ID.
+        in profiles file except for radial_coordinate_ID.
     '''
     
-    def stringifyItem(item, endOfLine=False, endOfFile=False):
+    def stringifyItem(item, endOfLine=False):
         
-        if endOfFile:
-            out = str(item)
-        elif endOfLine:
-            out = str(item) + '\n'
+        if endOfLine:
+            out = str(item) + '\n' # Note that the last line in the file should have a \n (UNIX standard)
         else:
-            out = str(item) + '\t'
+            out = str(item) + '    ' # Note that the tab character would break sfincsScan
 
         return out
         
     stringOut = ''
-    for radInd, radius in enumerate(radii):
+    for radius in radii:
         stringOut += stringifyItem(radius)
         for func in funcs[:-1]:
             stringOut += stringifyItem(func(radius))
-        if radInd == (len(radii)-1):
-            stringOut += stringifyItem(funcs[-1](radius), endOfLine=True, endOfFile=True)
-        else:
-            stringOut += stringifyItem(funcs[-1](radius), endOfLine=True)
+        stringOut += stringifyItem(funcs[-1](radius), endOfLine=True)
 
     return stringOut
