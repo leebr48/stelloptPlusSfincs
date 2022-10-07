@@ -1,4 +1,4 @@
-# This script creates a SFINCS-readable profiles file. #FIXME all comments and descriptions in this script
+# This script creates a SFINCS-readable profiles file.
 
 # Import necessary packages
 import argparse
@@ -9,7 +9,7 @@ from dataProc import findMinMax, scaleData, nonlinearInterp
 
 # Specify command line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--inFile', type=str, nargs=1, required=True, help='Input file name, with path if necessary.')
+parser.add_argument('--inFile', type=str, nargs=1, required=True, help='File with relevant profiles written as in STELLOPT, with path if necessary. This script currently reads the BEAMS3D section of the STELLOPT namelist file.')
 parser.add_argument("--vars", type=str, nargs='*', required=True, help='''Prefixes of variables to be read, normalized, and written. You should enter each prefix in quotes and put spaces between prefixes. The prefix names are not case sensitive. The density and temperature prefixes should come in the format <'N1' 'T1' 'N2' 'T2' ...> where '1' and '2' often indicate species identifiers (such as 'I' or 'E'). Note that you can write duplicate data by repeating entries. For instance, inputting <'NE' 'TI' 'NE' 'TE'> enforces NI=NE. The order in which the species prefixes are specified should match the species order in input.namelist. If you have potential data to input to calculate the radial electric field, 'POT' can be added anywhere in the list. The potential should give -Er when differentiated with respect to the STELLOPT coordinate S, which is psiN in SFINCS.''')
 parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=None, help='Location in which to save profiles. Defaults to <inFile> location.')
 parser.add_argument('--numRad', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large. Default = 1000.')
