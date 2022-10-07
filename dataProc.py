@@ -37,8 +37,6 @@ def scaleData(dataOfInterest, phiBar, nBar, TBar):
     Outputs:
         dataOfInterest, but with the appropriate values scaled for SFINCS.
     '''
-    
-    import numpy as np
 
     for key, data in dataOfInterest.items():
         
@@ -50,8 +48,8 @@ def scaleData(dataOfInterest, phiBar, nBar, TBar):
             multip = 1/1000/TBar # BEAMS3D uses eV instead of keV
         else:
             raise IOError('I am not sure how to scale at least one of the input data arrays.')
-            
-        scaled = list(np.array(data['dv'])*multip)
+
+        scaled = [item * multip for item in data['dv']]
 
         dataOfInterest[key]['dv'] = scaled
 
