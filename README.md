@@ -1,2 +1,2 @@
-# vmecPlusSfincs
-Scripts for interfacing between VMEC and SFINCS.
+# stelloptPlusSfincs
+Scripts for making STELLOPT and SFINCS work nicely together.
