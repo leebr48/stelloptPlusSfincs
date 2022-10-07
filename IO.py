@@ -159,7 +159,7 @@ def generatePreamble(radial_coordinate_ID=1):
         The (integer) ID for the radial coordinate used in profiles file:
         0 = psiHat, 1 = psiN, 2 = rHat, 3 = rN.
         Note that BEAMS3D always uses the normalized toroidal flux, which
-        corresponds to ID=1 in this context.
+        corresponds to radial_coordinate_ID=1.
     Outputs:
         String containing the preamble to the profiles file.
     '''
@@ -178,8 +178,8 @@ def generateDataText(radii, *funcs):
     Inputs:
         radii: A list of radii at which to evaulate *funcs.
         *funcs: functions that can take one element of radii
-        at a time and output a single value (each) needed in the
-        profiles file.
+                at a time and output a single value (each) 
+                needed in the profiles file.
     Outputs:
         Text constituting all the computer-readable information 
         in profiles file except for radial_coordinate_ID.

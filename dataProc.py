@@ -55,17 +55,23 @@ def scaleData(dataOfInterest, phiBar, nBar, TBar):
 
     return dataOfInterest
 
-def nonlinearInterp(inputData, s=0, k=3, der=0):
+def nonlinearInterp(inputData, ders, k=3, s=0):
 
     '''
     Inputs:
         inputData: dictionary, as from the scaleData function.
+        ders: dictionary with the same keys as inputData and
+              values describing how many derivatives should
+              be taken to determine the final interpolation
+              object. The entries are typically zero, but may
+              be 1 for calculating (say) derivatives of the 
+              electric potential.
+        k: degree of the spline (prior to any derivatives 
+           being taken).
         s: smoothing parameter. For details, see the docs on
            scipy.interpolate.splrep. s=0 corresponds to no
            smoothing, meaning that the interpolation function
            will go through every data point.
-        k: degree of the spline
-        der: order of derivative to be taken
     Outputs:
         inputData, but with SciPy interpolation objects in place
         of the data.
@@ -74,8 +80,8 @@ def nonlinearInterp(inputData, s=0, k=3, der=0):
     from scipy.interpolate import splrep, splev
 
     for key, data in inputData.items():
-        tck = splrep(data['iv'], data['dv'], s=s, k=k)
-        interpObj = lambda x, tck=tck, der=der: splev(x, tck, der=der, ext=2) # Will return error if extrapolation is requested
+        tck = splrep(data['iv'], data['dv'], k=k, s=s)
+        interpObj = lambda x, tck=tck, der=ders[key]: splev(x, tck, der=der, ext=2) # Will return error if extrapolation is requested
         inputData[key] = interpObj
 
     return inputData
