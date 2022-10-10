@@ -15,7 +15,8 @@ def getArgs():
     parser.add_argument('--inFile', type=str, nargs=1, required=True, help='File with relevant profiles written as in STELLOPT, with path if necessary. This script currently reads the BEAMS3D section of the STELLOPT namelist file.')
     parser.add_argument("--vars", type=str, nargs='*', required=True, help='''Prefixes of variables to be read, normalized, and written. You should enter each prefix in quotes and put spaces between prefixes. The prefix names are not case sensitive. The density and temperature prefixes should come in the format <'N1' 'T1' 'N2' 'T2' ...> where '1' and '2' often indicate species identifiers (such as 'I' or 'E'). Note that you can write duplicate data by repeating entries. For instance, inputting <'NE' 'TI' 'NE' 'TE'> enforces NI=NE. The order in which the species prefixes are specified should match the species order in input.namelist. If you have potential data to input to calculate the radial electric field, 'POT' can be added anywhere in the list. The potential should give -Er when differentiated with respect to the STELLOPT coordinate S, which is psiN in SFINCS.''')
     parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=None, help='Location in which to save profiles. Defaults to <inFile> location.')
-    parser.add_argument('--numRad', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large. Default = 1000.')
+    parser.add_argument('--numInterpSurf', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large. Default = 1000.')
+    parser.add_argument('--numCalcSurf', type=int, nargs=1, required=False, default=[16], help='Number of radial surfaces on which to perform full SFINCS calculations. Default = 16.')
     parser.add_argument('--numErScan', type=int, nargs=1, required=False, default=[5], help='If a radial electric field scan should occur: number of scans to perform. This parameter will be overwritten if Er data is provided. Default = 5.')
     parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-10], help='If a radial electric field scan should occur: minimum value of the generalized Er variable. Note that you may need to change this to get good results. This parameter will be overwritten if Er data is provided. Default = -10.')
     parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[10], help='If a radial electric field scan should occur: maximum value of the generalized Er variable. Note that you may need to change this to get good results. This parameter will be overwritten if Er data is provided. Default = 10.')
@@ -26,6 +27,35 @@ def getArgs():
     args = parser.parse_args()
 
     return args
+
+def getFileInfo(inFile, saveLoc):
+
+    '''
+    Inputs:
+        inFile: String with (relative or absolute) path
+                to an input file.
+        saveLoc: String with (relative or absolute) path 
+                 where other files (such as the outputs 
+                 of other scripts) should be saved.
+                 Defaults to the location of inFile, but
+                 can be specified with saveLoc.
+    Outputs:
+        Strings with the inFile absolute path, inFile name,
+        inFile path, and outFile path.
+    '''
+
+    import os
+
+    inFile = os.path.abspath(inFile)
+    inFileName = inFile.split('/')[-1]
+    inFilePath = inFile.replace(inFileName,'')
+
+    if saveLoc == None:
+        outFilePath = inFilePath
+    else:
+        outFilePath = os.path.abspath(saveLoc)
+
+    return inFile, inFileName, inFilePath, outFilePath
 
 def cleanStrings(inputList):
 
@@ -204,7 +234,7 @@ def generateDataText(radii, *funcs):
     '''
     Inputs:
         radii: A list of radii at which to evaulate *funcs.
-        *funcs: functions that can take one element of radii
+        *funcs: Functions that can take one element of radii
                 at a time and output a single value (each) 
                 needed in the profiles file.
     Outputs:

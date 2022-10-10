@@ -30,7 +30,7 @@ def scaleData(dataOfInterest, phiBar, nBar, TBar):
 
     '''
     Inputs:
-        dataOfInterest: dictionary, as from the extractDataList function.
+        dataOfInterest: Dictionary, as from the extractDataList function.
         phiBar: Reference value of the electrostatic potential in units of kV.
         nBar: Reference value of density in units of m^(-3).
         TBar: Reference value of temperature in units of keV.
@@ -59,16 +59,16 @@ def nonlinearInterp(inputData, ders, k=3, s=0):
 
     '''
     Inputs:
-        inputData: dictionary, as from the scaleData function.
-        ders: dictionary with the same keys as inputData and
+        inputData: Dictionary, as from the scaleData function.
+        ders: Dictionary with the same keys as inputData and
               values describing how many derivatives should
               be taken to determine the final interpolation
               object. The entries are typically zero, but may
               be 1 for calculating (say) derivatives of the 
               electric potential.
-        k: degree of the spline (prior to any derivatives 
+        k: Degree of the spline (prior to any derivatives 
            being taken).
-        s: smoothing parameter. For details, see the docs on
+        s: Smoothing parameter. For details, see the docs on
            scipy.interpolate.splrep. s=0 corresponds to no
            smoothing, meaning that the interpolation function
            will go through every data point.

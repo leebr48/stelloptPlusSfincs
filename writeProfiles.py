@@ -1,25 +1,17 @@
 # This script creates a SFINCS-readable profiles file.
 
 # Import necessary packages
-import os
 import numpy as np
-from IO import getArgs, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText
+from IO import getArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText
 from dataProc import findMinMax, scaleData, nonlinearInterp
 
 # Get command line arguments
 args = getArgs()
 
 # Name input and output files
-inFile = os.path.abspath(args.inFile[0])
-inFileName = inFile.split('/')[-1]
-inFilePath = inFile.replace(inFileName,'')
+inFile, inFileName, inFilePath, outFilePath = getFileInfo(args.inFile[0], args.saveLoc[0])
 
-if args.saveLoc == None:
-    outFilePath = inFilePath
-else:
-    outFilePath = os.path.abspath(args.saveLoc[0])
-
-outFileName = 'profiles'
+outFileName = 'profiles' # Name mandated by SFINCS
 
 outFile = outFilePath + '/' + outFileName
 
@@ -54,7 +46,7 @@ interpolatedData = nonlinearInterp(scaledData, ders)
 # Gather the components of profiles file
 radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is S in STELLOPT and psiN in SFINCS.
 
-radii = list(np.linspace(start=radialBounds['min'], stop=radialBounds['max'], num=args.numRad[0], endpoint=True))
+radii = list(np.linspace(start=radialBounds['min'], stop=radialBounds['max'], num=args.numInterpSurf[0], endpoint=True))
 
 if args.constEr:
     # Note that these quantities must be specified for scanType = 5, but they are ignored for scanType = 4.
