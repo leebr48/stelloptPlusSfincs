@@ -1,26 +1,13 @@
 # This script creates a SFINCS-readable profiles file.
 
 # Import necessary packages
-import argparse
 import os
 import numpy as np
-from IO import cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText
+from IO import getArgs, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText
 from dataProc import findMinMax, scaleData, nonlinearInterp
 
-# Specify command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('--inFile', type=str, nargs=1, required=True, help='File with relevant profiles written as in STELLOPT, with path if necessary. This script currently reads the BEAMS3D section of the STELLOPT namelist file.')
-parser.add_argument("--vars", type=str, nargs='*', required=True, help='''Prefixes of variables to be read, normalized, and written. You should enter each prefix in quotes and put spaces between prefixes. The prefix names are not case sensitive. The density and temperature prefixes should come in the format <'N1' 'T1' 'N2' 'T2' ...> where '1' and '2' often indicate species identifiers (such as 'I' or 'E'). Note that you can write duplicate data by repeating entries. For instance, inputting <'NE' 'TI' 'NE' 'TE'> enforces NI=NE. The order in which the species prefixes are specified should match the species order in input.namelist. If you have potential data to input to calculate the radial electric field, 'POT' can be added anywhere in the list. The potential should give -Er when differentiated with respect to the STELLOPT coordinate S, which is psiN in SFINCS.''')
-parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=None, help='Location in which to save profiles. Defaults to <inFile> location.')
-parser.add_argument('--numRad', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large. Default = 1000.')
-parser.add_argument('--numErScan', type=int, nargs=1, required=False, default=[5], help='If a radial electric field scan should occur: number of scans to perform. This parameter will be overwritten if Er data is provided. Default = 5.')
-parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-10], help='If a radial electric field scan should occur: minimum value of the generalized Er variable. Note that you may need to change this to get good results. This parameter will be overwritten if Er data is provided. Default = -10.')
-parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[10], help='If a radial electric field scan should occur: maximum value of the generalized Er variable. Note that you may need to change this to get good results. This parameter will be overwritten if Er data is provided. Default = 10.')
-parser.add_argument('--constEr', action='store_true', required=False, help='Assume the radial electric field is constant (as in scanType = 4). Er is set in input.namelist in this case.')
-parser.add_argument('--phiBar', type=float, nargs=1, required=False, default=[1], help='Reference electrostatic potential in units of kV. Default = 1.')
-parser.add_argument('--nBar', type=float, nargs=1, required=False, default=[1e20], help='Reference density in units of m^(-3). Note that Python "E" notation is equivalent to Fortran "D" notation. Default = 1e20.')
-parser.add_argument('--TBar', type=float, nargs=1, required=False, default=[1], help='Reference temperature in units of keV. Default = 1.')
-args = parser.parse_args()
+# Get command line arguments
+args = getArgs()
 
 # Name input and output files
 inFile = os.path.abspath(args.inFile[0])
