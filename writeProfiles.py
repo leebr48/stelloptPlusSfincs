@@ -1,6 +1,6 @@
 # This script creates a SFINCS-readable profiles file.
 
-# Import necessary packages
+# Import necessary modules
 import numpy as np
 from IO import getArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText
 from dataProc import findMinMax, scaleData, nonlinearInterp
@@ -9,7 +9,7 @@ from dataProc import findMinMax, scaleData, nonlinearInterp
 args = getArgs()
 
 # Name input and output files
-inFile, inFileName, inFilePath, outFilePath = getFileInfo(args.inFile[0], args.saveLoc[0])
+inFile, inFileName, inFilePath, outFilePath = getFileInfo(args.profilesIn[0], args.saveLoc[0])
 
 outFileName = 'profiles' # Name mandated by SFINCS
 
