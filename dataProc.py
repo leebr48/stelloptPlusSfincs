@@ -26,14 +26,18 @@ def findMinMax(dataOfInterest):
 
     return out
 
-def scaleData(dataOfInterest, phiBar, nBar, TBar):
+def scaleData(dataOfInterest, phiBar=1, nBar=1e20, TBar=1):
 
     '''
     Inputs:
         dataOfInterest: Dictionary, as from the extractDataList function.
         phiBar: Reference value of the electrostatic potential in units of kV.
-        nBar: Reference value of density in units of m^(-3).
+                Changing this will break other things!
+        nBar: Reference value of density in units of m^(-3). Note that Python
+              "e" notation is equivalent to Fortran "d" notation.
+              Changing this will break other things!
         TBar: Reference value of temperature in units of keV.
+              Changing this will break other things!
     Outputs:
         dataOfInterest, but with the appropriate values scaled for SFINCS.
     '''

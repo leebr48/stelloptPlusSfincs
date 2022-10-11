@@ -16,10 +16,10 @@ outFile = outFilePath + '/' + outFileName
 eqFile, _, _, _ = getFileInfo(args.eqIn[0], '/arbitrary/path/')
 
 # Sort out some variables prior to printing
-#FIXME should probably be able to do a resolution scan too!
-if args.constEr:
+if args.resScan:
+    scanType = 1
+elif args.constEr[0]:
     scanType = 4
-    #FIXME you need to be able to set the electric field value in this case, perhaps manually
 else:
     scanType = 5
 
@@ -29,8 +29,6 @@ Zs = ' '.join([str(Z) for Z in args.Zs])
 mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in args.mHats])
 
 solverTol = str(args.solverTol[0]).replace('e','d')
-
-#FIXME your reference ("Bar") variables should maybe be set in stone?... Or maybe at least specify all of them (ie, mass too)?
     
 # Create the string to be printed
 #FIXME after getting the standard parameters in here, probably exhaustively set all of them just in case (don't rely on defaults)
@@ -53,10 +51,9 @@ stringToWrite += '&geometryParameters\n'
 stringToWrite += '\tgeometryScheme = 5 ! Read a VMEC wout file to specify the magnetic geometry\n'
 stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0], radialVars[args.radialVar[0]])
 stringToWrite += '\tinputRadialCoordinateForGradients = 1 ! Derivatives wrt psiN (the STELLOPT "S")\n'
-#FIXME should you make the derivative format general?
 stringToWrite += '\tVMECRadialOption = 0 ! Interpolate when the target surface does not exactly match a VMEC flux surface\n'
 stringToWrite += '\tequilibriumFile = "{}"\n'.format(eqFile)
-stringToWrite += '\tmin_Bmn_to_load = 0.0\n' #FIXME might make this a command line option
+stringToWrite += '\tmin_Bmn_to_load = {} ! Only Fourier modes of at least this size will be loaded from the equilibriumFile\n'
 stringToWrite += '/\n'
 stringToWrite += '\n'
 
@@ -70,9 +67,9 @@ stringToWrite += '&physicsParameters\n'
 stringToWrite += '\tDelta = 4.5694d-3 ! Default -> makes reference quantities sensible/easy\n'
 stringToWrite += '\talpha = 1d+0 ! Default -> makes reference quantities sensible/easy\n'
 stringToWrite += '\tnu_n = 8.330d-3 ! Default -> makes reference quantities sensible/easy\n'
-#FIXME maybe don't hardcode these ^ standard values?
+if args.constEr[0]:
+    stringToWrite += '\tdPhiHatdpsiN = {} ! Value of the radial electric field (proxy) that will be used for all flux surfaces\n'.format(args.constEr[0])
 stringToWrite += '\tcollisionOperator = 0 ! Full linearized Fokker-Planck operator\n'
-#FIXME maybe don't hardcode this?
 stringToWrite += '\tincludeXDotTerm = .true. ! Necessary to calculate full trajectories\n'
 stringToWrite += '\tincludeElectricFieldTermInXiDot = .true. ! Necessary to calculate full trajectories\n'
 stringToWrite += '/\n'
