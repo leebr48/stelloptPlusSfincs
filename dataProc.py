@@ -26,6 +26,47 @@ def findMinMax(dataOfInterest):
 
     return out
 
+def findNumCalcs(baseVal, minMaxList, powersMode=False):
+
+    '''
+    Inputs:
+        baseVal: base value of a calculation (such as a parameter
+                 whose convergence is to be tested using sfincsScan).
+        minMaxList: list containing the minimum and maximum values
+                    by which baseVal is to be multiplied, such as in
+                    sfincsScan.
+        powersMode: set the output number of scans based on a logarithmic
+                    scale rather than a linear scale. This is most 
+                    appropriate for scanning over solver tolerances,
+                    where the scan range will be very large.
+    Outputs:
+        A dictionary containing the minimum value in minMaxList (key
+        'min'), the maximum value in minMaxList (key 'max'), and the
+        (integer) maximum number of calculations that should be
+        performed for the given variable during a sfincsScan operation
+        (key 'num'). Note that this function currently gives a much 
+        higher number of evaluations than will actually be used by 
+        sfincsScan since many of the geometry parameters can only be
+        odd integers.
+    '''
+    
+    import numpy as np
+
+    if len(minMaxList) != 2:
+        raise IOError('An input list meant to contain minimum and maximum multipliers for a parameter to be scanned does not have two elements.')
+
+    minMult = min(minMaxList)
+    maxMult = max(minMaxList)
+
+    if powersMode:
+        minimum = baseVal * minMult
+        maximum = baseVal * maxMult
+        out = int(np.ceil(np.log10(maximum / minimum))+1)
+    else:
+        out = int(np.ceil((maxMult - minMult) * baseVal))
+
+    return {'min':minMult, 'max':maxMult, 'num':out}
+
 def scaleData(dataOfInterest, phiBar=1, nBar=1e20, TBar=1):
 
     '''

@@ -2,6 +2,7 @@
 
 # Import necessary modules
 from IO import getArgs, getFileInfo
+from dataProc import findNumCalcs
 
 # Get command line arguments
 args = getArgs()
@@ -28,10 +29,15 @@ radialVars = {0:'psiHat', 1:'psiN', 2:'rHat', 3:'rN'}
 Zs = ' '.join([str(Z) for Z in args.Zs])
 mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in args.mHats])
 
+NthetaScanVars = findNumCalcs(args.Ntheta[0], args.NthetaScan, powersMode=False)
+NzetaScanVars = findNumCalcs(args.Nzeta[0], args.NzetaScan, powersMode=False)
+NxiScanVars = findNumCalcs(args.Nxi[0], args.NxiScan, powersMode=False)
+NxScanVars = findNumCalcs(args.Nx[0], args.NxScan, powersMode=False)
+NLScanVars = findNumCalcs(args.NL[0], args.NLScan, powersMode=False)
+SolverTolScanVars = findNumCalcs(args.solverTol[0], args.solverTolScan, powersMode=True)
 solverTol = str(args.solverTol[0]).replace('e','d')
-    
+
 # Create the string to be printed
-#FIXME after getting the standard parameters in here, probably exhaustively set all of them just in case (don't rely on defaults)
 stringToWrite = '! Input file for SFINCS version 3\n'
 stringToWrite += '\n'
 
@@ -43,7 +49,6 @@ stringToWrite += '!ss {}_max = {} ! Upper bound for the radial scan\n'.format(ra
 stringToWrite += '\n'
 
 stringToWrite += '&general\n'
-#FIXME probably fill out the defaults here
 stringToWrite += '/\n'
 stringToWrite += '\n'
 
@@ -53,6 +58,7 @@ stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0],
 stringToWrite += '\tinputRadialCoordinateForGradients = 1 ! Derivatives wrt psiN (the STELLOPT "S")\n'
 stringToWrite += '\tVMECRadialOption = 0 ! Interpolate when the target surface does not exactly match a VMEC flux surface\n'
 stringToWrite += '\tequilibriumFile = "{}"\n'.format(eqFile)
+stringToWrite += '\tVMEC_Nyquist_option = 2 ! Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available\n'
 stringToWrite += '\tmin_Bmn_to_load = {} ! Only Fourier modes of at least this size will be loaded from the equilibriumFile\n'
 stringToWrite += '/\n'
 stringToWrite += '\n'
@@ -75,38 +81,39 @@ stringToWrite += '\tincludeElectricFieldTermInXiDot = .true. ! Necessary to calc
 stringToWrite += '/\n'
 stringToWrite += '\n'
 
-#FIXME maybe don't hard-code scan parameters like this? Maybe use lists in args for brevity? Maybe a standard formula?
 stringToWrite += '&resolutionParameters\n'
 stringToWrite += '\tNtheta = {} ! Number of poloidal grid points (should be odd)\n'.format(args.Ntheta[0])
-stringToWrite += '!ss NthetaMinFactor = 0.5\n'
-stringToWrite += '!ss NthetaMaxFactor = 2.5\n'
-stringToWrite += '!ss NthetaNumRuns = 35\n'
+stringToWrite += '!ss NthetaMinFactor = {}\n'.format(NthetaScanVars['min'])
+stringToWrite += '!ss NthetaMaxFactor = {}\n'.format(NthetaScanVars['max'])
+stringToWrite += '!ss NthetaNumRuns = {}\n'.format(NthetaScanVars['num'])
 stringToWrite += '\tNzeta = {} ! Number of toroidal grid points per period (should be odd)\n'.format(args.Nzeta[0])
-stringToWrite += '!ss NzetaMinFactor = 0.5\n'
-stringToWrite += '!ss NzetaMaxFactor = 2.5\n'
-stringToWrite += '!ss NzetaNumRuns = 85\n'
+stringToWrite += '!ss NzetaMinFactor = {}\n'.format(NzetaScanVars['min'])
+stringToWrite += '!ss NzetaMaxFactor = {}\n'.format(NzetaScanVars['max'])
+stringToWrite += '!ss NzetaNumRuns = {}\n'.format(NzetaScanVars['num'])
 stringToWrite += '\tNxi = {} ! Number of Legendre polynomials used to represent the pitch-angle dependence of the distribution function\n'.format(args.Nxi[0])
-stringToWrite += '!ss NxiMinFactor = 0.5\n'
-stringToWrite += '!ss NxiMaxFactor = 2.5\n'
-stringToWrite += '!ss NxiNumRuns = 175\n'
+stringToWrite += '!ss NxiMinFactor = {}\n'.format(NxiScanVars['min'])
+stringToWrite += '!ss NxiMaxFactor = {}\n'.format(NxiScanVars['max'])
+stringToWrite += '!ss NxiNumRuns = {}\n'.format(NxiScanVars['num'])
 stringToWrite += '\tNx = {} ! Number of grid points in energy used to represent the distribution function\n'.format(args.Nx[0])
-stringToWrite += '!ss NxMinFactor = 0.5\n'
-stringToWrite += '!ss NxMaxFactor = 2.5\n'
-stringToWrite += '!ss NxNumRuns = 12\n'
+stringToWrite += '!ss NxMinFactor = {}\n'.format(NxScanVars['min'])
+stringToWrite += '!ss NxMaxFactor = {}\n'.format(NxScanVars['max'])
+stringToWrite += '!ss NxNumRuns = {}\n'.format(NxScanVars['num'])
+stringToWrite += '\tNL = {} ! Number of Legendre polynomials used to represent the Rosenbluth potentials\n'.format(args.NL[0])
+stringToWrite += '!ss NLMinFactor = {}\n'.format(NLScanVars['min'])
+stringToWrite += '!ss NLMaxFactor = {}\n'.format(NLScanVars['max'])
+stringToWrite += '!ss NLNumRuns = {}\n'.format(NLScanVars['num'])
 stringToWrite += '\tsolverTolerance = {} ! Tolerance used to define convergence of the iterative solver\n'.format(solverTol)
-stringToWrite += '!ss solverToleranceMinFactor = 0.1\n'
-stringToWrite += '!ss solverToleranceMaxFactor = 10\n'
-stringToWrite += '!ss solverToleranceNumRuns = 3\n'
+stringToWrite += '!ss solverToleranceMinFactor = {}\n'.format(SolverTolScanVars['min'])
+stringToWrite += '!ss solverToleranceMaxFactor = {}\n'.format(SolverTolScanVars['max'])
+stringToWrite += '!ss solverToleranceNumRuns = {}\n'.format(SolverTolScanVars['num'])
 stringToWrite += '/\n'
 stringToWrite += '\n'
 
 stringToWrite += '&otherNumericalParameters\n'
-#FIXME add anything?
 stringToWrite += '/\n'
 stringToWrite += '\n'
 
 stringToWrite += '&preconditionerOptions\n'
-#FIXME add anything?
 stringToWrite += '/\n'
 stringToWrite += '\n'
 
