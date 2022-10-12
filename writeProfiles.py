@@ -31,10 +31,10 @@ else:
 
 radialBounds = findMinMax(dataOfInterest)
 
-# Scale the data according to the reference variable values.
+# Scale the data according to the reference variable values
 scaledData = scaleData(dataOfInterest)
 
-# Interpolate the data in case the radial lists do not all contain the same points.
+# Interpolate the data in case the radial lists do not all contain the same points
 ders = {}
 for key,val in scaledData.items():
     ders[key] = 0
@@ -45,12 +45,12 @@ if not args.constEr[0]:
 interpolatedData = nonlinearInterp(scaledData, ders)
 
 # Gather the components of profiles file
-radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is S in STELLOPT and psiN in SFINCS.
+radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is S in STELLOPT and psiN in SFINCS
 
 radii = list(np.linspace(start=radialBounds['min'], stop=radialBounds['max'], num=args.numInterpSurf[0], endpoint=True))
 
 if args.constEr[0]:
-    # Note that these quantities must be specified for scanType = 5, but they are ignored for scanType = 4.
+    # Note that these quantities must be specified for scanType = 5, but they are ignored for scanType = 4
     # Strictly speaking, we don't need this code, but it might make it easier to hunt down issues later.
     NErs = lambda x: 0
     generalEr_min = lambda x: 0
@@ -59,13 +59,13 @@ if args.constEr[0]:
 else:
     
     if ErDataAvailable:
-        # This is scanType = 5, but with a single value of the electric field specified (no scan).
+        # This is scanType = 5, but with a single value of the electric field specified (no scan)
         NErs = lambda x: 1
         generalEr_min = interpolatedData['pot']
         generalEr_max = interpolatedData['pot']
 
     else:
-        # This is scanType = 5 with a proper electric field scan.
+        # This is scanType = 5 with a proper electric field scan
         NErs = lambda x: args.numErScan[0]
         generalEr_min = lambda x: args.minEr[0]
         generalEr_max = lambda x: args.maxEr[0]

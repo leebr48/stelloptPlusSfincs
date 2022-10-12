@@ -16,7 +16,7 @@ outFile = outFilePath + '/' + outFileName
 
 eqFile, _, _, _ = getFileInfo(args.eqIn[0], '/arbitrary/path/')
 
-# Sort out some variables prior to printing
+# Sort out some variables prior to string creation
 if args.resScan:
     scanType = 1
 elif args.constEr[0]:
@@ -37,7 +37,7 @@ NLScanVars = findNumCalcs(args.NL[0], args.NLScan, powersMode=False)
 SolverTolScanVars = findNumCalcs(args.solverTol[0], args.solverTolScan, powersMode=True)
 solverTol = str(args.solverTol[0]).replace('e','d')
 
-# Create the string to be printed
+# Create the string to be written
 stringToWrite = '! Input file for SFINCS version 3\n'
 stringToWrite += '\n'
 

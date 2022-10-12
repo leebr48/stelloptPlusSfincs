@@ -41,9 +41,13 @@ def getArgs():
     parser.add_argument('--NLScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of NL that will be used if a resolution scan is run.')
     parser.add_argument('--solverTol', type=float, nargs=1, required=False, default=[1e-6], help='Tolerance used to define convergence of the iterative (Krylov) solver.')
     parser.add_argument('--solverTolScan', type=float, nargs=2, required=False, default=[0.1, 10.0], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of solverTolerance that will be used if a resolution scan is run.')
-    parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=None, help='Location in which to save profiles. Defaults to <profilesIn> location.')
+    parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=None, help='Location in which to save written files - this will act as the main directory for a set of SFINCS runs. Defaults to <profilesIn> location.')
+    parser.add_argument('--nTasks', type=int, nargs=1, required=False, default=[8], help='Total number of MPI tasks to use for the SFINCS runs.')
+    parser.add_argument('--mem', type=int, nargs=1, required=False, default=[75000], help='Total amount of memory (MB) allocated for the SFINCS runs.')
+    parser.add_argument('--time', type=str, nargs=1, required=False, default=['00:10:00'], help='Wall clock time limit for the batch runs. Format is HH:MM:SS.')
     parser.add_argument('--noProfiles', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a profiles file.')
     parser.add_argument('--noNamelist', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write an input.namelist file.')
+    parser.add_argument('--noBatch', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a job.sfincsScan file.')
     args = parser.parse_args()
 
     if args.Nyquist[0] not in [1,2]:
