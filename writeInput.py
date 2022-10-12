@@ -58,8 +58,8 @@ stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0],
 stringToWrite += '\tinputRadialCoordinateForGradients = 1 ! Derivatives wrt psiN (the STELLOPT "S")\n'
 stringToWrite += '\tVMECRadialOption = 0 ! Interpolate when the target surface does not exactly match a VMEC flux surface\n'
 stringToWrite += '\tequilibriumFile = "{}"\n'.format(eqFile)
-stringToWrite += '\tVMEC_Nyquist_option = 2 ! Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available\n'
-stringToWrite += '\tmin_Bmn_to_load = {} ! Only Fourier modes of at least this size will be loaded from the equilibriumFile\n'
+stringToWrite += '\tmin_Bmn_to_load = {} ! Only Fourier modes of at least this size will be loaded from the equilibriumFile\n'.format(args.minBmn[0])
+stringToWrite += '\tVMEC_Nyquist_option = {} ! If 2, include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays (where available)\n'.format(args.Nyquist[0])
 stringToWrite += '/\n'
 stringToWrite += '\n'
 
@@ -71,13 +71,14 @@ stringToWrite += '\n'
 
 stringToWrite += '&physicsParameters\n'
 stringToWrite += '\tDelta = 4.5694d-3 ! Default -> makes reference quantities sensible/easy\n'
-stringToWrite += '\talpha = 1d+0 ! Default -> makes reference quantities sensible/easy\n'
+stringToWrite += '\talpha = 1.0d+0 ! Default -> makes reference quantities sensible/easy\n'
 stringToWrite += '\tnu_n = 8.330d-3 ! Default -> makes reference quantities sensible/easy\n'
+stringToWrite += '\tcollisionOperator = 0 ! (Default) Full linearized Fokker-Planck operator\n'
+stringToWrite += '\tincludeXDotTerm = .true. ! (Default) Necessary to calculate full trajectories\n'
+stringToWrite += '\tincludeElectricFieldTermInXiDot = .true. ! (Default) Necessary to calculate full trajectories\n'
+# Note that the physics parameters above this point are SFINCS defaults - they are included only for code self-documentation.
 if args.constEr[0]:
     stringToWrite += '\tdPhiHatdpsiN = {} ! Value of the radial electric field (proxy) that will be used for all flux surfaces\n'.format(args.constEr[0])
-stringToWrite += '\tcollisionOperator = 0 ! Full linearized Fokker-Planck operator\n'
-stringToWrite += '\tincludeXDotTerm = .true. ! Necessary to calculate full trajectories\n'
-stringToWrite += '\tincludeElectricFieldTermInXiDot = .true. ! Necessary to calculate full trajectories\n'
 stringToWrite += '/\n'
 stringToWrite += '\n'
 
