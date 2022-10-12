@@ -126,3 +126,5 @@ stringToWrite += '/\n'
 # Write input.namelist file
 with open(outFile, 'w') as f:
     f.write(stringToWrite)
+
+print('An input.namelist file was written.')

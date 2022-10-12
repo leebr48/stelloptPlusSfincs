@@ -80,3 +80,5 @@ stringToWrite += generateDataText(radii, *funcs)
 # Write profiles file
 with open(outFile, 'w') as f:
     f.write(stringToWrite)
+
+print('A profiles file was written.')
