@@ -44,7 +44,7 @@ def getArgs():
     parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=None, help='Location in which to save written files - this will act as the main directory for a set of SFINCS runs. Defaults to <profilesIn> location.')
     parser.add_argument('--nTasks', type=int, nargs=1, required=False, default=[8], help='Total number of MPI tasks to use for the SFINCS runs.')
     parser.add_argument('--mem', type=int, nargs=1, required=False, default=[75000], help='Total amount of memory (MB) allocated for the SFINCS runs.')
-    parser.add_argument('--time', type=str, nargs=1, required=False, default=['00:10:00'], help='Wall clock time limit for the batch runs. Format is HH:MM:SS.')
+    parser.add_argument('--time', type=str, nargs=1, required=False, default=['00-00:10:00'], help='Wall clock time limit for the batch runs. Format is DD-HH:MM:SS.')
     parser.add_argument('--noProfiles', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a profiles file.')
     parser.add_argument('--noNamelist', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write an input.namelist file.')
     parser.add_argument('--noBatch', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a job.sfincsScan file.')
@@ -67,6 +67,23 @@ def getArgs():
     
     if args.Ntheta[0]%2 == 0:
         raise IOError('<Ntheta> should be odd.')
+    
+    strippedTime = args.time[0].strip()
+    timeDaySplit = strippedTime.split('-')
+    
+    assert len(timeDaySplit) == 2, 'There appears to be more than one "-" character in the <time> input.'
+
+    try:
+        int(timeDaySplit[0])
+    except ValueError:
+        raise IOError('It appears that the "days" portion of the <time> input is incorrect.')
+
+    timeHourSplit = timeDaySplit[-1].split(':')
+
+    try:
+        _ = [int(elem) for elem in timeHourSplit]
+    except ValueError:
+        raise IOError('It appears that at least one of the "hours", "minutes", or "seconds" portions of the <time> input is incorrect.')
 
     return args
 

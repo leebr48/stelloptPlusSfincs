@@ -52,7 +52,7 @@ stringToWrite += '#SBATCH --mail-type=fail,invalid_depend,requeue,stage_out\n'
 stringToWrite += '#SBATCH --mail-user={}\n'.format(email)
 stringToWrite += '#\n'
 stringToWrite += '# Wall clock limit:\n'
-stringToWrite += '#SBATCH --time={}\n'.format(args.time[0])
+stringToWrite += '#SBATCH --time={}\n'.format(args.time[0].strip())
 stringToWrite += '\n'
 stringToWrite += '# Load necessary modules (typically must be the same as those used for compiling the code):\n'
 stringToWrite += 'module purge\n'
