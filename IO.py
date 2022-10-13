@@ -41,7 +41,7 @@ def getArgs():
     parser.add_argument('--NLScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of NL that will be used if a resolution scan is run.')
     parser.add_argument('--solverTol', type=float, nargs=1, required=False, default=[1e-6], help='Tolerance used to define convergence of the iterative (Krylov) solver.')
     parser.add_argument('--solverTolScan', type=float, nargs=2, required=False, default=[0.1, 10.0], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of solverTolerance that will be used if a resolution scan is run.')
-    parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=None, help='Location in which to save written files - this will act as the main directory for a set of SFINCS runs. Defaults to <profilesIn> location.')
+    parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=[None], help='Location in which to save written files - this will act as the main directory for a set of SFINCS runs. Defaults to <profilesIn> location.')
     parser.add_argument('--nTasks', type=int, nargs=1, required=False, default=[8], help='Total number of MPI tasks to use for the SFINCS runs.')
     parser.add_argument('--mem', type=int, nargs=1, required=False, default=[75000], help='Total amount of memory (MB) allocated for the SFINCS runs.')
     parser.add_argument('--time', type=str, nargs=1, required=False, default=['00-00:10:00'], help='Wall clock time limit for the batch runs. Format is DD-HH:MM:SS.')
@@ -94,10 +94,10 @@ def getFileInfo(inFile, saveLoc):
         inFile: String with (relative or absolute) path
                 to an input file.
         saveLoc: String with (relative or absolute) path 
-                 where other files (such as the outputs 
-                 of other scripts) should be saved.
-                 Defaults to the location of inFile, but
-                 can be specified with saveLoc.
+                 where other files (such as the outputs
+                 of other scripts) should be saved. Defaults
+                 to the location of inFile, but can be
+                 specified with <saveLoc> command line option.
     Outputs:
         Strings with the inFile absolute path, inFile name,
         inFile path, and outFile path.
@@ -106,8 +106,8 @@ def getFileInfo(inFile, saveLoc):
     import os
 
     inFile = os.path.abspath(inFile)
-    inFileName = inFile.split('/')[-1]
-    inFilePath = inFile.replace(inFileName,'')
+    inFilePath = os.path.dirname(inFile)
+    inFileName = os.path.basename(inFile)
 
     if saveLoc == None:
         outFilePath = inFilePath

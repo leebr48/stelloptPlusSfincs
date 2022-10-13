@@ -127,7 +127,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-# Customization files
-batch_email.txt
-sfincs_location.txt

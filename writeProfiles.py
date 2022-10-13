@@ -1,84 +1,86 @@
 # This script creates a SFINCS-readable profiles file.
 
-# Import necessary modules
-import numpy as np
-from IO import getArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText
-from dataProc import findMinMax, scaleData, nonlinearInterp
+def run():
 
-# Get command line arguments
-args = getArgs()
+    # Import necessary modules
+    import numpy as np
+    from IO import getArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText
+    from dataProc import findMinMax, scaleData, nonlinearInterp
 
-# Name input and output files
-inFile, inFileName, inFilePath, outFilePath = getFileInfo(args.profilesIn[0], args.saveLoc[0])
+    # Get command line arguments
+    args = getArgs()
 
-outFileName = 'profiles' # Name mandated by SFINCS
+    # Name input and output files
+    inFile, inFileName, inFilePath, outFilePath = getFileInfo(args.profilesIn[0], args.saveLoc[0])
 
-outFile = outFilePath + '/' + outFileName
+    outFileName = 'profiles' # Name mandated by SFINCS
 
-# Clean input variable names and do some clerical checks
-prefixesOfInterest = cleanStrings(args.vars)
+    outFile = outFilePath + '/' + outFileName
 
-# Extract the data from the BEAMS3D input file
-listifiedInFile = listifyBEAMS3DFile(inFile)
+    # Clean input variable names and do some clerical checks
+    prefixesOfInterest = cleanStrings(args.vars)
 
-varsOfInterest = makeProfileNames(prefixesOfInterest)
-dataOfInterest = extractDataList(listifiedInFile, varsOfInterest)
+    # Extract the data from the BEAMS3D input file
+    listifiedInFile = listifyBEAMS3DFile(inFile)
 
-if 'pot' in dataOfInterest.keys():
-    ErDataAvailable = True
-else:
-    ErDataAvailable = False
+    varsOfInterest = makeProfileNames(prefixesOfInterest)
+    dataOfInterest = extractDataList(listifiedInFile, varsOfInterest)
 
-radialBounds = findMinMax(dataOfInterest)
+    if 'pot' in dataOfInterest.keys():
+        ErDataAvailable = True
+    else:
+        ErDataAvailable = False
 
-# Scale the data according to the reference variable values
-scaledData = scaleData(dataOfInterest)
+    radialBounds = findMinMax(dataOfInterest)
 
-# Interpolate the data in case the radial lists do not all contain the same points
-ders = {}
-for key,val in scaledData.items():
-    ders[key] = 0
+    # Scale the data according to the reference variable values
+    scaledData = scaleData(dataOfInterest)
 
-if not args.constEr[0]:
-    ders['pot'] = 1 # Only take a derivative when we'll need it for further calculations
+    # Interpolate the data in case the radial lists do not all contain the same points
+    ders = {}
+    for key,val in scaledData.items():
+        ders[key] = 0
 
-interpolatedData = nonlinearInterp(scaledData, ders)
+    if not args.constEr[0]:
+        ders['pot'] = 1 # Only take a derivative when we'll need it for further calculations
 
-# Gather the components of profiles file
-radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is S in STELLOPT and psiN in SFINCS
+    interpolatedData = nonlinearInterp(scaledData, ders)
 
-radii = list(np.linspace(start=radialBounds['min'], stop=radialBounds['max'], num=args.numInterpSurf[0], endpoint=True))
+    # Gather the components of profiles file
+    radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is S in STELLOPT and psiN in SFINCS
 
-if args.constEr[0]:
-    # Note that these quantities must be specified for scanType = 5, but they are ignored for scanType = 4
-    # Strictly speaking, we don't need this code, but it might make it easier to hunt down issues later.
-    NErs = lambda x: 0
-    generalEr_min = lambda x: 0
-    generalEr_max = lambda x: 0
+    radii = list(np.linspace(start=radialBounds['min'], stop=radialBounds['max'], num=args.numInterpSurf[0], endpoint=True))
 
-else:
-    
-    if ErDataAvailable:
-        # This is scanType = 5, but with a single value of the electric field specified (no scan)
-        NErs = lambda x: 1
-        generalEr_min = interpolatedData['pot']
-        generalEr_max = interpolatedData['pot']
+    if args.constEr[0]:
+        # Note that these quantities must be specified for scanType = 5, but they are ignored for scanType = 4
+        # Strictly speaking, we don't need this code, but it might make it easier to hunt down issues later.
+        NErs = lambda x: 0
+        generalEr_min = lambda x: 0
+        generalEr_max = lambda x: 0
 
     else:
-        # This is scanType = 5 with a proper electric field scan
-        NErs = lambda x: args.numErScan[0]
-        generalEr_min = lambda x: args.minEr[0]
-        generalEr_max = lambda x: args.maxEr[0]
+        
+        if ErDataAvailable:
+            # This is scanType = 5, but with a single value of the electric field specified (no scan)
+            NErs = lambda x: 1
+            generalEr_min = interpolatedData['pot']
+            generalEr_max = interpolatedData['pot']
 
-funcs = [NErs, generalEr_min, generalEr_max]
-funcs.extend([interpolatedData[prefix] for prefix in prefixesOfInterest if prefix != 'pot'])
+        else:
+            # This is scanType = 5 with a proper electric field scan
+            NErs = lambda x: args.numErScan[0]
+            generalEr_min = lambda x: args.minEr[0]
+            generalEr_max = lambda x: args.maxEr[0]
 
-# Get the string to write in profiles file
-stringToWrite = generatePreamble(radial_coordinate_ID)
-stringToWrite += generateDataText(radii, *funcs)
+    funcs = [NErs, generalEr_min, generalEr_max]
+    funcs.extend([interpolatedData[prefix] for prefix in prefixesOfInterest if prefix != 'pot'])
 
-# Write profiles file
-with open(outFile, 'w') as f:
-    f.write(stringToWrite)
+    # Get the string to write in profiles file
+    stringToWrite = generatePreamble(radial_coordinate_ID)
+    stringToWrite += generateDataText(radii, *funcs)
 
-print('A profiles file was written.')
+    # Write profiles file
+    with open(outFile, 'w') as f:
+        f.write(stringToWrite)
+
+    print('A profiles file was written.')
