@@ -21,5 +21,6 @@ if not args.noNamelist:
 if not args.noBatch:
     writeBatch.run()
 
-# Call sfincsScan
-run(['sfincsScan']) 
+# Call sfincsScan if requested
+if not args.noRun:
+    run(['sfincsScan']) 

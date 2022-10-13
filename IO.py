@@ -24,7 +24,7 @@ def getArgs():
     parser.add_argument('--radialMax', type=float, nargs=1, required=False, default=[0.95], help='Upper bound for the radial scan.')
     parser.add_argument('--Zs', type=float, nargs='*', required=False, default=[1, -1], help='Charge of each species in units of the proton charge. The species ordering must match that in the <vars> option.')
     parser.add_argument('--mHats', type=float, nargs='*', required=False, default=[1, 0.000545509], help='Mass of each species in units of the proton mass.')
-    parser.add_argument('--constEr', type=float, nargs=1, required=False, default=[False], help='Assume the radial electric field is a constant value (as in scanType = 4), which is input via this argument in units of dPhiHatdpsiN.')
+    parser.add_argument('--constEr', type=float, nargs=1, required=False, default=[False], help="Assume the radial electric field is a constant value (as in scanType = 4), which is input via this argument in units of dPhiHatdpsiN. Note that if you use <resScan> and want there to be an electric field, you will need to set it with this option.")
     parser.add_argument('--numErScan', type=int, nargs=1, required=False, default=[5], help='If a radial electric field scan should occur: number of scans to perform. This parameter will be overwritten if Er data is provided.')
     parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-10], help='If a radial electric field scan should occur: minimum value of the generalized Er variable. Note that you may need to change this to get good results. This parameter will be overwritten if Er data is provided.')
     parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[10], help='If a radial electric field scan should occur: maximum value of the generalized Er variable. Note that you may need to change this to get good results. This parameter will be overwritten if Er data is provided.')
@@ -48,6 +48,7 @@ def getArgs():
     parser.add_argument('--noProfiles', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a profiles file.')
     parser.add_argument('--noNamelist', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write an input.namelist file.')
     parser.add_argument('--noBatch', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a job.sfincsScan file.')
+    parser.add_argument('--noRun', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not run sfincsScan.')
     args = parser.parse_args()
 
     if args.Nyquist[0] not in [1,2]:
