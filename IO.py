@@ -29,6 +29,11 @@ def getArgs():
     parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-10], help='If a radial electric field scan should occur: minimum value of the generalized Er variable. Note that you may need to change this to get good results. This parameter will be overwritten if Er data is provided.')
     parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[10], help='If a radial electric field scan should occur: maximum value of the generalized Er variable. Note that you may need to change this to get good results. This parameter will be overwritten if Er data is provided.')
     parser.add_argument('--resScan', action='store_true', default=False, help='Triggers a SFINCS resolution scan to be run.')
+    parser.add_argument('--radWish', type=float, nargs=1, required=False, default=[0.5], help='If <resScan> is used, this sets the flux surface (value of the radial coordinate) that will be used for the resolution scan. Note that this is in units of <radialVar>. ')
+    parser.add_argument('--defaultDens', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the density of each species. Note that you must specify a density for EACH species. The exact values are probably not important.')
+    parser.add_argument('--defaultTemps', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the temperature of each species. Note that you must specify a temperature for EACH species. The exact values are probably not important.')
+    parser.add_argument('--defaultDensDer', type=float, nargs='*', required=False, default=[-0.5e0, -0.5e0], help='If <resScan> is used, this sets the derivative of the density of each species with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
+    parser.add_argument('--defaultTempsDer', type=float, nargs='*', required=False, default=[-2e0, -2e0], help='If <resScan> is used, this sets the derivative of the temperature of each species with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
     parser.add_argument('--Nzeta', type=int, nargs=1, required=False, default=[15], help='Number of toroidal grid points per period. This should be an odd number.')
     parser.add_argument('--NzetaScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nzeta that will be used if a resolution scan is run.')
     parser.add_argument('--Ntheta', type=int, nargs=1, required=False, default=[35], help='Number of poloidal grid points. This should be an odd number.')
@@ -62,6 +67,18 @@ def getArgs():
     
     if len(args.mHats) != len(args.vars)/2 and len(args.mHats) != (len(args.vars)-1)/2:
         raise IOError('The <mHats> input length is inconsistent with the <vars> input length.')
+    
+    if len(args.defaultDens) != len(args.vars)/2 and len(args.defaultDens) != (len(args.vars)-1)/2:
+        raise IOError('The <defaultDens> input length is inconsistent with the <vars> input length.')
+    
+    if len(args.defaultTemps) != len(args.vars)/2 and len(args.defaultTemps) != (len(args.vars)-1)/2:
+        raise IOError('The <defaultTemps> input length is inconsistent with the <vars> input length.')
+
+    if len(args.defaultDensDer) != len(args.vars)/2 and len(args.defaultDensDer) != (len(args.vars)-1)/2:
+        raise IOError('The <defaultDensDer> input length is inconsistent with the <vars> input length.')
+    
+    if len(args.defaultTempsDer) != len(args.vars)/2 and len(args.defaultTempsDer) != (len(args.vars)-1)/2:
+        raise IOError('The <defaultTempsDer> input length is inconsistent with the <vars> input length.')
 
     if args.Nzeta[0]%2 == 0:
         raise IOError('<Nzeta> should be odd.')

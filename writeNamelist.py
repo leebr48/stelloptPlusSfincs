@@ -18,6 +18,19 @@ def run():
 
     eqFile, _, _, _ = getFileInfo(args.eqIn[0], '/arbitrary/path/')
 
+    # List out some hard-coded variables
+    profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
+    geometryScheme = 5 # Read a VMEC wout file to specify the magnetic geometry
+    inputRadialCoordinateForGradients = 1 # Derivatives wrt psiN (the STELLOPT "S") - unlikely to change because S is used as the independent variable for specifying profiles in STELLOPT
+    VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
+    Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
+    alpha = str(1.0e+0).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
+    nu_n = str(8.330e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
+    collisionOperator = 0 # (Default) Full linearized Fokker-Planck operator
+    includeXDotTerm = '.true.' # (Default) Necessary to calculate full trajectories
+    includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
+    export_full_f = '.true.' # Save the full distribution function in the output file 
+
     # Sort out some variables prior to string creation
     if args.resScan:
         scanType = 1
@@ -27,9 +40,14 @@ def run():
         scanType = 5
 
     radialVars = {0:'psiHat', 1:'psiN', 2:'rHat', 3:'rN'}
+    selectedRadialVar = radialVars[args.radialVar[0]]
 
     Zs = ' '.join([str(Z) for Z in args.Zs])
     mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in args.mHats])
+    nHats = ' '.join(['{:.15e}'.format(nHat).replace('e','d') for nHat in args.defaultDens])
+    THats = ' '.join(['{:.15e}'.format(THat).replace('e','d') for THat in args.defaultTemps])
+    dNHatdpsiNs = ' '.join(['{:.15e}'.format(dnHat).replace('e','d') for dnHat in args.defaultDensDer])
+    dTHatdpsiNs = ' '.join(['{:.15e}'.format(dTHat).replace('e','d') for dTHat in args.defaultTempsDer])
 
     NthetaScanVars = findNumCalcs(args.Ntheta[0], args.NthetaScan, powersMode=False)
     NzetaScanVars = findNumCalcs(args.Nzeta[0], args.NzetaScan, powersMode=False)
@@ -37,14 +55,14 @@ def run():
     NxScanVars = findNumCalcs(args.Nx[0], args.NxScan, powersMode=False)
     NLScanVars = findNumCalcs(args.NL[0], args.NLScan, powersMode=False)
     SolverTolScanVars = findNumCalcs(args.solverTol[0], args.solverTolScan, powersMode=True)
-    solverTol = str(args.solverTol[0]).replace('e','d')
+    solverTol = str(args.solverTol[0]).lower().replace('e','d')
 
     # Create the string to be written
     stringToWrite = '! Input file for SFINCS version 3\n'
     stringToWrite += '\n'
 
     stringToWrite += '!ss scanType = {} ! Scans of Er are nested within each radial scan\n'.format(scanType)
-    stringToWrite += '!ss profilesScheme = 1 ! The profile information is specified on many flux surfaces rather than using polynomials\n'
+    stringToWrite += '!ss profilesScheme = {} ! The profile information is specified on many flux surfaces rather than using polynomials\n'.format(profilesScheme)
     stringToWrite += '!ss Nradius = {} ! Number of radial surfaces on which to perform full SFINCS calculations\n'.format(args.numCalcSurf[0])
     stringToWrite += '!ss {}_min = {} ! Lower bound for the radial scan\n'.format(radialVars[args.radialVar[0]], args.radialMin[0])
     stringToWrite += '!ss {}_max = {} ! Upper bound for the radial scan\n'.format(radialVars[args.radialVar[0]], args.radialMax[0])
@@ -55,10 +73,12 @@ def run():
     stringToWrite += '\n'
 
     stringToWrite += '&geometryParameters\n'
-    stringToWrite += '\tgeometryScheme = 5 ! Read a VMEC wout file to specify the magnetic geometry\n'
-    stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0], radialVars[args.radialVar[0]])
-    stringToWrite += '\tinputRadialCoordinateForGradients = 1 ! Derivatives wrt psiN (the STELLOPT "S")\n'
-    stringToWrite += '\tVMECRadialOption = 0 ! Interpolate when the target surface does not exactly match a VMEC flux surface\n'
+    stringToWrite += '\tgeometryScheme = {} ! Read a VMEC wout file to specify the magnetic geometry\n'.format(geometryScheme)
+    stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0], selectedRadialVar)
+    if scanType == 1:
+        stringToWrite += '\t{}_wish = {} ! Surface on which to perform the resolution scan\n'.format(selectedRadialVar, args.radWish[0])
+    stringToWrite += '\tinputRadialCoordinateForGradients = {} ! Derivatives wrt psiN (the STELLOPT "S")\n'.format(inputRadialCoordinateForGradients)
+    stringToWrite += '\tVMECRadialOption = {} ! Interpolate when the target surface does not exactly match a VMEC flux surface\n'.format(VMECRadialOption)
     stringToWrite += '\tequilibriumFile = "{}"\n'.format(eqFile)
     stringToWrite += '\tmin_Bmn_to_load = {} ! Only Fourier modes of at least this size will be loaded from the equilibriumFile\n'.format(args.minBmn[0])
     stringToWrite += '\tVMEC_Nyquist_option = {} ! If 2, include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays (where available)\n'.format(args.Nyquist[0])
@@ -68,16 +88,21 @@ def run():
     stringToWrite += '&speciesParameters\n'
     stringToWrite += '\tZs = {} ! Charge of each species in units of the proton charge\n'.format(Zs)
     stringToWrite += '\tmHats = {} ! Mass of each species in units of the proton mass\n'.format(mHats)
+    if scanType == 1:
+        stringToWrite += '\tnHats = {} ! Density of each species to use for the resolution scan\n'.format(nHats)
+        stringToWrite += '\tTHats = {} ! Temperature of each species to use for the resolution scan\n'.format(THats)
+        stringToWrite += '\tdNHatdpsiNs = {} ! Derivative of density wrt psiN for each species to use for the resolution scan\n'.format(dNHatdpsiNs)
+        stringToWrite += '\tdTHatdpsiNs = {} ! Derivative of temperature wrt psiN for each species to use for the resolution scan\n'.format(dTHatdpsiNs)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
     stringToWrite += '&physicsParameters\n'
-    stringToWrite += '\tDelta = 4.5694d-3 ! Default -> makes reference quantities sensible/easy\n'
-    stringToWrite += '\talpha = 1.0d+0 ! Default -> makes reference quantities sensible/easy\n'
-    stringToWrite += '\tnu_n = 8.330d-3 ! Default -> makes reference quantities sensible/easy\n'
-    stringToWrite += '\tcollisionOperator = 0 ! (Default) Full linearized Fokker-Planck operator\n'
-    stringToWrite += '\tincludeXDotTerm = .true. ! (Default) Necessary to calculate full trajectories\n'
-    stringToWrite += '\tincludeElectricFieldTermInXiDot = .true. ! (Default) Necessary to calculate full trajectories\n'
+    stringToWrite += '\tDelta = {} ! Default -> makes reference quantities sensible/easy\n'.format(Delta)
+    stringToWrite += '\talpha = {} ! Default -> makes reference quantities sensible/easy\n'.format(alpha)
+    stringToWrite += '\tnu_n = {} ! Default -> makes reference quantities sensible/easy\n'.format(nu_n)
+    stringToWrite += '\tcollisionOperator = {} ! (Default) Full linearized Fokker-Planck operator\n'.format(collisionOperator)
+    stringToWrite += '\tincludeXDotTerm = {} ! (Default) Necessary to calculate full trajectories\n'.format(includeXDotTerm)
+    stringToWrite += '\tincludeElectricFieldTermInXiDot = {} ! (Default) Necessary to calculate full trajectories\n'.format(includeElectricFieldTermInXiDot)
     # Note that the physics parameters above this point are SFINCS defaults - they are included only for code self-documentation.
     if args.constEr[0]:
         stringToWrite += '\tdPhiHatdpsiN = {} ! Value of the radial electric field (proxy) that will be used for all flux surfaces\n'.format(args.constEr[0])
@@ -121,8 +146,7 @@ def run():
     stringToWrite += '\n'
 
     stringToWrite += '&export_f\n'
-    stringToWrite += '\texport_full_f = .true.\n'
-    stringToWrite += '\texport_delta_f = .true.\n'
+    stringToWrite += '\texport_full_f = {} ! Whether or not to save the full distribution function in the output file\n'.format(export_full_f)
     stringToWrite += '/\n'
 
     # Write input.namelist file
