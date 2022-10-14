@@ -54,6 +54,7 @@ def getArgs():
     parser.add_argument('--noNamelist', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write an input.namelist file.')
     parser.add_argument('--noBatch', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a job.sfincsScan file.')
     parser.add_argument('--noRun', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not run sfincsScan.')
+    parser.add_argument('--noConfirm', action='store_true', default=False, help='Instruct sfincsScan to create folders and jobs without asking for confirmation first.')
     args = parser.parse_args()
 
     if args.Nyquist[0] not in [1,2]:
@@ -105,7 +106,7 @@ def getArgs():
 
     return args
 
-def getFileInfo(inFile, saveLoc):
+def getFileInfo(inFile, saveLoc, outFileName):
 
     '''
     Inputs:
@@ -116,9 +117,10 @@ def getFileInfo(inFile, saveLoc):
                  of other scripts) should be saved. Defaults
                  to the location of inFile, but can be
                  specified with <saveLoc> command line option.
+        outFileName: String with name for an outFile.
     Outputs:
         Strings with the inFile absolute path, inFile name,
-        inFile path, and outFile path.
+        inFile path, outFile path, and outFile absolute path.
     '''
 
     import os
@@ -132,7 +134,9 @@ def getFileInfo(inFile, saveLoc):
     else:
         outFilePath = os.path.abspath(saveLoc)
 
-    return inFile, inFileName, inFilePath, outFilePath
+    outFile = os.path.join(outFilePath, outFileName)
+
+    return inFile, inFileName, inFilePath, outFilePath, outFile
 
 def cleanStrings(inputList):
 
@@ -336,3 +340,21 @@ def generateDataText(radii, *funcs):
         stringOut += stringifyItem(funcs[-1](radius), endOfLine=True)
 
     return stringOut
+
+def writeFile(outFile, stringToWrite):
+
+    '''
+    Inputs:
+        outFile: absolute name (with path) of file
+                 to be written.
+        stringToWrite: string to write in outFile.
+    Outputs:
+        [A written file and a notification message.]
+    '''
+   
+    _, outFileName, _, _, _ = getFileInfo(outFile, 'arbitrary/path/', 'arbitrary')
+
+    with open(outFile, 'w') as f:
+        f.write(stringToWrite)
+
+    print('{} file was written.'.format(outFileName))

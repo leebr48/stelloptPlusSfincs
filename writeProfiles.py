@@ -4,18 +4,14 @@ def run():
 
     # Import necessary modules
     import numpy as np
-    from IO import getArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText
+    from IO import getArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText, writeFile
     from dataProc import findMinMax, scaleData, nonlinearInterp
 
     # Get command line arguments
     args = getArgs()
 
     # Name input and output files
-    inFile, inFileName, inFilePath, outFilePath = getFileInfo(args.profilesIn[0], args.saveLoc[0])
-
-    outFileName = 'profiles' # Name mandated by SFINCS
-
-    outFile = outFilePath + '/' + outFileName
+    inFile, _, _, _, outFile = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'profiles') # Name mandated by SFINCS
 
     # Clean input variable names and do some clerical checks
     prefixesOfInterest = cleanStrings(args.vars)
@@ -80,7 +76,4 @@ def run():
     stringToWrite += generateDataText(radii, *funcs)
 
     # Write profiles file
-    with open(outFile, 'w') as f:
-        f.write(stringToWrite)
-
-    print('A profiles file was written.')
+    writeFile(outFile, stringToWrite)

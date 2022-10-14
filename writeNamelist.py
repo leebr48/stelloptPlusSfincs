@@ -3,20 +3,16 @@
 def run():
 
     # Import necessary modules
-    from IO import getArgs, getFileInfo
+    from IO import getArgs, getFileInfo, writeFile
     from dataProc import findNumCalcs
 
     # Get command line arguments
     args = getArgs()
 
     # Name input and output files
-    _, _, _, outFilePath = getFileInfo(args.profilesIn[0], args.saveLoc[0])
+    _, _, _, _, outFile = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'input.namelist') # Name mandated by SFINCS
 
-    outFileName = 'input.namelist' # Name mandated by SFINCS
-
-    outFile = outFilePath + '/' + outFileName
-
-    eqFile, _, _, _ = getFileInfo(args.eqIn[0], '/arbitrary/path/')
+    eqFile, _, _, _, _ = getFileInfo(args.eqIn[0], '/arbitrary/path/', 'arbitrary')
 
     # List out some hard-coded variables
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
@@ -150,7 +146,4 @@ def run():
     stringToWrite += '/\n'
 
     # Write input.namelist file
-    with open(outFile, 'w') as f:
-        f.write(stringToWrite)
-
-    print('An input.namelist file was written.')
+    writeFile(outFile, stringToWrite)

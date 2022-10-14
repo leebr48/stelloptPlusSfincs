@@ -3,27 +3,24 @@
 def run():
     
     # Import necessary modules
-    import os
-    from IO import getArgs, getFileInfo
+    from os import environ
+    from IO import getArgs, getFileInfo, writeFile
 
     # Get command line arguments
     args = getArgs()
 
-    # Name input and output files
-    _, _, _, outFilePath = getFileInfo(args.profilesIn[0], args.saveLoc[0])
-
-    outFileName = 'job.sfincsScan'
-
-    outFile = outFilePath + '/' + outFileName
+    # Name output file
+    _, _, _, _, outFile = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'job.sfincsScan')
 
     # Load the email address to notify of job developments
-    email = os.environ['SFINCS_BATCH_EMAIL']
+    email = environ['SFINCS_BATCH_EMAIL']
 
     # Load the location of the SFINCS directory
-    sfincsLoc = os.environ['SFINCS_PATH'] + '/fortran/version3/sfincs'
+    sfincsLoc = environ['SFINCS_PATH'] + '/fortran/version3/sfincs'
 
     # Load the machine name
-    machine = os.environ['MACHINE']
+    machineVar = 'MACHINE'
+    machine = environ[machineVar]
 
     # Create the string to be written
     stringToWrite = '#!/bin/bash -l\n'
@@ -63,14 +60,16 @@ def run():
         stringToWrite += 'module load netcdf-mpi/4.7.0\n'
         stringToWrite += '\n'
     else:
-        raise OSError('This machine (as identified by the bash "MACHINE" variable) is not recognized. ' + \
-            'Please add the necessary "module load" commands to writeBatch.py.')
+        from os.path import abspath
+        from inspect import getfile, currentframe
+        thisFile = abspath(getfile(currentframe()))
+        _, thisFileName, _, _, _ = getFileInfo(thisFile, 'arbitrary/path', 'arbitrary')
+        errString = 'This machine (as identified by the "{}" environment variable)'.format(machineVar)
+        errString += ' is not recognized. Please add the necessary "module load" commands to {}.'.format(thisFileName)
+        raise OSError(errString)
 
     stringToWrite += '# Run the program:\n'
     stringToWrite += 'srun {} -ksp_view\n'.format(sfincsLoc)
 
     # Write job.sfincsScan file
-    with open(outFile, 'w') as f:
-        f.write(stringToWrite)
-
-    print('A job.sfincsScan file was written.')
+    writeFile(outFile, stringToWrite)

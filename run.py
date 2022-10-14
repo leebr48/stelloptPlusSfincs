@@ -3,7 +3,7 @@
 
 # Import necessary modules
 from subprocess import run
-from IO import getArgs
+from IO import getArgs, getFileInfo
 import writeProfiles
 import writeNamelist
 import writeBatch
@@ -23,4 +23,9 @@ if not args.noBatch:
 
 # Call sfincsScan if requested
 if not args.noRun:
-    run(['sfincsScan']) 
+    _, _, _, outFilePath, _ = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'arbitrary')
+    
+    if args.noConfirm:
+        run(['sfincsScan', 'arbitraryCommandLineArg'], cwd=outFilePath)
+    else:
+        run(['sfincsScan'], cwd=outFilePath) 
