@@ -30,7 +30,7 @@ def run():
     # Sort out some variables prior to string creation
     if args.resScan:
         scanType = 1
-    elif args.constEr[0]:
+    elif args.constEr[0] is not False:
         scanType = 4
     else:
         scanType = 5
@@ -100,7 +100,7 @@ def run():
     stringToWrite += '\tincludeXDotTerm = {} ! (Default) Necessary to calculate full trajectories\n'.format(includeXDotTerm)
     stringToWrite += '\tincludeElectricFieldTermInXiDot = {} ! (Default) Necessary to calculate full trajectories\n'.format(includeElectricFieldTermInXiDot)
     # Note that the physics parameters above this point are SFINCS defaults - they are included only for code self-documentation.
-    if args.constEr[0]:
+    if args.constEr[0] is not False:
         stringToWrite += '\tdPhiHatdpsiN = {} ! Value of the radial electric field (proxy) that will be used for all flux surfaces\n'.format(args.constEr[0])
     stringToWrite += '/\n'
     stringToWrite += '\n'
