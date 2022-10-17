@@ -4,7 +4,7 @@ def getArgs():
 
     '''
     Inputs:
-        No direct inputs. See below for command line inputs.
+        [No direct inputs. See below for command line inputs.]
     Outputs:
         Arguments that can be passed to other scripts.
     '''
@@ -35,17 +35,17 @@ def getArgs():
     parser.add_argument('--defaultDensDer', type=float, nargs='*', required=False, default=[-0.5e0, -0.5e0], help='If <resScan> is used, this sets the derivative of the density of each species with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
     parser.add_argument('--defaultTempsDer', type=float, nargs='*', required=False, default=[-2e0, -2e0], help='If <resScan> is used, this sets the derivative of the temperature of each species with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
     parser.add_argument('--Nzeta', type=int, nargs=1, required=False, default=[15], help='Number of toroidal grid points per period. This should be an odd number.')
-    parser.add_argument('--NzetaScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nzeta that will be used if a resolution scan is run.')
+    parser.add_argument('--NzetaScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nzeta that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--Ntheta', type=int, nargs=1, required=False, default=[35], help='Number of poloidal grid points. This should be an odd number.')
-    parser.add_argument('--NthetaScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Ntheta that will be used if a resolution scan is run.')
+    parser.add_argument('--NthetaScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Ntheta that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--Nxi', type=int, nargs=1, required=False, default=[70], help='Number of Legendre polynomials used to represent the pitch-angle dependence of the distribution function.')
-    parser.add_argument('--NxiScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nxi that will be used if a resolution scan is run.')
+    parser.add_argument('--NxiScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nxi that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--Nx', type=int, nargs=1, required=False, default=[5], help='Number of grid points in energy used to represent the distribution function.')
-    parser.add_argument('--NxScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nx that will be used if a resolution scan is run.')
+    parser.add_argument('--NxScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nx that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--NL', type=int, nargs=1, required=False, default=[4], help='Number of Legendre polynomials used to represent the Rosenbluth potentials. Increasing this hardly changes the results, so it can almost certainly be left alone.')
-    parser.add_argument('--NLScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of NL that will be used if a resolution scan is run.')
+    parser.add_argument('--NLScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of NL that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--solverTol', type=float, nargs=1, required=False, default=[1e-6], help='Tolerance used to define convergence of the iterative (Krylov) solver.')
-    parser.add_argument('--solverTolScan', type=float, nargs=2, required=False, default=[0.1, 10.0], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of solverTolerance that will be used if a resolution scan is run.')
+    parser.add_argument('--solverTolScan', type=float, nargs=2, required=False, default=[0.1, 10.0], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of solverTolerance that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=[None], help='Location in which to save written files - this will act as the main directory for a set of SFINCS runs. Defaults to <profilesIn> location.')
     parser.add_argument('--nTasks', type=int, nargs=1, required=False, default=[8], help='Total number of MPI tasks to use for the SFINCS runs.')
     parser.add_argument('--mem', type=int, nargs=1, required=False, default=[75000], help='Total amount of memory (MB) allocated for the SFINCS runs.')

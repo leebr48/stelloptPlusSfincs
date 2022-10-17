@@ -3,6 +3,7 @@
 
 # Import necessary modules
 from subprocess import run
+from os import makedirs
 from IO import getArgs, getFileInfo
 import writeProfiles
 import writeNamelist
@@ -10,6 +11,10 @@ import writeBatch
 
 # Get command line arguments
 args = getArgs()
+
+# Make target directory if it does not exist
+_, _, _, outDir, _ = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'arbitrary')
+makedirs(outDir, exist_ok=True) # Note that this has file overwrite powers!
 
 # Write requested files
 if not args.noProfiles:

@@ -58,12 +58,15 @@ def findNumCalcs(baseVal, minMaxList, powersMode=False):
     minMult = min(minMaxList)
     maxMult = max(minMaxList)
 
-    if powersMode:
-        minimum = baseVal * minMult
-        maximum = baseVal * maxMult
-        out = int(np.ceil(np.log10(maximum / minimum))+1)
+    if minMult == 0 and maxMult == 0:
+        out = 0
     else:
-        out = int(np.ceil((maxMult - minMult) * baseVal))
+        if powersMode:
+            minimum = baseVal * minMult
+            maximum = baseVal * maxMult
+            out = int(np.ceil(np.log10(maximum / minimum)) + 1)
+        else:
+            out = int(np.ceil((maxMult - minMult) * baseVal))
 
     return {'min':minMult, 'max':maxMult, 'num':out}
 
