@@ -3,7 +3,13 @@
 
 # Import necessary modules
 from subprocess import run
+from os.path import dirname, abspath, join
 from os import makedirs
+import sys
+from inspect import getfile, currentframe
+
+thisDir = dirname(abspath(getfile(currentframe())))
+sys.path.append(join(thisDir,'src/'))
 from IO import getArgs, getFileInfo
 import writeProfiles
 import writeNamelist
