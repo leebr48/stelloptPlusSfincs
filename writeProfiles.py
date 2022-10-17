@@ -4,6 +4,8 @@ def run():
 
     # Import necessary modules
     import numpy as np
+    from os.path import join
+    from matplotlib.pyplot import subplots
     from IO import getArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText, writeFile
     from dataProc import findMinMax, scaleData, nonlinearInterp
 
@@ -11,7 +13,10 @@ def run():
     args = getArgs()
 
     # Name input and output files
-    inFile, _, _, _, outFile = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'profiles') # Name mandated by SFINCS
+    inFile, _, _, outDir, outFile = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'profiles') # Name mandated by SFINCS
+    
+    plotName = 'interpFuncFit'
+    plotFile = join(outDir, plotName+'.pdf')
 
     # Clean input variable names and do some clerical checks
     prefixesOfInterest = cleanStrings(args.vars)
@@ -31,13 +36,13 @@ def run():
 
     # Scale the data according to the reference variable values
     scaledData = scaleData(dataOfInterest)
-
+    
     # Interpolate the data in case the radial lists do not all contain the same points
     ders = {}
     for key,val in scaledData.items():
         ders[key] = 0
 
-    if not args.constEr[0]:
+    if args.constEr[0] is False:
         ders['pot'] = 1 # Only take a derivative when we'll need it for further calculations
 
     interpolatedData = nonlinearInterp(scaledData, ders)
@@ -47,7 +52,7 @@ def run():
 
     radii = list(np.linspace(start=radialBounds['min'], stop=radialBounds['max'], num=args.numInterpSurf[0], endpoint=True))
 
-    if args.constEr[0]:
+    if args.constEr[0] is not False:
         # Note that these quantities must be specified for scanType = 5, but they are ignored for scanType = 4
         # Strictly speaking, we don't need this code, but it might make it easier to hunt down issues later.
         NErs = lambda x: 0
@@ -70,6 +75,22 @@ def run():
 
     funcs = [NErs, generalEr_min, generalEr_max]
     funcs.extend([interpolatedData[prefix] for prefix in prefixesOfInterest if prefix != 'pot'])
+
+    # Plot the fitted interpolation functions to ensure they represent the data well
+    fig,ax = subplots()
+
+    leg = []
+    for key, data in scaledData.items():
+        ax.scatter(data['iv'], data['dv'])
+        ax.plot(radii, interpolatedData[key](radii))
+        leg.append(key)
+
+    ax.legend(leg, loc='best')
+    ax.set_xlabel(r'SFINCS $\psi_{N}$ $\left(= \mathrm{STELLOPT}{\ }S\right)$')
+    ax.set_ylabel('Normalized Value')
+
+    fig.savefig(plotFile, bbox_inches='tight', dpi=400)
+    print('{} plot created.'.format(plotName))
 
     # Get the string to write in profiles file
     stringToWrite = generatePreamble(radial_coordinate_ID)

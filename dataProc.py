@@ -127,9 +127,10 @@ def nonlinearInterp(inputData, ders, k=3, s=0):
 
     from scipy.interpolate import splrep, splev
 
+    outputData = {}
     for key, data in inputData.items():
         tck = splrep(data['iv'], data['dv'], k=k, s=s)
-        interpObj = lambda x, tck=tck, der=ders[key]: splev(x, tck, der=der, ext=2) # Will return error if extrapolation is requested
-        inputData[key] = interpObj
+        interpObj = lambda x, tck=tck, der=ders[key]: splev(x, tck, der=der, ext=2) # Will raise an error if extrapolation is requested
+        outputData[key] = interpObj
 
-    return inputData
+    return outputData
