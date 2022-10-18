@@ -357,4 +357,4 @@ def writeFile(outFile, stringToWrite):
     with open(outFile, 'w') as f:
         f.write(stringToWrite)
 
-    print('{} file was written.'.format(outFileName))
+    print('{} file written.'.format(outFileName))
