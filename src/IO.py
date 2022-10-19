@@ -19,21 +19,22 @@ def getArgs():
     parser.add_argument('--Nyquist', type=int, nargs=1, required=False, default=[2], help='Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available, if this parameter is set to 2. Exclude these mode numbers if this parameter is set to 1.')
     parser.add_argument('--numInterpSurf', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large.')
     parser.add_argument('--radialVar', type=int, nargs=1, required=False, default=[3], help='ID of the radial coordinate used in the input.namelist file to specify which surfaces should be scanned over. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, and 3 = rN (which is the STELLOPT rho)')
+    parser.add_argument('--radialGradientVar', type=int, nargs=1, required=False, default=[4], help='ID of the radial coordinate used to take derivatives. Relevant for the generalEr_* parameters in the profiles file and specifying the density and temperature derivatives on a single flux suface. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, 3 = rN (which is the STELLOPT rho), and 4 = rHat (like option 2, except that Er is used in place of dPhiHatdrHat). The default is recommended.')
     parser.add_argument('--numCalcSurf', type=int, nargs=1, required=False, default=[16], help='Number of radial surfaces on which to perform full SFINCS calculations.')
     parser.add_argument('--radialMin', type=float, nargs=1, required=False, default=[0.05], help='Lower bound for the radial scan.')
     parser.add_argument('--radialMax', type=float, nargs=1, required=False, default=[0.95], help='Upper bound for the radial scan.')
     parser.add_argument('--Zs', type=float, nargs='*', required=False, default=[1, -1], help='Charge of each species in units of the proton charge. The species ordering must match that in the <vars> option.')
     parser.add_argument('--mHats', type=float, nargs='*', required=False, default=[1, 0.000545509], help='Mass of each species in units of the proton mass.')
-    parser.add_argument('--constEr', type=float, nargs=1, required=False, default=[False], help="Assume the radial electric field is a constant value (as in scanType = 4), which is input via this argument in units of dPhiHatdpsiN. Note that if you use <resScan> and want there to be an electric field, you will need to set it with this option.")
-    parser.add_argument('--numErScan', type=int, nargs=1, required=False, default=[5], help='If a radial electric field scan should occur: number of scans to perform. This parameter will be overwritten if Er data is provided.')
-    parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-10], help='If a radial electric field scan should occur: minimum value of the generalized Er variable. Note that you may need to change this to get good results. This parameter will be overwritten if Er data is provided.')
-    parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[10], help='If a radial electric field scan should occur: maximum value of the generalized Er variable. Note that you may need to change this to get good results. This parameter will be overwritten if Er data is provided.')
-    parser.add_argument('--resScan', action='store_true', default=False, help='Triggers a SFINCS resolution scan to be run.')
+    parser.add_argument('--seedEr', type=float, nargs=1, required=False, default=[0], help="Input an initial guess for the radial electric field in units of <radialGradientVar>. The default value is typically fine. This will be overwritten if you trigger an electric field scan with <numManErScan>.")
+    parser.add_argument('--numManErScan', type=int, nargs=1, required=False, default=[0], help='Number of manual radial electric field scans to perform (using scanType=5). Note that the internal root-finding algorithms in SFINCS are quite reliable and will usually converge to the correct answer. If they fail, you can give them better initial guesses using this parameter, <minEr>, and <maxEr>. This parameter will be overwritten if <resScan> is activated.')
+    parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-50], help='If a radial electric field scan should occur: minimum seed value of the generalized Er variable. Note that you may need to change this to get good results.')
+    parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[50], help='If a radial electric field scan should occur: maximum seed value of the generalized Er variable. Note that you may need to change this to get good results.')
+    parser.add_argument('--resScan', action='store_true', default=False, help='Triggers a SFINCS resolution scan run.')
     parser.add_argument('--radWish', type=float, nargs=1, required=False, default=[0.5], help='If <resScan> is used, this sets the flux surface (value of the radial coordinate) that will be used for the resolution scan. Note that this is in units of <radialVar>. ')
-    parser.add_argument('--defaultDens', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the density of each species. Note that you must specify a density for EACH species. The exact values are probably not important.')
-    parser.add_argument('--defaultTemps', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the temperature of each species. Note that you must specify a temperature for EACH species. The exact values are probably not important.')
-    parser.add_argument('--defaultDensDer', type=float, nargs='*', required=False, default=[-0.5e0, -0.5e0], help='If <resScan> is used, this sets the derivative of the density of each species with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
-    parser.add_argument('--defaultTempsDer', type=float, nargs='*', required=False, default=[-2e0, -2e0], help='If <resScan> is used, this sets the derivative of the temperature of each species with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
+    parser.add_argument('--defaultDens', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the density of each species in units of 1e20 m^-3. Note that you must specify a density for EACH species. The exact values are probably not important.')
+    parser.add_argument('--defaultTemps', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the temperature of each species in keV. Note that you must specify a temperature for EACH species. The exact values are probably not important.')
+    parser.add_argument('--defaultDensDer', type=float, nargs='*', required=False, default=[-0.5e0, -0.5e0], help='If <resScan> is used, this sets the derivative of the density of each species (in units of 1e20 m^-3) with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
+    parser.add_argument('--defaultTempsDer', type=float, nargs='*', required=False, default=[-2e0, -2e0], help='If <resScan> is used, this sets the derivative of the temperature of each species (in keV) with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
     parser.add_argument('--Nzeta', type=int, nargs=1, required=False, default=[45], help='Number of toroidal grid points per period. This should be an odd number.')
     parser.add_argument('--NzetaScan', type=float, nargs=2, required=False, default=[0.5, 2.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nzeta that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--Ntheta', type=int, nargs=1, required=False, default=[45], help='Number of poloidal grid points. This should be an odd number.')
@@ -57,11 +58,17 @@ def getArgs():
     parser.add_argument('--noConfirm', action='store_true', default=False, help='Instruct sfincsScan to create folders and jobs without asking for confirmation first.')
     args = parser.parse_args()
 
+    if args.minEr >= args.maxEr:
+        raise IOError('<minEr> must be less than <maxEr>.')
+
     if args.Nyquist[0] not in [1,2]:
         raise IOError('An invalid <Nyquist> choice was specified. Valid inputs are the integers 1 and 2.')
 
     if args.radialVar[0] not in [0,1,2,3]:
         raise IOError('An invalid <radialVar> choice was specified. Valid inputs are the integers 0, 1, 2, and 3.')
+    
+    if args.radialGradientVar[0] not in [0,1,2,3,4]:
+        raise IOError('An invalid <radialGradientVar> choice was specified. Valid inputs are the integers 0, 1, 2, 3, and 4.')
 
     if len(args.Zs) != len(args.vars)/2 and len(args.Zs) != (len(args.vars)-1)/2:
         raise IOError('The <Zs> input length is inconsistent with the <vars> input length.')
@@ -302,11 +309,11 @@ def generatePreamble(radial_coordinate_ID=1):
         String containing the preamble to the profiles file.
     '''
 
-    stringToWrite = '# This is an integer specifying the radial coordinate used in this file, which can be different from the one specified by inputRadialCoordinate in input.namelist.\n'
+    stringToWrite = '# This is an integer specifying the radial coordinate used in this file, which can be different from the one specified by inputRadialCoordinate in input.namelist (<radialVar>).\n'
     stringToWrite += '{}\n'.format(radial_coordinate_ID)
     stringToWrite += '# The following lines contain profile information in this format:\n'
     stringToWrite += '# radius\tNErs\tgeneralEr_min\tgeneralEr_max\tnHat(species 1)\tTHat(species 1)\tnHat(species 2)\tTHat(species 2)\t...\n'
-    stringToWrite += '# The meaning of the generalEr_* variables is set by inputRadialCoordinateForGradients in input.namelist. The default is Er_*.\n'
+    stringToWrite += '# The meaning of the generalEr_* variables is set by inputRadialCoordinateForGradients in input.namelist (<radialGradientVar>).\n'
 
     return stringToWrite
 

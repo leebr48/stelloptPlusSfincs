@@ -16,8 +16,8 @@ def run():
 
     # List out some hard-coded variables
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
+    ambipolarSolve = '.true.' # Determine the ambipolar Er
     geometryScheme = 5 # Read a VMEC wout file to specify the magnetic geometry
-    inputRadialCoordinateForGradients = 1 # Derivatives wrt psiN (the STELLOPT "S") - unlikely to change because S is used as the independent variable for specifying profiles in STELLOPT
     VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
     Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
     alpha = str(1.0e+0).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
@@ -30,20 +30,25 @@ def run():
     # Sort out some variables prior to string creation
     if args.resScan:
         scanType = 1
-    elif args.constEr[0] is not False:
+    elif args.numManErScan[0] == 0:
         scanType = 4
     else:
         scanType = 5
 
-    radialVars = {0:'psiHat', 1:'psiN', 2:'rHat', 3:'rN'}
+    ErDiff = args.maxEr[0] - args.minEr[0]
+    Er_min = args.minEr[0] - 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
+    Er_max = args.maxEr[0] + 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
+    
+    radialVars = {0:'psiHat', 1:'psiN', 2:'rHat', 3:'rN', 4:'rHat'}
     selectedRadialVar = radialVars[args.radialVar[0]]
+    selectedRadialGradientVar = radialVars[args.radialGradientVar[0]] # Note that option 4 has special Er behavior (see <help> for details)
 
     Zs = ' '.join([str(Z) for Z in args.Zs])
     mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in args.mHats])
     nHats = ' '.join(['{:.15e}'.format(nHat).replace('e','d') for nHat in args.defaultDens])
     THats = ' '.join(['{:.15e}'.format(THat).replace('e','d') for THat in args.defaultTemps])
-    dNHatdpsiNs = ' '.join(['{:.15e}'.format(dnHat).replace('e','d') for dnHat in args.defaultDensDer])
-    dTHatdpsiNs = ' '.join(['{:.15e}'.format(dTHat).replace('e','d') for dTHat in args.defaultTempsDer])
+    dNHatDer = ' '.join(['{:.15e}'.format(dnHat).replace('e','d') for dnHat in args.defaultDensDer])
+    dTHatDer = ' '.join(['{:.15e}'.format(dTHat).replace('e','d') for dTHat in args.defaultTempsDer])
 
     NthetaScanVars = findNumCalcs(args.Ntheta[0], args.NthetaScan, powersMode=False)
     NzetaScanVars = findNumCalcs(args.Nzeta[0], args.NzetaScan, powersMode=False)
@@ -57,7 +62,7 @@ def run():
     stringToWrite = '! Input file for SFINCS version 3\n'
     stringToWrite += '\n'
 
-    stringToWrite += '!ss scanType = {} ! Scans of Er are nested within each radial scan\n'.format(scanType)
+    stringToWrite += '!ss scanType = {}\n'.format(scanType)
     stringToWrite += '!ss profilesScheme = {} ! The profile information is specified on many flux surfaces rather than using polynomials\n'.format(profilesScheme)
     stringToWrite += '!ss Nradius = {} ! Number of radial surfaces on which to perform full SFINCS calculations\n'.format(args.numCalcSurf[0])
     stringToWrite += '!ss {}_min = {} ! Lower bound for the radial scan\n'.format(radialVars[args.radialVar[0]], args.radialMin[0])
@@ -65,6 +70,10 @@ def run():
     stringToWrite += '\n'
 
     stringToWrite += '&general\n'
+    stringToWrite += '\tambipolarSolve = {} ! Determine the ambipolar Er\n'.format(ambipolarSolve)
+    if scanType == 5:
+        stringToWrite += '\tEr_min = {} ! Minimum value of Er accessible to ambipolarSolve\n'.format(Er_min)
+        stringToWrite += '\tEr_max = {} ! Maximum value of Er accessible to ambipolarSolve\n'.format(Er_max)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
@@ -73,7 +82,7 @@ def run():
     stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0], selectedRadialVar)
     if scanType == 1:
         stringToWrite += '\t{}_wish = {} ! Surface on which to perform the resolution scan\n'.format(selectedRadialVar, args.radWish[0])
-    stringToWrite += '\tinputRadialCoordinateForGradients = {} ! Derivatives wrt psiN (the STELLOPT "S")\n'.format(inputRadialCoordinateForGradients)
+    stringToWrite += '\tinputRadialCoordinateForGradients = {} ! {}\n'.format(args.radialGradientVar[0], selectedRadialGradientVar)
     stringToWrite += '\tVMECRadialOption = {} ! Interpolate when the target surface does not exactly match a VMEC flux surface\n'.format(VMECRadialOption)
     stringToWrite += '\tequilibriumFile = "{}"\n'.format(eqFile)
     stringToWrite += '\tmin_Bmn_to_load = {} ! Only Fourier modes of at least this size will be loaded from the equilibriumFile\n'.format(args.minBmn[0])
@@ -87,8 +96,8 @@ def run():
     if scanType == 1:
         stringToWrite += '\tnHats = {} ! Density of each species to use for the resolution scan\n'.format(nHats)
         stringToWrite += '\tTHats = {} ! Temperature of each species to use for the resolution scan\n'.format(THats)
-        stringToWrite += '\tdNHatdpsiNs = {} ! Derivative of density wrt psiN for each species to use for the resolution scan\n'.format(dNHatdpsiNs)
-        stringToWrite += '\tdTHatdpsiNs = {} ! Derivative of temperature wrt psiN for each species to use for the resolution scan\n'.format(dTHatdpsiNs)
+        stringToWrite += '\tdNHatd{}s = {} ! Derivative of density wrt psiN for each species to use for the resolution scan\n'.format(selectedRadialGradientVar, dNHatDer)
+        stringToWrite += '\tdTHatd{}s = {} ! Derivative of temperature wrt psiN for each species to use for the resolution scan\n'.format(selectedRadialGradientVar, dTHatDer)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
@@ -100,8 +109,10 @@ def run():
     stringToWrite += '\tincludeXDotTerm = {} ! (Default) Necessary to calculate full trajectories\n'.format(includeXDotTerm)
     stringToWrite += '\tincludeElectricFieldTermInXiDot = {} ! (Default) Necessary to calculate full trajectories\n'.format(includeElectricFieldTermInXiDot)
     # Note that the physics parameters above this point are SFINCS defaults - they are included only for code self-documentation.
-    if args.constEr[0] is not False:
-        stringToWrite += '\tdPhiHatdpsiN = {} ! Value of the radial electric field (proxy) that will be used for all flux surfaces\n'.format(args.constEr[0])
+    if args.radialGradientVar[0] != 4:
+        stringToWrite += '\tdPhiHatd{} = {} ! Value of the radial electric field (proxy) that will be used for all flux surfaces\n'.format(selectedRadialGradientVar, args.seedEr[0])
+    else:
+        stringToWrite += '\tEr = {} ! Value of the radial electric field that will be used for all flux surfaces\n'.format(args.seedEr[0])
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
