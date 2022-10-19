@@ -27,11 +27,6 @@ def run():
     varsOfInterest = makeProfileNames(prefixesOfInterest)
     dataOfInterest = extractDataList(listifiedInFile, varsOfInterest)
 
-    if 'pot' in dataOfInterest.keys():
-        ErDataAvailable = True
-    else:
-        ErDataAvailable = False
-
     radialBounds = findMinMax(dataOfInterest)
 
     # Scale the data according to the reference variable values
@@ -42,9 +37,6 @@ def run():
     for key,val in scaledData.items():
         ders[key] = 0
 
-    if args.constEr[0] is False:
-        ders['pot'] = 1 # Only take a derivative when we'll need it for further calculations
-
     interpolatedData = nonlinearInterp(scaledData, ders)
 
     # Gather the components of profiles file
@@ -52,29 +44,14 @@ def run():
 
     radii = list(np.linspace(start=radialBounds['min'], stop=radialBounds['max'], num=args.numInterpSurf[0], endpoint=True))
 
-    if args.constEr[0] is not False:
-        # Note that these quantities must be specified for scanType = 5, but they are ignored for scanType = 4
-        # Strictly speaking, we don't need this code, but it might make it easier to hunt down issues later.
-        NErs = lambda x: 0
-        generalEr_min = lambda x: 0
-        generalEr_max = lambda x: 0
-
-    else:
-        
-        if ErDataAvailable:
-            # This is scanType = 5, but with a single value of the electric field specified (no scan)
-            NErs = lambda x: 1
-            generalEr_min = interpolatedData['pot']
-            generalEr_max = interpolatedData['pot']
-
-        else:
-            # This is scanType = 5 with a proper electric field scan
-            NErs = lambda x: args.numErScan[0]
-            generalEr_min = lambda x: args.minEr[0]
-            generalEr_max = lambda x: args.maxEr[0]
+    # Note that NErs, generalEr_min, and generalEr_max are only used by SFINCS if scanType = 5.
+    NErs = lambda x: args.numManErScan[0]
+    generalEr_min = lambda x: args.minEr[0]
+    generalEr_max = lambda x: args.maxEr[0]
 
     funcs = [NErs, generalEr_min, generalEr_max]
-    funcs.extend([interpolatedData[prefix] for prefix in prefixesOfInterest if prefix != 'pot'])
+
+    funcs.extend([interpolatedData[prefix] for prefix in prefixesOfInterest])
 
     # Plot the fitted interpolation functions to ensure they represent the data well
     fig,ax = subplots()
