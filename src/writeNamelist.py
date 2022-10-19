@@ -25,6 +25,7 @@ def run():
     collisionOperator = 0 # (Default) Full linearized Fokker-Planck operator
     includeXDotTerm = '.true.' # (Default) Necessary to calculate full trajectories
     includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
+    magneticDriftScheme = 1 # Whether or not to include angular drifts, and if so, what model to use
     export_full_f = '.true.' # Save the full distribution function in the output file 
 
     # Sort out some variables prior to string creation
@@ -113,6 +114,7 @@ def run():
         stringToWrite += '\tdPhiHatd{} = {} ! Value of the radial electric field (proxy) that will be used for all flux surfaces\n'.format(selectedRadialGradientVar, args.seedEr[0])
     else:
         stringToWrite += '\tEr = {} ! Value of the radial electric field that will be used for all flux surfaces\n'.format(args.seedEr[0])
+    stringToWrite += '\tmagneticDriftScheme = {} ! Whether or not to include angular drifts, and if so, what model to use\n'.format(magneticDriftScheme)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
