@@ -29,8 +29,6 @@ def run():
     stringToWrite += '#SBATCH -e ./sfincsJob.err.%j\n'
     stringToWrite += '# Initial working directory:\n'
     stringToWrite += '#SBATCH -D ./\n'
-    stringToWrite += '# Job Name:\n'
-    stringToWrite += '#SBATCH -J sfincs\n'
     stringToWrite += '#\n'
     stringToWrite += '# Number of MPI Tasks:\n'
     stringToWrite += '#SBATCH --ntasks={}\n'.format(args.nTasks[0])
