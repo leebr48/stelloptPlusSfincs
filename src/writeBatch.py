@@ -30,10 +30,15 @@ def run():
     stringToWrite += '# Initial working directory:\n'
     stringToWrite += '#SBATCH -D ./\n'
     stringToWrite += '#\n'
-    stringToWrite += '# Number of MPI Tasks:\n'
-    stringToWrite += '#SBATCH --ntasks={}\n'.format(args.nTasks[0])
-    stringToWrite += '# Memory allocation (MB) of the job:\n'
-    stringToWrite += '#SBATCH --mem={}\n'.format(args.mem[0])
+    stringToWrite += '# Resource allocation:\n'
+    if args.nNodes[0] is not None:
+        stringToWrite += '#SBATCH --nodes={}\n'.format(args.nNodes[0])
+    if args.nTasksPerNode[0] is not None:
+        stringToWrite += '#SBATCH --ntasks-per-node={}\n'.format(args.nTasksPerNode[0])
+    if args.nTasks[0] is not None:
+        stringToWrite += '#SBATCH --ntasks-per-node={}\n'.format(args.nTasks[0])
+    if args.mem[0] is not None:
+        stringToWrite += '#SBATCH --mem={}\n'.format(args.mem[0])
     stringToWrite += '#\n'
     if args.notifs[0] == 'bad':
         stringToWrite += '#SBATCH --mail-type=fail,invalid_depend,requeue,stage_out\n'

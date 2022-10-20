@@ -34,9 +34,7 @@ if not args.noBatch:
 
 # Call sfincsScan if requested
 if not args.noRun:
-    _, _, _, outFilePath, _ = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'arbitrary')
-    
     if args.noConfirm:
-        run(['sfincsScan', 'arbitraryCommandLineArg'], cwd=outFilePath)
+        run(['sfincsScan', 'arbitraryCommandLineArg'], cwd=outDir)
     else:
-        run(['sfincsScan'], cwd=outFilePath) 
+        run(['sfincsScan'], cwd=outDir) 
