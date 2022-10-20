@@ -37,7 +37,12 @@ def run():
     stringToWrite += '# Memory allocation (MB) of the job:\n'
     stringToWrite += '#SBATCH --mem={}\n'.format(args.mem[0])
     stringToWrite += '#\n'
-    stringToWrite += '#SBATCH --mail-type=fail,invalid_depend,requeue,stage_out\n'
+    if args.notifs[0] == 'bad':
+        stringToWrite += '#SBATCH --mail-type=fail,invalid_depend,requeue,stage_out\n'
+    elif args.notifs[0] == 'all':
+        stringToWrite += '#SBATCH --mail-type=all\n'
+    elif args.notifs[0] == 'none':
+        stringToWrite += '#SBATCH --mail-type=none\n'
     stringToWrite += '#SBATCH --mail-user={}\n'.format(email)
     stringToWrite += '#\n'
     stringToWrite += '# Wall clock limit:\n'

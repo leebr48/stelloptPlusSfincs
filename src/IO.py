@@ -54,6 +54,7 @@ def getArgs():
     parser.add_argument('--noNamelist', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write an input.namelist file.')
     parser.add_argument('--noBatch', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a job.sfincsScan file.')
     parser.add_argument('--noRun', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not run sfincsScan.')
+    parser.add_argument('--notifs', type=str, nargs=1, required=False, default=['bad'], help='Dictate which SLURM notification emails you would like to receive. By default, you will only receive emails when something bad happens to your job (such as a failure). You may also specify "all" or "none", which have the (intuitive) meanings indicated in the SLURM documentation.')
     parser.add_argument('--noConfirm', action='store_true', default=False, help='Instruct sfincsScan to create folders and jobs without asking for confirmation first.')
     args = parser.parse_args()
 
@@ -109,6 +110,9 @@ def getArgs():
         _ = [int(elem) for elem in timeHourSplit]
     except ValueError:
         raise IOError('It appears that at least one of the "hours", "minutes", or "seconds" portions of the <time> input is incorrect.')
+
+    if args.notifs[0].lower() not in ['bad', 'all', 'none']:
+        raise IOError('Invalid option specified for <notifs>. Valid options are "bad", "all", and "none".')
 
     return args
 
