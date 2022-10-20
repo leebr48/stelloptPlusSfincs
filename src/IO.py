@@ -12,10 +12,10 @@ def getArgs():
     import argparse
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('profilesIn', type=str, nargs=1, help='File with relevant profiles written as in STELLOPT, with path if necessary. This script currently reads the BEAMS3D section of the STELLOPT namelist file.')
-    parser.add_argument('eqIn', type=str, nargs=1, help='File from which to load the magnetic equilibrium. Can be a VMEC wout file in netCDF or ASCII format, or an IPP .bc file.')
+    parser.add_argument('--profilesIn', type=str, nargs='*', required=True, help='File(s) with relevant profiles written as in STELLOPT, with path(s) if necessary. This script currently reads the BEAMS3D section of the STELLOPT namelist file. If you input multiple files, order matters!')
+    parser.add_argument('--eqIn', type=str, nargs='*', help='File(s) from which to load the magnetic equilibrium. Can be VMEC wout file(s) in netCDF or ASCII format, or IPP .bc file(s). If you input multiple files, order matters!')
     parser.add_argument("--vars", type=str, nargs='*', required=False, default=['NE', 'TI', 'NE', 'TE'], help='''Prefixes of variables to be read, normalized, and written. You should enter each prefix in quotes and put spaces between prefixes. The prefix names are not case sensitive. The density and temperature prefixes should come in the format <'N1' 'T1' 'N2' 'T2' ...> where '1' and '2' often indicate species identifiers (such as 'I' or 'E'). Note that you can write duplicate data by repeating entries. For instance, inputting <'NE' 'TI' 'NE' 'TE'> enforces NI=NE. The order in which the species prefixes are specified should match the species order in input.namelist. If you have potential data to input to calculate the radial electric field, 'POT' can be added anywhere in the list. The potential should give -Er when differentiated with respect to the STELLOPT coordinate S, which is psiN in SFINCS.''')
-    parser.add_argument('--minBmn', type=float, nargs=1, required=False, default=[0.0], help='Only Fourier modes of at least this size will be loaded from the <eqIn> file.')
+    parser.add_argument('--minBmn', type=float, nargs=1, required=False, default=[0.0], help='Only Fourier modes of at least this size will be loaded from the <eqIn> file(s).')
     parser.add_argument('--Nyquist', type=int, nargs=1, required=False, default=[2], help='Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available, if this parameter is set to 2. Exclude these mode numbers if this parameter is set to 1.')
     parser.add_argument('--numInterpSurf', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large.')
     parser.add_argument('--radialVar', type=int, nargs=1, required=False, default=[3], help='ID of the radial coordinate used in the input.namelist file to specify which surfaces should be scanned over. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, and 3 = rN (which is the STELLOPT rho)')
@@ -46,7 +46,7 @@ def getArgs():
     parser.add_argument('--NLScan', type=float, nargs=2, required=False, default=[0.5, 1.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of NL that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--solverTol', type=float, nargs=1, required=False, default=[1e-6], help='Tolerance used to define convergence of the iterative (Krylov) solver.')
     parser.add_argument('--solverTolScan', type=float, nargs=2, required=False, default=[0.1, 10.0], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of solverTolerance that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
-    parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=[None], help='Location in which to save written files - this will act as the main directory for a set of SFINCS runs. Defaults to <profilesIn> location.')
+    parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save written files - this will act as the main directory(ies) for a set of SFINCS runs. Defaults to <profilesIn> location(s). If you input multiple files, order matters! Note that if you specify 1 <saveLoc> and multiple <profilesIn> or <eqIn>, the code will attempt to save all the generated files in the same directory. Due to the current (strict) naming conventions of SFINCS, this is probably not useful because the last-written files will overwrite their predecessors, but the feature is included for completeness.')
     parser.add_argument('--nNodes', type=int, nargs=1, required=False, default=[None], help='Total number of nodes to use for each SFINCS run. You must specify at least one of <nNodes> and <nTasks>.')
     parser.add_argument('--nTasksPerNode', type=int, nargs=1, required=False, default=[None], help='Number of MPI tasks to use on each node for each SFINCS run. This parameter should only be used if <nNodes> is specified and should not be used with <nTasks>.')
     parser.add_argument('--nTasks', type=int, nargs=1, required=False, default=[None], help='Total number of MPI tasks to use for each SFINCS run. You must specify at least one of <nNodes> and <nTasks>.')
@@ -96,6 +96,12 @@ def getArgs():
     if args.Ntheta[0]%2 == 0:
         raise IOError('<Ntheta> should be odd.')
     
+    lens = [len(args.profilesIn), len(args.eqIn), len(args.saveLoc)]
+    maxLen = max(lens)
+    for length in lens:
+        if length != 1 and length != maxLen:
+            raise IOError('Regarding <profilesIn>, <eqIn>, and <saveLoc>: any of these three inputs with length greater than 1 must have the same length as the other inputs with length greater than 1.')
+
     if args.nNodes[0] is None and args.nTasks[0] is None:
         raise IOError('You must specify at least one of <nNodes> and <nTasks>.')
 
@@ -144,18 +150,18 @@ def getFileInfo(inFile, saveLoc, outFileName):
         inFile path, outFile path, and outFile absolute path.
     '''
 
-    import os
+    from os.path import abspath, dirname, basename, join
 
-    inFile = os.path.abspath(inFile)
-    inFilePath = os.path.dirname(inFile)
-    inFileName = os.path.basename(inFile)
+    inFile = abspath(inFile)
+    inFilePath = dirname(inFile)
+    inFileName = basename(inFile)
 
     if saveLoc == None:
         outFilePath = inFilePath
     else:
-        outFilePath = os.path.abspath(saveLoc)
+        outFilePath = abspath(saveLoc)
 
-    outFile = os.path.join(outFilePath, outFileName)
+    outFile = join(outFilePath, outFileName)
 
     return inFile, inFileName, inFilePath, outFilePath, outFile
 

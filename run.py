@@ -4,7 +4,7 @@
 # Import necessary modules
 from subprocess import run
 from os.path import dirname, abspath, join
-from os import makedirs
+from os import makedirs, environ
 import sys
 from inspect import getfile, currentframe
 
@@ -18,23 +18,52 @@ import writeBatch
 # Get command line arguments
 args = getArgs()
 
-# Make target directory if it does not exist
-_, _, _, outDir, _ = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'arbitrary')
-makedirs(outDir, exist_ok=True) # Note that this has file overwrite powers!
-
-# Write requested files
-if not args.noProfiles:
-    writeProfiles.run()
-
-if not args.noNamelist:
-    writeNamelist.run()
-
-if not args.noBatch:
-    writeBatch.run()
-
-# Call sfincsScan if requested
-if not args.noRun:
-    if args.noConfirm:
-        run(['sfincsScan', 'arbitraryCommandLineArg'], cwd=outDir)
+# Organize the directories that we will work in
+IOlists = {'profilesIn':args.profilesIn, 'eqIn':args.eqIn, 'saveLoc':args.saveLoc}
+maxLen = max([len(data) for key,data in IOlists.items()]) # Due to the checks performed on args, each list will have length maxLen or 1.
+longLists = []
+for key,data in IOlists.items():
+    if len(data) != maxLen:
+        IOlists[key] = data * maxLen
     else:
-        run(['sfincsScan'], cwd=outDir) 
+        longLists.append(key)
+
+# If saveLoc was not specified, decide whether to use the profiles or equilibria locations
+if all([item == None for item in IOlists['saveLoc']]):
+    if 'profilesIn' in longLists:
+        saveDefaultTarget = IOlists['profilesIn']
+    else:
+        saveDefaultTarget = IOlists['eqIn']
+else:
+    saveDefaultTarget = [join(location,'arbitrary') for location in IOlists['saveLoc']]
+
+# Loop through the working directories
+for i in range(maxLen):
+    profilesInUse = IOlists['profilesIn'][i]
+    eqInUse = IOlists['eqIn'][i]
+    actualSaveLoc = dirname(saveDefaultTarget[i])
+    
+    # Make target directory if it does not exist
+    _, _, _, outDir, _ = getFileInfo('arbitrary/path', actualSaveLoc, 'arbitrary')
+    makedirs(outDir, exist_ok=True) # Note that this script has file overwrite powers!
+
+    # Write requested files
+    if not args.noProfiles:
+        writeProfiles.run(profilesInUse, outDir)
+
+    if not args.noNamelist:
+        writeNamelist.run(profilesInUse, outDir, eqInUse)
+
+    if not args.noBatch:
+        writeBatch.run(profilesInUse, outDir)
+
+    # Call sfincsScan if requested
+    if not args.noRun:
+        execLoc = join(environ['SFINCS_PATH'],'fortran/version3/utils/sfincsScan')
+
+        if args.noConfirm:
+            run([execLoc, 'arbitraryCommandLineArg'], cwd=outDir)
+        else:
+            run([execLoc], cwd=outDir)
+
+    print('***Setup/run task {} of {} completed in {}.***'.format(i+1, maxLen, outDir))

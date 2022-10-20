@@ -1,6 +1,10 @@
 # This script creates a SFINCS-readable input.namelist file.
 
-def run():
+def run(profilesInUse, saveLocUse, eqInUse):
+    
+    '''
+    The inputs are set by a wrapper script.
+    '''
 
     # Import necessary modules
     from IO import getArgs, getFileInfo, writeFile
@@ -10,9 +14,9 @@ def run():
     args = getArgs()
 
     # Name input and output files
-    _, _, _, _, outFile = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'input.namelist') # Name mandated by SFINCS
+    _, _, _, _, outFile = getFileInfo(profilesInUse, saveLocUse, 'input.namelist') # Name mandated by SFINCS
 
-    eqFile, _, _, _, _ = getFileInfo(args.eqIn[0], '/arbitrary/path/', 'arbitrary')
+    eqFile, _, _, _, _ = getFileInfo(eqInUse, '/arbitrary/path/', 'arbitrary')
 
     # List out some hard-coded variables
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much

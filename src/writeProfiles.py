@@ -1,6 +1,10 @@
 # This script creates a SFINCS-readable profiles file.
 
-def run():
+def run(profilesInUse, saveLocUse):
+
+    '''
+    The inputs are set by a wrapper script.
+    '''
 
     # Import necessary modules
     import numpy as np
@@ -13,7 +17,7 @@ def run():
     args = getArgs()
 
     # Name input and output files
-    inFile, _, _, outDir, outFile = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'profiles') # Name mandated by SFINCS
+    inFile, _, _, outDir, outFile = getFileInfo(profilesInUse, saveLocUse, 'profiles') # Name mandated by SFINCS
     
     plotName = 'interpFuncFit'
     plotFile = join(outDir, plotName+'.pdf')

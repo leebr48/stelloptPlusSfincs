@@ -1,8 +1,13 @@
 # This script creates a job.sfincsScan batch script.
 
-def run():
+def run(profilesInUse, saveLocUse):
+    
+    '''
+    The inputs are set by a wrapper script.
+    '''
     
     # Import necessary modules
+    from os.path import join
     from os import environ
     from IO import getArgs, getFileInfo, writeFile
 
@@ -10,13 +15,13 @@ def run():
     args = getArgs()
 
     # Name output file
-    _, _, _, _, outFile = getFileInfo(args.profilesIn[0], args.saveLoc[0], 'job.sfincsScan')
+    _, _, _, _, outFile = getFileInfo(profilesInUse, saveLocUse, 'job.sfincsScan')
 
     # Load the email address to notify of job developments
     email = environ['SFINCS_BATCH_EMAIL']
 
     # Load the location of the SFINCS directory
-    sfincsLoc = environ['SFINCS_PATH'] + '/fortran/version3/sfincs'
+    sfincsLoc = join(environ['SFINCS_PATH'],'fortran/version3/sfincs')
 
     # Load the machine name
     machineVar = 'MACHINE'
