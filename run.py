@@ -66,4 +66,4 @@ for i in range(maxLen):
         else:
             run([execLoc], cwd=outDir)
 
-    print('***Setup/run task {} of {} completed in {}.***'.format(i+1, maxLen, outDir))
+    print('***StelloptPlusSfincs: Setup and/or run task(s) {} of {} completed in {}.***'.format(i+1, maxLen, outDir))
