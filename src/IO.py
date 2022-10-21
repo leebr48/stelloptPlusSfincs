@@ -27,8 +27,8 @@ def getRunArgs():
     parser.add_argument('--mHats', type=float, nargs='*', required=False, default=[1, 0.000545509], help='Mass of each species in units of the proton mass.')
     parser.add_argument('--seedEr', type=float, nargs=1, required=False, default=[0], help="Input an initial guess for the radial electric field in units of <radialGradientVar>. The default value is typically fine. This will be overwritten if you trigger an electric field scan with <numManErScan>.")
     parser.add_argument('--numManErScan', type=int, nargs=1, required=False, default=[0], help='Number of manual radial electric field scans to perform (using scanType=5). Note that the internal root-finding algorithms in SFINCS are quite reliable and will usually converge to the correct answer. If they fail, you can give them better initial guesses using this parameter, <minEr>, and <maxEr>. This parameter will be overwritten if <resScan> is activated.')
-    parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-50], help='If a radial electric field scan should occur: minimum seed value of the generalized Er variable. Note that you may need to change this to get good results.')
-    parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[50], help='If a radial electric field scan should occur: maximum seed value of the generalized Er variable. Note that you may need to change this to get good results.')
+    parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-50], help='Minimum seed value of the generalized Er variable. This parameter is also used to derive the smallest electric field available to ambipolarSolve. Note that you may need to change this to get good results.')
+    parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[50], help='Maximum seed value of the generalized Er variable. This parameter is also used to derive the largest electric field available to ambipolarSolve. Note that you may need to change this to get good results.')
     parser.add_argument('--resScan', action='store_true', default=False, help='Triggers a SFINCS resolution scan run.')
     parser.add_argument('--defaultDens', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the density of each species in units of 1e20 m^-3. Note that you must specify a density for EACH species. The exact values are probably not important.')
     parser.add_argument('--defaultTemps', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the temperature of each species in keV. Note that you must specify a temperature for EACH species. The exact values are probably not important.')
@@ -409,3 +409,26 @@ def writeFile(outFile, stringToWrite):
         f.write(stringToWrite)
 
     print('{} file written.'.format(outFileName))
+
+def findFiles(name, path):
+
+    '''
+    Inputs:
+        name: string with the name of a file to search for.
+              Note that the name must be exact (there is
+              no name matching).
+        path: string with path to search (recursively)
+              for name.
+    Outputs:
+        List with absolute paths to files called name
+        within path.
+    '''
+    
+    from os import walk
+    from os.path import join
+
+    result = []
+    for root, dirs, files in walk(path):
+        if name in files:
+            result.append(join(root, name))
+    return result

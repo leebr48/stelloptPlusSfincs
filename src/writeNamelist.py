@@ -76,9 +76,8 @@ def run(profilesInUse, saveLocUse, eqInUse):
 
     stringToWrite += '&general\n'
     stringToWrite += '\tambipolarSolve = {} ! Determine the ambipolar Er\n'.format(ambipolarSolve)
-    if scanType == 5:
-        stringToWrite += '\tEr_min = {} ! Minimum value of Er accessible to ambipolarSolve\n'.format(Er_min)
-        stringToWrite += '\tEr_max = {} ! Maximum value of Er accessible to ambipolarSolve\n'.format(Er_max)
+    stringToWrite += '\tEr_min = {} ! Minimum value of Er accessible to ambipolarSolve\n'.format(Er_min)
+    stringToWrite += '\tEr_max = {} ! Maximum value of Er accessible to ambipolarSolve\n'.format(Er_max)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
