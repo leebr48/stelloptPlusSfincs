@@ -10,11 +10,11 @@ def run(profilesInUse, saveLocUse):
     import numpy as np
     from os.path import join
     from matplotlib.pyplot import subplots
-    from IO import getArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText, writeFile
+    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText, writeFile
     from dataProc import findMinMax, scaleData, nonlinearInterp
 
     # Get command line arguments
-    args = getArgs()
+    args = getRunArgs()
 
     # Name input and output files
     inFile, _, _, outDir, outFile = getFileInfo(profilesInUse, saveLocUse, 'profiles') # Name mandated by SFINCS

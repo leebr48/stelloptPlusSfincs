@@ -9,10 +9,10 @@ def run(profilesInUse, saveLocUse):
     # Import necessary modules
     from os.path import join
     from os import environ
-    from IO import getArgs, getFileInfo, writeFile
+    from IO import getRunArgs, getFileInfo, writeFile
 
     # Get command line arguments
-    args = getArgs()
+    args = getRunArgs()
 
     # Name output file
     _, _, _, _, outFile = getFileInfo(profilesInUse, saveLocUse, 'job.sfincsScan')

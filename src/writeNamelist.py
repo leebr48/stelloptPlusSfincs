@@ -7,11 +7,11 @@ def run(profilesInUse, saveLocUse, eqInUse):
     '''
 
     # Import necessary modules
-    from IO import getArgs, getFileInfo, writeFile
+    from IO import getRunArgs, getFileInfo, writeFile
     from dataProc import findNumCalcs
 
     # Get command line arguments
-    args = getArgs()
+    args = getRunArgs()
 
     # Name input and output files
     _, _, _, _, outFile = getFileInfo(profilesInUse, saveLocUse, 'input.namelist') # Name mandated by SFINCS

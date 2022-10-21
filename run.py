@@ -2,21 +2,21 @@
 # You can trigger scripts to be written and run from here.
 
 # Import necessary modules
-from subprocess import run
 from os.path import dirname, abspath, join
-from os import makedirs, environ
-import sys
 from inspect import getfile, currentframe
+import sys
+from os import makedirs, environ
+from subprocess import run
 
 thisDir = dirname(abspath(getfile(currentframe())))
-sys.path.append(join(thisDir,'src/'))
-from IO import getArgs, getFileInfo
+sys.path.append(join(thisDir, 'src/'))
+from IO import getRunArgs, getFileInfo
 import writeProfiles
 import writeNamelist
 import writeBatch
 
 # Get command line arguments
-args = getArgs()
+args = getRunArgs()
 
 # Organize the directories that we will work in
 IOlists = {'profilesIn':args.profilesIn, 'eqIn':args.eqIn, 'saveLoc':args.saveLoc}

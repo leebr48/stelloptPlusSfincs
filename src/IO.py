@@ -1,12 +1,12 @@
 # This file contains IO helper functions.
 
-def getArgs():
+def getRunArgs():
 
     '''
     Inputs:
         [No direct inputs. See below for command line inputs.]
     Outputs:
-        Arguments that can be passed to other scripts.
+        Arguments that can be passed to other scripts for writing files and running SFINCS.
     '''
 
     import argparse
@@ -131,6 +131,30 @@ def getArgs():
     if args.notifs[0].lower() not in ['bad', 'all', 'none']:
         raise IOError('Invalid option specified for <notifs>. Valid options are "bad", "all", and "none".')
 
+    return args
+
+def getPlotArgs():
+
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for plotting SFINCS outputs.
+    '''
+
+    import argparse
+    
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--sfincsDir', type=str, nargs='*', required=True, help='Top directory(ies) for SFINCS run(s), with path(s) if necessary. Such directories typically contain subdirectories which either contain SFINCS output files (*.h5) or more subdirectories for the electric field scan. In the latter case, those subsubdirectories contain SFINCS output files. If you input multiple directories, order matters!')
+    parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save plots. Defaults to <sfincsDir> location(s). If you input multiple directories, order matters!')
+    args = parser.parse_args()
+
+    lens = [len(args.sfincsDir), len(args.saveLoc)]
+    maxLen = max(lens)
+    for length in lens:
+        if length != 1 and length != maxLen:
+            raise IOError('If both <sfincsDir> and <saveLoc> have length greater than 1, they must be the same length.')
+    
     return args
 
 def getFileInfo(inFile, saveLoc, outFileName):
