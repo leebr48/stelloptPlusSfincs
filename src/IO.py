@@ -403,7 +403,7 @@ def writeFile(outFile, stringToWrite):
         [A written file and a notification message.]
     '''
    
-    _, outFileName, _, _, _ = getFileInfo(outFile, 'arbitrary/path/', 'arbitrary')
+    _, outFileName, _, _, _ = getFileInfo(outFile, '/arbitrary/path/', 'arbitrary')
 
     with open(outFile, 'w') as f:
         f.write(stringToWrite)
@@ -432,3 +432,47 @@ def findFiles(name, path):
         if name in files:
             result.append(join(root, name))
     return result
+
+def adjustInputLengths(inListDict):
+
+    '''
+    Inputs:
+        A dictionary containing lists. Any of these lists
+        with length greater than 1 must have the same length
+        as the other lists with length greater than 1.
+    Outputs:
+        outListDict: the same dictionary as inListDict, but
+                     with each list being the same length.
+        longLists: a list with the keys of inListDict that
+                   had the largest length.
+        maxLen: length of longest list in inListDict, and
+                therefore the length of all lists in
+                outListDict
+    '''
+
+    maxLen = max([len(data) for key,data in inListDict.items()])
+    
+    outListDict = {}
+    longLists = []
+    for key,data in inListDict.items():
+        if len(data) != maxLen:
+            outListDict[key] = data * maxLen
+        else:
+            outListDict[key] = data
+            longLists.append(key)
+
+    return outListDict, longLists, maxLen
+
+def makeDir(saveLoc):
+
+    '''
+    Inputs:
+        Relative or absolute path to desired save location.
+    Outputs:
+        [Desired save location is created if not already present.]
+    '''
+
+    from os import makedirs
+
+    _, _, _, outDir, _ = getFileInfo('/arbitrary/path', saveLoc, 'arbitrary')
+    makedirs(outDir, exist_ok=True)

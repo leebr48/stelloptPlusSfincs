@@ -4,22 +4,30 @@
 from os.path import dirname, abspath, join, basename
 from inspect import getfile, currentframe
 import sys
-from os import makedirs
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getPlotArgs, getFileInfo, findFiles
+from IO import getPlotArgs, adjustInputLengths, makeDir, findFiles
 
 # Get command line arguments
 args = getPlotArgs()
 
-# Sort out SFINCS directories
-inDirs = [] #FIXME do you need to do this, or can you pass in saveLoc and the input directories and let getFileInfo sort it out?
-for unRegDir in args.sfincsDir:
-    _, _, _, inDir, _ = getFileInfo('/arbitrary/path/', unRegDir, 'arbitrary')
-    inDirs.append(inDir)
+# Organize the directories that we will work in
+inLists = {'sfincsDir':args.sfincsDir, 'saveLoc':args.saveLoc}
+IOlists, _, _ = adjustInputLengths(inLists)
 
-for directory in inDirs:
+# If saveLoc was not specified, decide whether to use the profiles or equilibria locations
+if all([item == None for item in IOlists['saveLoc']]):
+    saveDefaultTarget = IOlists['sfincsDir']
+else:
+    saveDefaultTarget = IOlists['saveLoc']
+
+for i,directory in enumerate(IOlists['sfincsDir']):
+    
+    # Make target directory if it does not exist
+    makeDir(saveDefaultTarget[i]) # Note that this script has file overwrite powers!
+
+    # Retrieve the data
     dataFiles = findFiles('sfincsOutput.h5', directory) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
     
     data = {}

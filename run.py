@@ -5,12 +5,12 @@
 from os.path import dirname, abspath, join
 from inspect import getfile, currentframe
 import sys
-from os import makedirs, environ
+from os import environ
 from subprocess import run
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getRunArgs, getFileInfo
+from IO import getRunArgs, adjustInputLengths, makeDir
 import writeProfiles
 import writeNamelist
 import writeBatch
@@ -19,14 +19,8 @@ import writeBatch
 args = getRunArgs()
 
 # Organize the directories that we will work in
-IOlists = {'profilesIn':args.profilesIn, 'eqIn':args.eqIn, 'saveLoc':args.saveLoc}
-maxLen = max([len(data) for key,data in IOlists.items()]) # Due to the checks performed on args, each list will have length maxLen or 1.
-longLists = []
-for key,data in IOlists.items():
-    if len(data) != maxLen:
-        IOlists[key] = data * maxLen
-    else:
-        longLists.append(key)
+inLists = {'profilesIn':args.profilesIn, 'eqIn':args.eqIn, 'saveLoc':args.saveLoc}
+IOlists, longLists, maxLen = adjustInputLengths(inLists)
 
 # If saveLoc was not specified, decide whether to use the profiles or equilibria locations
 if all([item == None for item in IOlists['saveLoc']]):
@@ -44,8 +38,7 @@ for i in range(maxLen):
     actualSaveLoc = dirname(saveDefaultTarget[i])
     
     # Make target directory if it does not exist
-    _, _, _, outDir, _ = getFileInfo('arbitrary/path', actualSaveLoc, 'arbitrary')
-    makedirs(outDir, exist_ok=True) # Note that this script has file overwrite powers!
+    makeDir(actualSaveLoc) # Note that this script has file overwrite powers!
 
     # Write requested files
     if not args.noProfiles:
