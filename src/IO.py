@@ -417,8 +417,8 @@ def findFiles(name, path):
         name: string with the name of a file to search for.
               Note that the name must be exact (there is
               no name matching).
-        path: string with path to search (recursively)
-              for name.
+        path: string with path of directory to search 
+              (recursively) for name.
     Outputs:
         List with absolute paths to files called name
         within path.
