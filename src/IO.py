@@ -470,9 +470,12 @@ def makeDir(saveLoc):
         Relative or absolute path to desired save location.
     Outputs:
         [Desired save location is created if not already present.]
+        The absolute address of the created directory is output.
     '''
 
     from os import makedirs
 
     _, _, _, outDir, _ = getFileInfo('/arbitrary/path', saveLoc, 'arbitrary')
     makedirs(outDir, exist_ok=True)
+
+    return outDir

@@ -36,9 +36,9 @@ for i in range(maxLen):
     profilesInUse = IOlists['profilesIn'][i]
     eqInUse = IOlists['eqIn'][i]
     actualSaveLoc = dirname(saveDefaultTarget[i])
-    
+
     # Make target directory if it does not exist
-    makeDir(actualSaveLoc) # Note that this script has file overwrite powers!
+    outDir = makeDir(actualSaveLoc) # Note that this script has file overwrite powers!
 
     # Write requested files
     if not args.noProfiles:

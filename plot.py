@@ -29,7 +29,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
     _, _, _, directory, _ = getFileInfo('/arbitrary/path', unRegDirectory, 'arbitrary')
 
     # Make target directory if it does not exist
-    makeDir(saveDefaultTarget[i]) # Note that this script has file overwrite powers!
+    outDir = makeDir(actualSaveLoc) # Note that this script has file overwrite powers!
 
     # Retrieve the data
     dataFiles = findFiles('sfincsOutput.h5', directory) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
