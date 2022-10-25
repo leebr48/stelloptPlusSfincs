@@ -46,7 +46,6 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         raise IOError('The structure of the SFINCS directory {} does not seem to be normal.'.format(directory))
 
     # Cycle through each file, read its data, and put that data in the proper place
-    #radData = {}
     radDirName = None
     loadedData = {}
     for j,file in enumerate(dataFiles): # Scans through radial directories, and Er directories if present
@@ -60,14 +59,24 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             raise IOError('Unable to open SFINCS output (*.h5) file.')
 
         # Read the desired data from the file
+        loadedData['psiHat'] = f['psiHat'][()]
+        loadedData['psiN'] = f['psiN'][()]
+        loadedData['rHat'] = f['rHat'][()]
+        loadedData['rN'] = f['rN'][()]
         loadedData['Er'] = f['Er'][()]
         loadedData['FSABjHat'] = f['FSABjHat'][()]
         loadedData['FSABFlow'] = f['FSABFlow'][()]
+        loadedData['particleFlux_vm_psiHat'] = f['particleFlux_vm_psiHat'][()]
         loadedData['particleFlux_vm_psiN'] = f['particleFlux_vm_psiN'][()]
+        loadedData['particleFlux_vm_rHat'] = f['particleFlux_vm_rHat'][()]
         loadedData['particleFlux_vm_rN'] = f['particleFlux_vm_rN'][()]
+        loadedData['heatFlux_vm_psiHat'] = f['heatFlux_vm_psiHat'][()]
         loadedData['heatFlux_vm_psiN'] = f['heatFlux_vm_psiN'][()]
+        loadedData['heatFlux_vm_rHat'] = f['heatFlux_vm_rHat'][()]
         loadedData['heatFlux_vm_rN'] = f['heatFlux_vm_rN'][()]
+        loadedData['momentumFlux_vm_psiHat'] = f['momentumFlux_vm_psiHat'][()]
         loadedData['momentumFlux_vm_psiN'] = f['momentumFlux_vm_psiN'][()]
+        loadedData['momentumFlux_vm_rHat'] = f['momentumFlux_vm_rHat'][()]
         loadedData['momentumFlux_vm_rN'] = f['momentumFlux_vm_rN'][()]
 
         # Put the data in the appropriate place
@@ -76,15 +85,13 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         
         elif dataDepth == 3: # Radial and Er directories are present
 
-            if radDirName == subdictNames[0]: # You are in the same radial directory as in the last iteration over dataFiles
-                radData[subdictNames[1]] = loadedData
-            
-            else: # You are in a different radial directory from the last iteration over dataFiles
+            if radDirName != subdictNames[0]: # You are in a different radial directory from the last iteration over dataFiles
                 if j != 0: # We shouldn't try to append data on the first loop iteration
                     allData[radDirName] = radData
                 radDirName = subdictNames[0]
                 radData = {}
-                radData[subdictNames[1]] = loadedData
+            
+            radData[subdictNames[1]] = loadedData
         
         else:
             raise IOError('The structure of the SFINCS directory {} does not seem to be normal.'.format(directory))
