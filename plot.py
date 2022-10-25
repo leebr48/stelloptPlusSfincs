@@ -6,13 +6,29 @@ from inspect import getfile, currentframe
 import sys
 import h5py
 import numpy as np
+import matplotlib.pyplot as plt
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getPlotArgs, adjustInputLengths, getFileInfo, makeDir, findFiles
+from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles
 
-# Get command line arguments
+# Set hard-coded reference variables
+e = 1.602176634e-19 # C (proton charge)
+#mBar = 1.67353e-27 # kg (hydrogen atom mass)
+mBar = 1.672621911e-27 # kg (proton mass)
+BBar = 1 # T
+RBar = 1 # m
+nBar = 1e20 # m^-3
+TBar = 1.60217733e-16 # J = 1 keV
+phiBar = 1000 # V = 1 kV
+vBar = np.sqrt(2 * TBar / mBar) # m/s
+
+# Get command line arguments and radial variables
 args = getPlotArgs()
+radialVars = radialVarDict()
+radialVar = radialVars[args.radialVar[0]]
+minBound = args.radialVarBounds[0]
+maxBound = args.radialVarBounds[1]
 
 # Organize the directories that we will work in
 inLists = {'sfincsDir':args.sfincsDir, 'saveLoc':args.saveLoc}
@@ -58,7 +74,18 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         except:
             raise IOError('Unable to open SFINCS output (*.h5) file.')
 
+        # Do a basic (not 100% conclusive) convergence check before reading an output file's data
+        didNotConverge = []
+        try:
+            loadedData['finished'] = f['finished'][()]
+        except KeyError:
+            didNotConverge.append(file)
+            continue
+
         # Read the desired data from the file
+        loadedData['Delta'] = f['Delta'][()]
+        loadedData['alpha'] = f['alpha'][()]
+        loadedData['nu_n'] = f['nu_n'][()]
         loadedData['psiHat'] = f['psiHat'][()]
         loadedData['psiN'] = f['psiN'][()]
         loadedData['rHat'] = f['rHat'][()]
@@ -79,6 +106,10 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         loadedData['momentumFlux_vm_rHat'] = f['momentumFlux_vm_rHat'][()]
         loadedData['momentumFlux_vm_rN'] = f['momentumFlux_vm_rN'][()]
 
+        # Check that the default parameters are in order
+        if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1 or loadedData['nu_n'] != 0.00833:
+            raise IOError('It appears that the values of Delta, alpha, or nu_n were changed from their defaults. Please use the defaults to make unit conversions simpler.')
+
         # Put the data in the appropriate place
         if dataDepth == 2: # Only radial directories are present
             allData[subdictNames[0]] = loadedData
@@ -98,4 +129,28 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
         loadedData = {} # This should be clean for each new file
 
+    # Now sort out what to plot
+    stuffToPlot = {}
+    for key,val in allData.items():
+        
+        if dataDepth == 2: # Only radial directories are present
+            radialVal = val[radialVar]
+        else: # Radial and Er directories are present
+            radialVal = val[list(val.keys())[0]][radialVar] # Note that the same flux surface is used for each electric field sub-run
+        
+        minPass = minBound < 0 or minBound <= radialVal
+        maxPass = maxBound < 0 or maxBound >= radialVal
+
+        if minPass and maxPass:
+            stuffToPlot[key] = val
+
+    # Actually plot things
+    plt.figure()
+    
+        
     allData = {} # This should be clean for each new directory
+
+# Notify the user of convergence issues if necessary
+if len(didNotConverge) > 0:
+    print('It appears that the SFINCS run(s) which created the output file(s) in the following list did not converge properly:')
+    print(didNotConverge)

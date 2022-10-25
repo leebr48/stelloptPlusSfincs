@@ -34,13 +34,13 @@ def getRunArgs():
     parser.add_argument('--defaultTemps', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the temperature of each species in keV. Note that you must specify a temperature for EACH species. The exact values are probably not important.')
     parser.add_argument('--defaultDensDer', type=float, nargs='*', required=False, default=[-0.5e0, -0.5e0], help='If <resScan> is used, this sets the derivative of the density of each species (in units of 1e20 m^-3) with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
     parser.add_argument('--defaultTempsDer', type=float, nargs='*', required=False, default=[-2e0, -2e0], help='If <resScan> is used, this sets the derivative of the temperature of each species (in keV) with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
-    parser.add_argument('--Nzeta', type=int, nargs=1, required=False, default=[45], help='Number of toroidal grid points per period. This should be an odd number.')
+    parser.add_argument('--Nzeta', type=int, nargs=1, required=False, default=[55], help='Number of toroidal grid points per period. This should be an odd number.')
     parser.add_argument('--NzetaScan', type=float, nargs=2, required=False, default=[0.5, 1.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nzeta that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
-    parser.add_argument('--Ntheta', type=int, nargs=1, required=False, default=[45], help='Number of poloidal grid points. This should be an odd number.')
+    parser.add_argument('--Ntheta', type=int, nargs=1, required=False, default=[25], help='Number of poloidal grid points. This should be an odd number.')
     parser.add_argument('--NthetaScan', type=float, nargs=2, required=False, default=[0.5, 1.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Ntheta that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
-    parser.add_argument('--Nxi', type=int, nargs=1, required=False, default=[75], help='Number of Legendre polynomials used to represent the pitch-angle dependence of the distribution function.')
+    parser.add_argument('--Nxi', type=int, nargs=1, required=False, default=[90], help='Number of Legendre polynomials used to represent the pitch-angle dependence of the distribution function.')
     parser.add_argument('--NxiScan', type=float, nargs=2, required=False, default=[0.5, 1.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nxi that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
-    parser.add_argument('--Nx', type=int, nargs=1, required=False, default=[15], help='Number of grid points in energy used to represent the distribution function.')
+    parser.add_argument('--Nx', type=int, nargs=1, required=False, default=[19], help='Number of grid points in energy used to represent the distribution function.')
     parser.add_argument('--NxScan', type=float, nargs=2, required=False, default=[0.5, 1.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nx that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--NL', type=int, nargs=1, required=False, default=[5], help='Number of Legendre polynomials used to represent the Rosenbluth potentials. Increasing this hardly changes the results, so it can almost certainly be left alone.')
     parser.add_argument('--NLScan', type=float, nargs=2, required=False, default=[0.5, 1.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of NL that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
@@ -146,9 +146,14 @@ def getPlotArgs():
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--sfincsDir', type=str, nargs='*', required=True, help='Top directory(ies) for SFINCS run(s), with path(s) if necessary. Such directories typically contain subdirectories which either contain SFINCS output files (*.h5) or more subdirectories for the electric field scan. In the latter case, those subsubdirectories contain SFINCS output files. If you input multiple directories, order matters!')
+    parser.add_argument('--radialVar', type=int, nargs=1, required=False, default=[3], help='ID of the radial coordinate used in the input.namelist file to specify which surfaces should be scanned over. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, and 3 = rN (which is the STELLOPT rho)')
+    parser.add_argument('--radialVarBounds', type=float, nargs=2, required=False, default=[-1, -1], help='Two floats, which are (in order) the minimum and maximum values of <radialVar> that will be plotted. If one of the inputs is negative, it will be ignored (so that the min or max is not limited).')
     parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save plots. Defaults to <sfincsDir> location(s). If you input multiple directories, order matters!')
     args = parser.parse_args()
 
+    if args.radialVar[0] not in [0,1,2,3]:
+        raise IOError('An invalid <radialVar> choice was specified. Valid inputs are the integers 0, 1, 2, and 3.')
+    
     lens = [len(args.sfincsDir), len(args.saveLoc)]
     maxLen = max(lens)
     for length in lens:
@@ -479,3 +484,15 @@ def makeDir(saveLoc):
     makedirs(outDir, exist_ok=True)
 
     return outDir
+
+def radialVarDict():
+
+    '''
+    Inputs:
+        [None]
+    Outputs:
+        Dictionary with the indices of the SFINCS radial variables
+        as keys and the written-out forms of the variables as values.
+    '''
+
+    return {0:'psiHat', 1:'psiN', 2:'rHat', 3:'rN', 4:'rHat'}

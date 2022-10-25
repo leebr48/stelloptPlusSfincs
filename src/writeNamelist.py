@@ -7,7 +7,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     '''
 
     # Import necessary modules
-    from IO import getRunArgs, getFileInfo, writeFile
+    from IO import getRunArgs, getFileInfo, radialVarDict, writeFile
     from dataProc import findNumCalcs
 
     # Get command line arguments
@@ -44,7 +44,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     Er_min = args.minEr[0] - 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
     Er_max = args.maxEr[0] + 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
     
-    radialVars = {0:'psiHat', 1:'psiN', 2:'rHat', 3:'rN', 4:'rHat'}
+    radialVars = radialVarDict()
     selectedRadialVar = radialVars[args.radialVar[0]]
     selectedRadialGradientVar = radialVars[args.radialGradientVar[0]] # Note that option 4 has special Er behavior (see <help> for details)
 
