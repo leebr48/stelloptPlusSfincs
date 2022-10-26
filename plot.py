@@ -83,28 +83,13 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             continue
 
         # Read the desired data from the file
-        loadedData['Delta'] = f['Delta'][()]
-        loadedData['alpha'] = f['alpha'][()]
-        loadedData['nu_n'] = f['nu_n'][()]
-        loadedData['psiHat'] = f['psiHat'][()]
-        loadedData['psiN'] = f['psiN'][()]
-        loadedData['rHat'] = f['rHat'][()]
-        loadedData['rN'] = f['rN'][()]
-        loadedData['Er'] = f['Er'][()]
-        loadedData['FSABjHat'] = f['FSABjHat'][()]
-        loadedData['FSABFlow'] = f['FSABFlow'][()]
-        loadedData['particleFlux_vm_psiHat'] = f['particleFlux_vm_psiHat'][()]
-        loadedData['particleFlux_vm_psiN'] = f['particleFlux_vm_psiN'][()]
-        loadedData['particleFlux_vm_rHat'] = f['particleFlux_vm_rHat'][()]
-        loadedData['particleFlux_vm_rN'] = f['particleFlux_vm_rN'][()]
-        loadedData['heatFlux_vm_psiHat'] = f['heatFlux_vm_psiHat'][()]
-        loadedData['heatFlux_vm_psiN'] = f['heatFlux_vm_psiN'][()]
-        loadedData['heatFlux_vm_rHat'] = f['heatFlux_vm_rHat'][()]
-        loadedData['heatFlux_vm_rN'] = f['heatFlux_vm_rN'][()]
-        loadedData['momentumFlux_vm_psiHat'] = f['momentumFlux_vm_psiHat'][()]
-        loadedData['momentumFlux_vm_psiN'] = f['momentumFlux_vm_psiN'][()]
-        loadedData['momentumFlux_vm_rHat'] = f['momentumFlux_vm_rHat'][()]
-        loadedData['momentumFlux_vm_rN'] = f['momentumFlux_vm_rN'][()]
+        defaults = ['Delta', 'alpha', 'nu_n']
+        IVs = list(radialVars.values())
+        DVs = ['Er', 'FSABjHat', 'FSABFlow', 'particleFlux_vm_psiHat', 'particleFlux_vm_psiN', 'particleFlux_vm_rHat', 'particleFlux_vm_rN', 'heatFlux_vm_psiHat',
+                    'heatFlux_vm_psiN', 'heatFlux_vm_rHat', 'heatFlux_vm_rN', 'momentumFlux_vm_psiHat', 'momentumFlux_vm_psiN', 'momentumFlux_vm_rHat', 'momentumFlux_vm_rN']
+
+        for varName in defaults + IVs + DVs:
+            loadedData[varName] = f[varName][()]
 
         # Check that the default parameters are in order
         if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1 or loadedData['nu_n'] != 0.00833:
@@ -145,9 +130,10 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             stuffToPlot[key] = val
 
     # Actually plot things
-    plt.figure()
-    
-        
+    # FIXME
+
+     
+    print(stuffToPlot)    
     allData = {} # This should be clean for each new directory
 
 # Notify the user of convergence issues if necessary
