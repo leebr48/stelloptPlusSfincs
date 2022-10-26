@@ -496,3 +496,99 @@ def radialVarDict():
     '''
 
     return {0:'psiHat', 1:'psiN', 2:'rHat', 3:'rN', 4:'rHat'}
+
+def prettyRadialVar(inString, innerOnly=False):
+    
+    '''
+    Inputs:
+        inString: string containing a value from radialVarDict.
+        innerOnly: if False, all the 'extras' needed for the
+                   output to act as, say, an axis label will
+                   be included. If True, these 'extras' will
+                   not be included (which is useful if the
+                   output is to be included in, say, another
+                   equation).
+    Outputs:
+        Raw string that can be used to print a formatted
+        form of inString, such as with Matplotlib.
+    '''
+
+    if inString == 'psiHat':
+        core = r'\hat{\psi}'
+        if innerOnly:
+            return core
+        else:
+            return r'${}$'.format(core)
+    elif inString == 'psiN':
+        core = r'\psi_{N}'
+        if innerOnly:
+            return core
+        else:
+            return r'$%s = s = \left( r_{\mathrm{eff}}/a_{\mathrm{eff}}\right)^{2}$'%core
+    elif inString == 'rHat':
+        core = r'\hat{r}'
+        if innerOnly:
+            return core
+        else:
+            return r'${}$'.format(core)
+    elif inString == 'rN':
+        core = r'r_{N}'
+        if innerOnly:
+            return core
+        else:
+            return r'$%s = \rho = r_{\mathrm{eff}}/a_{\mathrm{eff}}$'%core
+    else:
+        raise IOError('Invalid radial coordinate input.')
+
+def prettyDataLabel(inString):
+
+    '''
+    Inputs:
+        String containing a variable name from the SFINCS
+        output (*.h5) file. Note that only a few variables
+        are currently supported.
+    Outputs:
+        Raw string that can be used to print a formatted
+        form of inString, such as with Matplotlib.
+    '''
+
+    if '_' not in inString: # These are not fluxes
+        
+        if inString == 'Er':
+            return r'Radial Electric Field (FIXME UNITS)' #FIXME units
+        
+        elif inString == 'FSABjHat':
+            return r'FSA Bootstrap Current (FIXME UNITS)' #FIXME units!
+        
+        elif inString == 'FSABFlow':
+            return r'FSA Parallel Flow (FIXME UNITS)' #FIXME units!
+        
+        else:
+            raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
+    
+    else: # These are fluxes
+        
+        # Sort out the parts you need to make sense of inString
+        parts = inString.split('_')
+        radVar = prettyRadialVar(parts[-1], innerOnly=True)
+        directionStatement = r'in $\nabla {}$ direction'.format(radVar)
+        
+        # Do some basic administrative checks
+        if len(parts) != 3:
+            raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
+
+        if parts[1] != 'vm': # With 'vm', the full distribution function is taken into account rather than only the leading-order contribution
+            raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
+        
+        # Write the output
+        if parts[0] == 'particleFlux':
+            return r'Particle Flux '+directionStatement+r' (FIXME UNITS)' #FIXME units
+
+        elif parts[0] == 'heatFlux':
+            return r'Heat Flux '+directionStatement+r' (FIXME UNITS)' #FIXME units
+
+        elif parts[0] == 'momentumFlux':
+            return r'Momentum Flux '+directionStatement+r' (FIXME UNITS)' #FIXME units
+
+        else:
+            raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))

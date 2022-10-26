@@ -10,11 +10,10 @@ import matplotlib.pyplot as plt
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles
+from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, prettyRadialVar, prettyDataLabel
 
 # Set hard-coded reference variables
 e = 1.602176634e-19 # C (proton charge)
-#mBar = 1.67353e-27 # kg (hydrogen atom mass)
 mBar = 1.672621911e-27 # kg (proton mass)
 BBar = 1 # T
 RBar = 1 # m
@@ -87,8 +86,9 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         IVs = list(radialVars.values())
         DVs = ['Er', 'FSABjHat', 'FSABFlow', 'particleFlux_vm_psiHat', 'particleFlux_vm_psiN', 'particleFlux_vm_rHat', 'particleFlux_vm_rN', 'heatFlux_vm_psiHat',
                     'heatFlux_vm_psiN', 'heatFlux_vm_rHat', 'heatFlux_vm_rN', 'momentumFlux_vm_psiHat', 'momentumFlux_vm_psiN', 'momentumFlux_vm_rHat', 'momentumFlux_vm_rN']
+        extras = ['Zs']
 
-        for varName in defaults + IVs + DVs:
+        for varName in defaults + IVs + DVs + extras:
             loadedData[varName] = f[varName][()]
 
         # Check that the default parameters are in order
@@ -130,10 +130,58 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             stuffToPlot[key] = val
 
     # Actually plot things
-    # FIXME
+    nameOfDir = basename(directory)
 
-     
-    print(stuffToPlot)    
+    if dataDepth == 2: # Only radial directories are present #FIXME might need to put this logic elsewhere, hopefully in a more compressed/general way than repeating loops
+
+        IVvec = []
+        for IV in IVs: # Select the radial variable you're plotting against
+            
+            DVvec = []
+            for DV in DVs: # Select the data you want to plot
+                    
+                plotName = nameOfDir + '-' + DV + '-vs-' + IV + '.pdf'
+
+                fullPlotPath = join(outDir, plotName)
+        
+                for key,data in stuffToPlot.items():
+                   
+                    IVvec.append(data[IV])
+                    DVvec.append(data[DV])
+
+                IVvec = np.array(IVvec)
+                DVvec = np.array(DVvec)
+                
+                DVshape = DVvec.shape
+                if DVshape[-1] == 1: # Indicates that floats are being stores as single-element lists
+                    DVvec = DVvec.reshape(DVshape[:-1]) # Gets rid of those extra lists so floats behave like floats
+
+                combined = np.column_stack((IVvec,DVvec)) # The IV values will be the first column. The data comes in subsequent columns.
+                combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly ascending
+
+                plt.figure()
+                plt.plot(combined[:,0], combined[:,1:]) # One horizontal axis data vector, (possibly) multiple vertical axis data vectors
+                plt.xlabel(prettyRadialVar(IV))
+                plt.ylabel(prettyDataLabel(DV))
+                
+                numLines = combined.shape[1] - 1
+                
+                if numLines > 1:
+                    
+                    Zs = stuffToPlot[list(stuffToPlot.keys())[0]]['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant) #FIXME is it worth making this more general?
+                    
+                    leg = []
+                    for specNum in range(numLines):
+                        leg.append(r'$Z={}$'.format(int(Zs[specNum])))
+
+                    plt.legend(leg, loc='best')
+                # FIXME your bounds on the axes need to be set more carefully (see the PPO compoundPlot program)
+                plt.savefig(fullPlotPath, bbox_inches='tight', dpi=400)
+                plt.close('all')
+
+                IVvec = []
+                DVvec = []
+                    
     allData = {} # This should be clean for each new directory
 
 # Notify the user of convergence issues if necessary
