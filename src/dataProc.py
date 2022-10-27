@@ -134,3 +134,65 @@ def nonlinearInterp(inputData, ders, k=3, s=0):
         outputData[key] = interpObj
 
     return outputData
+
+def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e20, TBar=1.60217733e-16, phiBar=1000):
+
+    '''
+    Inputs:
+        inVar: name (string) of a SFINCS variable from its output (*.h5)
+               file. Note that only a few variables are currently supported.
+        inFloat: numerical value of inVar.
+        mBar: reference mass. Default is the proton mass in kilograms.
+              The default value is highly recommended.
+        BBar: reference magnetic field in tesla.
+              The default value is highly recommended.
+        RBar: reference length in meters.
+              The default value is highly recommended.
+        nBar: reference density in meters^-3.
+              The default value is highly recommended.
+        TBar: reference temperature in joules. Default is 1 keV.
+              The default value is highly recommended.
+        phiBar: reference electric potential in volts. Default
+                is 1 kV. The default value is highly recommended.
+    Outputs:
+        The value of inVar in SI units. 
+    '''
+    
+    import numpy as np
+
+    # Other important quantities
+    e = 1.602176634e-19 # C (proton charge)
+    vBar = np.sqrt(2 * TBar / mBar) # meters/second by default
+
+    # Identify inVar and perform some administrative checks
+    if '_' not in inVar: # These are not radial fluxes
+        shouldHaveUnits = inVar
+    else: # These are radial fluxes
+        parts = inVar.split('_')
+        if len(parts) != 3:
+            raise IOError('Conversion factor has not yet been specified for the variable {}.'.format(inVar))
+        if parts[1] != 'vm': # With 'vm', the full distribution function is taken into account rather than only the leading-order contribution
+            raise IOError('Conversion factor has not yet been specified for the variable {}.'.format(inVar))
+        shouldHaveUnits = parts[0]
+
+    # Convert to SI units 
+    if shouldHaveUnits == 'Er':
+        return phiBar / RBar * inFloat # V/m
+    
+    elif shouldHaveUnits == 'FSABjHat':
+        return e * nBar * vBar * BBar * inFloat # T*A*m^-2 = kg*m^-2*s^-2
+    
+    elif shouldHaveUnits == 'FSABFlow':
+        return nBar * vBar * inFloat # m^-2*s^-1, note that we do not multiply by BBar
+    
+    elif shouldHaveUnits == 'particleFlux':
+        return nBar * vBar * inFloat # m^-2*s^-1, note that we do not divide by RBar
+
+    elif shouldHaveUnits == 'heatFlux':
+        return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not divide by RBar
+
+    elif shouldHaveUnits == 'momentumFlux':
+        return mBar * nBar * vBar**2 * inFloat # kg*m^-1*s^-2, note that we do not divide by RBar or multiply by BBar
+
+    else:
+        raise IOError('Conversion factor has not yet been specified for the variable {}.'.format(inVar))

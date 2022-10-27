@@ -1,4 +1,4 @@
-# This script generates plots of interest given a sfincs .h5 file. #FIXME WORK IN PROGRESS! fix all comments and such when finished
+# This script generates plots of interest given a sfincs .h5 file. #FIXME WORK IN PROGRESS! fix all comments and such when finished. also note that this doesn't do 3d plotting 
 
 # Import necessary modules
 from os.path import dirname, abspath, join, basename
@@ -11,16 +11,7 @@ import matplotlib.pyplot as plt
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
 from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, prettyRadialVar, prettyDataLabel
-
-# Set hard-coded reference variables
-e = 1.602176634e-19 # C (proton charge)
-mBar = 1.672621911e-27 # kg (proton mass)
-BBar = 1 # T
-RBar = 1 # m
-nBar = 1e20 # m^-3
-TBar = 1.60217733e-16 # J = 1 keV
-phiBar = 1000 # V = 1 kV
-vBar = np.sqrt(2 * TBar / mBar) # m/s
+from dataProc import fixOutputUnits
 
 # Get command line arguments and radial variables
 args = getPlotArgs()
@@ -147,7 +138,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 for key,data in stuffToPlot.items():
                    
                     IVvec.append(data[IV])
-                    DVvec.append(data[DV])
+                    DVvec.append(fixOutputUnits(DV, data[DV]))
 
                 IVvec = np.array(IVvec)
                 DVvec = np.array(DVvec)
@@ -168,14 +159,17 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 
                 if numLines > 1:
                     
-                    Zs = stuffToPlot[list(stuffToPlot.keys())[0]]['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant) #FIXME is it worth making this more general?
+                    Zs = stuffToPlot[list(stuffToPlot.keys())[0]]['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant)
                     
                     leg = []
                     for specNum in range(numLines):
                         leg.append(r'$Z={}$'.format(int(Zs[specNum])))
 
                     plt.legend(leg, loc='best')
-                # FIXME your bounds on the axes need to be set more carefully (see the PPO compoundPlot program)
+
+                plt.xlim(xmin=0)
+                plt.margins(0.01)
+                
                 plt.savefig(fullPlotPath, bbox_inches='tight', dpi=400)
                 plt.close('all')
 

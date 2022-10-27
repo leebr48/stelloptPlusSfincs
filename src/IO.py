@@ -552,21 +552,21 @@ def prettyDataLabel(inString):
         form of inString, such as with Matplotlib.
     '''
 
-    if '_' not in inString: # These are not fluxes
+    if '_' not in inString: # These are not radial fluxes
         
         if inString == 'Er':
-            return r'Radial Electric Field (FIXME UNITS)' #FIXME units
+            return r'Radial Electric Field $\mathrm{\left(\frac{V}{m}\right)}$'
         
         elif inString == 'FSABjHat':
-            return r'FSA Bootstrap Current (FIXME UNITS)' #FIXME units!
+            return r'FSAB Bootstrap Current $\mathrm{\left(\frac{T A}{m^{2}}\right)}$'
         
         elif inString == 'FSABFlow':
-            return r'FSA Parallel Flow (FIXME UNITS)' #FIXME units!
+            return r'FSAB Parallel Flow $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
         
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
     
-    else: # These are fluxes
+    else: # These are radial fluxes
         
         # Sort out the parts you need to make sense of inString
         parts = inString.split('_')
@@ -582,13 +582,13 @@ def prettyDataLabel(inString):
         
         # Write the output
         if parts[0] == 'particleFlux':
-            return r'Particle Flux '+directionStatement+r' (FIXME UNITS)' #FIXME units
+            return r'Particle Flux '+directionStatement+r' $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
 
         elif parts[0] == 'heatFlux':
-            return r'Heat Flux '+directionStatement+r' (FIXME UNITS)' #FIXME units
+            return r'Heat Flux '+directionStatement+r' $\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
 
         elif parts[0] == 'momentumFlux':
-            return r'Momentum Flux '+directionStatement+r' (FIXME UNITS)' #FIXME units
+            return r'Momentum Flux '+directionStatement+r' $\mathrm{\left(\frac{kg}{m s^{2}}\right)}$'
 
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
