@@ -149,6 +149,7 @@ def getPlotArgs():
     parser.add_argument('--radialVar', type=int, nargs=1, required=False, default=[3], help='ID of the radial coordinate used in the input.namelist file to specify which surfaces should be scanned over. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, and 3 = rN (which is the STELLOPT rho)')
     parser.add_argument('--radialVarBounds', type=float, nargs=2, required=False, default=[-1, -1], help='Two floats, which are (in order) the minimum and maximum values of <radialVar> that will be plotted. If one of the inputs is negative, it will be ignored (so that the min or max is not limited).')
     parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save plots. Defaults to <sfincsDir> location(s). If you input multiple directories, order matters!')
+    parser.add_argument('--checkConv', action='store_true', default=False, help='Instead of plotting anything, just check if the SFINCS runs in the <sfincsDir> location(s) converged. If they all did, you will receive no output.')
     args = parser.parse_args()
 
     if args.radialVar[0] not in [0,1,2,3]:

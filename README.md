@@ -7,4 +7,4 @@ Set two environment variables (preferably permanently, such as in your `.bashrc`
 
 ## Use
 
-You can see what this repo can do at the moment by running `python3 run.py --help`.
+You can see what this repo can do at the moment by running any of the scripts in the main directory with the `--help` flag.

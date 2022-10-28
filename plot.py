@@ -31,6 +31,7 @@ else:
     saveDefaultTarget = IOlists['saveLoc']
 
 allData = {}
+didNotConverge = []
 for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
     _, _, _, directory, _ = getFileInfo('/arbitrary/path', unRegDirectory, 'arbitrary')
@@ -40,6 +41,9 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
     
     # Retrieve the data
     dataFiles = findFiles('sfincsOutput.h5', directory) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
+
+    if len(dataFiles) == 0:
+        raise IOError('No SFINCS output (*.h5) file could be found in the input directory {}.'.format(directory))
 
     # Sort out the SFINCS subdirectories
     subdirs = [item.replace(directory+'/','') for item in dataFiles]
@@ -65,11 +69,18 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             raise IOError('Unable to open SFINCS output (*.h5) file.')
 
         # Do a basic (not 100% conclusive) convergence check before reading an output file's data
-        didNotConverge = []
         try:
-            loadedData['finished'] = f['finished'][()]
+            _ = f['finished'][()]
+            shouldBePresent = f['FSABFlow'][()]
         except KeyError:
             didNotConverge.append(file)
+            continue
+
+        if any(np.isnan(shouldBePresent)):
+            didNotConverge.append(file)
+            continue
+
+        if args.checkConv:
             continue
 
         # Read the desired data from the file
@@ -105,80 +116,82 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
         loadedData = {} # This should be clean for each new file
 
-    # Now sort out what to plot
-    stuffToPlot = {}
-    for key,val in allData.items():
-        
-        if dataDepth == 2: # Only radial directories are present
-            radialVal = val[radialVar]
-        else: # Radial and Er directories are present
-            radialVal = val[list(val.keys())[0]][radialVar] # Note that the same flux surface is used for each electric field sub-run
-        
-        minPass = minBound < 0 or minBound <= radialVal
-        maxPass = maxBound < 0 or maxBound >= radialVal
-
-        if minPass and maxPass:
-            stuffToPlot[key] = val
-
-    # Actually plot things
-    nameOfDir = basename(directory)
-
-    if dataDepth == 2: # Only radial directories are present #FIXME might need to put this logic elsewhere, hopefully in a more compressed/general way than repeating loops
-
-        IVvec = []
-        for IV in IVs: # Select the radial variable you're plotting against
+    if not args.checkConv:
+    
+        # Now sort out what to plot
+        stuffToPlot = {}
+        for key,val in allData.items():
             
-            DVvec = []
-            for DV in DVs: # Select the data you want to plot
-                    
-                plotName = nameOfDir + '-' + DV + '-vs-' + IV + '.pdf'
+            if dataDepth == 2: # Only radial directories are present
+                radialVal = val[radialVar]
+            else: # Radial and Er directories are present
+                radialVal = val[list(val.keys())[0]][radialVar] # Note that the same flux surface is used for each electric field sub-run
+            
+            minPass = minBound < 0 or minBound <= radialVal
+            maxPass = maxBound < 0 or maxBound >= radialVal
 
-                fullPlotPath = join(outDir, plotName)
-        
-                for key,data in stuffToPlot.items():
-                   
-                    IVvec.append(data[IV])
-                    DVvec.append(fixOutputUnits(DV, data[DV]))
+            if minPass and maxPass:
+                stuffToPlot[key] = val
 
-                IVvec = np.array(IVvec)
-                DVvec = np.array(DVvec)
+        # Actually plot things
+        nameOfDir = basename(directory)
+
+        if dataDepth == 2: # Only radial directories are present #FIXME might need to put this logic elsewhere, hopefully in a more compressed/general way than repeating loops
+
+            IVvec = []
+            for IV in IVs: # Select the radial variable you're plotting against
                 
-                DVshape = DVvec.shape
-                if DVshape[-1] == 1: # Indicates that floats are being stores as single-element lists
-                    DVvec = DVvec.reshape(DVshape[:-1]) # Gets rid of those extra lists so floats behave like floats
-
-                combined = np.column_stack((IVvec,DVvec)) # The IV values will be the first column. The data comes in subsequent columns.
-                combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly ascending
-
-                plt.figure()
-                plt.plot(combined[:,0], combined[:,1:]) # One horizontal axis data vector, (possibly) multiple vertical axis data vectors
-                plt.xlabel(prettyRadialVar(IV))
-                plt.ylabel(prettyDataLabel(DV))
-                
-                numLines = combined.shape[1] - 1
-                
-                if numLines > 1:
-                    
-                    Zs = stuffToPlot[list(stuffToPlot.keys())[0]]['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant)
-                    
-                    leg = []
-                    for specNum in range(numLines):
-                        leg.append(r'$Z={}$'.format(int(Zs[specNum])))
-
-                    plt.legend(leg, loc='best')
-
-                plt.xlim(xmin=0)
-                plt.margins(0.01)
-                
-                plt.savefig(fullPlotPath, bbox_inches='tight', dpi=400)
-                plt.close('all')
-
-                IVvec = []
                 DVvec = []
+                for DV in DVs: # Select the data you want to plot
+                        
+                    plotName = nameOfDir + '-' + DV + '-vs-' + IV + '.pdf'
+
+                    fullPlotPath = join(outDir, plotName)
+            
+                    for key,data in stuffToPlot.items():
+                       
+                        IVvec.append(data[IV])
+                        DVvec.append(fixOutputUnits(DV, data[DV]))
+
+                    IVvec = np.array(IVvec)
+                    DVvec = np.array(DVvec)
                     
-    allData = {} # This should be clean for each new directory
+                    DVshape = DVvec.shape
+                    if DVshape[-1] == 1: # Indicates that floats are being stores as single-element lists
+                        DVvec = DVvec.reshape(DVshape[:-1]) # Gets rid of those extra lists so floats behave like floats
+
+                    combined = np.column_stack((IVvec,DVvec)) # The IV values will be the first column. The data comes in subsequent columns.
+                    combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly ascending
+
+                    plt.figure()
+                    plt.plot(combined[:,0], combined[:,1:]) # One horizontal axis data vector, (possibly) multiple vertical axis data vectors
+                    plt.xlabel(prettyRadialVar(IV))
+                    plt.ylabel(prettyDataLabel(DV))
+                    
+                    numLines = combined.shape[1] - 1
+                    
+                    if numLines > 1:
+                        
+                        Zs = stuffToPlot[list(stuffToPlot.keys())[0]]['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant)
+                        
+                        leg = []
+                        for specNum in range(numLines):
+                            leg.append(r'$Z={}$'.format(int(Zs[specNum])))
+
+                        plt.legend(leg, loc='best')
+
+                    plt.xlim(xmin=0)
+                    plt.margins(0.01)
+                    
+                    plt.savefig(fullPlotPath, bbox_inches='tight', dpi=400)
+                    plt.close('all')
+
+                    IVvec = []
+                    DVvec = []
+                        
+        allData = {} # This should be clean for each new directory
 
 # Notify the user of convergence issues if necessary
 if len(didNotConverge) > 0:
-    print('It appears that the SFINCS run(s) which created the output file(s) in the following list did not converge properly:')
+    print('It appears that the SFINCS run(s) which created the output file(s) in the following list did not complete/converge properly:')
     print(didNotConverge)
