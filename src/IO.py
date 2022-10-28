@@ -591,5 +591,8 @@ def prettyDataLabel(inString):
         elif parts[0] == 'momentumFlux':
             return r'Momentum Flux '+directionStatement+r' $\mathrm{\left(\frac{kg}{m s^{2}}\right)}$'
 
+        elif parts[0] == 'radialCurrent':
+            return r'Radial Current '+directionStatement+r' $\mathrm{\left(\frac{A}{m^{2}}\right)}$'
+
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))

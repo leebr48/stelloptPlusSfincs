@@ -194,5 +194,8 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
     elif shouldHaveUnits == 'momentumFlux':
         return mBar * nBar * vBar**2 * inFloat # kg*m^-1*s^-2, note that we do not divide by RBar or multiply by BBar
 
+    elif shouldHaveUnits == 'radialCurrent':
+        return e * nBar * vBar * inFloat # A*m^-2
+
     else:
         raise IOError('Conversion factor has not yet been specified for the variable {}.'.format(inVar))

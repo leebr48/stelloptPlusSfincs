@@ -86,8 +86,11 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         # Read the desired data from the file
         defaults = ['Delta', 'alpha', 'nu_n']
         IVs = list(radialVars.values())
-        DVs = ['Er', 'FSABjHat', 'FSABFlow', 'particleFlux_vm_psiHat', 'particleFlux_vm_psiN', 'particleFlux_vm_rHat', 'particleFlux_vm_rN', 'heatFlux_vm_psiHat',
-                    'heatFlux_vm_psiN', 'heatFlux_vm_rHat', 'heatFlux_vm_rN', 'momentumFlux_vm_psiHat', 'momentumFlux_vm_psiN', 'momentumFlux_vm_rHat', 'momentumFlux_vm_rN']
+        nonSpeciesDependentQuantities = ['Er', 'FSABjHat', 'FSABFlow']
+        particleFluxes = ['particleFlux_vm_psiHat', 'particleFlux_vm_psiN', 'particleFlux_vm_rHat', 'particleFlux_vm_rN']
+        heatFluxes = ['heatFlux_vm_psiHat', 'heatFlux_vm_psiN', 'heatFlux_vm_rHat', 'heatFlux_vm_rN']
+        momentumFluxes = ['momentumFlux_vm_psiHat', 'momentumFlux_vm_psiN', 'momentumFlux_vm_rHat', 'momentumFlux_vm_rN']
+        DVs = nonSpeciesDependentQuantities + particleFluxes + heatFluxes + momentumFluxes
         extras = ['Zs']
 
         for varName in defaults + IVs + DVs + extras:
@@ -96,6 +99,13 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         # Check that the default parameters are in order
         if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1 or loadedData['nu_n'] != 0.00833:
             raise IOError('It appears that the values of Delta, alpha, or nu_n were changed from their defaults. Please use the defaults to make unit conversions simpler.')
+
+        # Calculate other desired quantities (just radial current at the moment) and add them to the list of DVs
+        for flux in particleFluxes:
+           parts = flux.split('_')
+           name = 'radialCurrent' + '_' + parts[1] + '_' + parts[2]
+           DVs.append(name)
+           loadedData[name] = np.dot(loadedData['Zs'], loadedData[flux])
 
         # Put the data in the appropriate place
         if dataDepth == 2: # Only radial directories are present
