@@ -143,6 +143,7 @@ def getPlotArgs():
     '''
 
     import argparse
+    from os.path import isdir
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--sfincsDir', type=str, nargs='*', required=True, help='Top directory(ies) for SFINCS run(s), with path(s) if necessary. Such directories typically contain subdirectories which either contain SFINCS output files (*.h5) or more subdirectories for the electric field scan. In the latter case, those subsubdirectories contain SFINCS output files. If you input multiple directories, order matters!')
@@ -151,6 +152,9 @@ def getPlotArgs():
     parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save plots. Defaults to <sfincsDir> location(s). If you input multiple directories, order matters!')
     parser.add_argument('--checkConv', action='store_true', default=False, help='Instead of plotting anything, just check if the SFINCS runs in the <sfincsDir> location(s) converged. If they all did, you will receive no output.')
     args = parser.parse_args()
+
+    if not all([isdir(item) for item in args.sfincsDir]):
+        raise IOError('The inputs given in <sfincsDir> must be directories, not files.')
 
     if args.radialVar[0] not in [0,1,2,3]:
         raise IOError('An invalid <radialVar> choice was specified. Valid inputs are the integers 0, 1, 2, and 3.')
