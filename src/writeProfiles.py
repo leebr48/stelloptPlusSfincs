@@ -10,7 +10,7 @@ def run(profilesInUse, saveLocUse):
     import numpy as np
     from os.path import join
     from matplotlib.pyplot import subplots
-    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText, writeFile
+    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText, writeFile, messagePrinter
     from dataProc import findMinMax, scaleData, nonlinearInterp
 
     # Get command line arguments
@@ -71,7 +71,7 @@ def run(profilesInUse, saveLocUse):
     ax.set_ylabel('Normalized Value')
 
     fig.savefig(plotFile, bbox_inches='tight', dpi=400)
-    print('{} plot created.'.format(plotName))
+    messagePrinter('{} plot created.'.format(plotName))
 
     # Get the string to write in profiles file
     stringToWrite = generatePreamble(radial_coordinate_ID)

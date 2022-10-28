@@ -418,7 +418,7 @@ def writeFile(outFile, stringToWrite):
     with open(outFile, 'w') as f:
         f.write(stringToWrite)
 
-    print('{} file written.'.format(outFileName))
+    messagePrinter('{} file written.'.format(outFileName))
 
 def findFiles(name, path):
 
@@ -614,3 +614,16 @@ def prettyDataLabel(inString):
 
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
+
+def messagePrinter(inString):
+
+    '''
+    Inputs:
+        A string to be formatted in a consistent fashion
+        and printed. This is primarily intended for use
+        with informational statements.
+    Outputs:
+        [Printing a formatted version of inString.]
+    '''
+
+    print('***StelloptPlusSfincs: %s***'%inString)

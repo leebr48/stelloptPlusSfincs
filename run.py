@@ -10,7 +10,7 @@ from subprocess import run
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getRunArgs, adjustInputLengths, makeDir
+from IO import getRunArgs, adjustInputLengths, makeDir, messagePrinter
 import writeProfiles
 import writeNamelist
 import writeBatch
@@ -59,4 +59,4 @@ for i in range(maxLen):
         else:
             run([execLoc], cwd=outDir)
 
-    print('***StelloptPlusSfincs: Setup and/or run task(s) {} of {} completed in {}.***'.format(i+1, maxLen, outDir))
+    messagePrinter('Setup and/or run task(s) {} of {} completed in {}.'.format(i+1, maxLen, outDir))

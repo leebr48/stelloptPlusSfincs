@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, prettyRadialVar, prettyDataLabel
+from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, prettyRadialVar, prettyDataLabel, messagePrinter
 from dataProc import fixOutputUnits
 
 # Get command line arguments and radial variables
@@ -210,8 +210,9 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                     DVvec = []
                         
         allData = {} # This should be clean for each new directory
+        messagePrinter('Finished processing all available data in {}.'.format(directory))
 
 # Notify the user of convergence issues if necessary
 if len(didNotConverge) > 0:
-    print('It appears that the SFINCS run(s) which created the output file(s) in the following list did not complete/converge properly:')
+    messagePrinter('It appears that the SFINCS run(s) which created the output file(s) in the list below did not complete/converge properly.')
     print(didNotConverge)
