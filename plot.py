@@ -85,12 +85,22 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
         # Read the desired data from the file
         defaults = ['Delta', 'alpha', 'nu_n']
+        
         IVs = list(radialVars.values())
         nonSpeciesDependentQuantities = ['Er', 'FSABjHat', 'FSABFlow']
-        particleFluxes = ['particleFlux_vm_psiHat', 'particleFlux_vm_psiN', 'particleFlux_vm_rHat', 'particleFlux_vm_rN']
-        heatFluxes = ['heatFlux_vm_psiHat', 'heatFlux_vm_psiN', 'heatFlux_vm_rHat', 'heatFlux_vm_rN']
-        momentumFluxes = ['momentumFlux_vm_psiHat', 'momentumFlux_vm_psiN', 'momentumFlux_vm_rHat', 'momentumFlux_vm_rN']
-        DVs = nonSpeciesDependentQuantities + particleFluxes + heatFluxes + momentumFluxes
+        
+        makeNeoclassicalNames = lambda x: [x+'_vm_'+IV for IV in IVs]
+        particleFluxes = makeNeoclassicalNames('particleFlux')
+        heatFluxes = makeNeoclassicalNames('heatFlux')
+        momentumFluxes = makeNeoclassicalNames('momentumFlux')
+
+        makeClassicalNames = lambda x: [x+'_'+IV for IV in IVs]
+        classicalParticleFluxes = makeClassicalNames('classicalParticleFlux')
+        classicalParticleFluxesNoPhi1 = makeClassicalNames('classicalParticleFluxNoPhi1')
+        classicalHeatFluxes = makeClassicalNames('classicalHeatFlux')
+        classicalHeatFluxesNoPhi1 = makeClassicalNames('classicalHeatFluxNoPhi1')
+
+        DVs = nonSpeciesDependentQuantities + particleFluxes + heatFluxes + momentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
         extras = ['Zs']
 
         for varName in defaults + IVs + DVs + extras:

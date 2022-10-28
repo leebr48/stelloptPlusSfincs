@@ -560,13 +560,13 @@ def prettyDataLabel(inString):
     if '_' not in inString: # These are not radial fluxes
         
         if inString == 'Er':
-            return r'Radial Electric Field $\mathrm{\left(\frac{V}{m}\right)}$'
+            return r'Radial electric field $\mathrm{\left(\frac{V}{m}\right)}$'
         
         elif inString == 'FSABjHat':
-            return r'FSAB Bootstrap Current $\mathrm{\left(\frac{T A}{m^{2}}\right)}$'
+            return r'FSAB bootstrap current $\mathrm{\left(\frac{T A}{m^{2}}\right)}$'
         
         elif inString == 'FSABFlow':
-            return r'FSAB Parallel Flow $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
+            return r'FSAB parallel flow $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
         
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
@@ -579,24 +579,38 @@ def prettyDataLabel(inString):
         directionStatement = r'in $\nabla {}$ direction'.format(radVar)
         
         # Do some basic administrative checks
-        if len(parts) != 3:
+        if len(parts) != 2 and len(parts) != 3:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
 
-        if parts[1] != 'vm': # With 'vm', the full distribution function is taken into account rather than only the leading-order contribution
+        if len(parts) == 3 and parts[1] != 'vm': # With 'vm', the full distribution function is taken into account rather than only the leading-order contribution
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
         
+        label = parts[0]
+
         # Write the output
-        if parts[0] == 'particleFlux':
-            return r'Particle Flux '+directionStatement+r' $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
+        if label == 'particleFlux': #FIXME only neoclassical?
+            return r'Particle flux '+directionStatement+r' $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
 
-        elif parts[0] == 'heatFlux':
-            return r'Heat Flux '+directionStatement+r' $\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
+        if label == 'classicalParticleFlux':
+            return r'Classical particle flux '+directionStatement+r' $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
+        
+        if label == 'classicalParticleFluxNoPhi1':
+            return r'Classical particle flux (neglecting $\Phi_{1}$) '+directionStatement+r' $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
 
-        elif parts[0] == 'momentumFlux':
-            return r'Momentum Flux '+directionStatement+r' $\mathrm{\left(\frac{kg}{m s^{2}}\right)}$'
+        elif label == 'heatFlux': #FIXME only neoclassical?
+            return r'Heat flux '+directionStatement+r' $\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
+        
+        elif label == 'classicalHeatFlux':
+            return r'Classical heat flux '+directionStatement+r' $\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
+        
+        elif label == 'classicalHeatFluxNoPhi1':
+            return r'Classical heat flux (neglecting $\Phi_{1}$) '+directionStatement+r' $\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
 
-        elif parts[0] == 'radialCurrent':
-            return r'Radial Current '+directionStatement+r' $\mathrm{\left(\frac{A}{m^{2}}\right)}$'
+        elif label == 'momentumFlux': #FIXME only neoclassical?
+            return r'Momentum flux '+directionStatement+r' $\mathrm{\left(\frac{kg}{m s^{2}}\right)}$'
+
+        elif label == 'radialCurrent':
+            return r'Radial current '+directionStatement+r' $\mathrm{\left(\frac{A}{m^{2}}\right)}$'
 
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))

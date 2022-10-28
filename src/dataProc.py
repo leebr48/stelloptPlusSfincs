@@ -168,12 +168,7 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
     if '_' not in inVar: # These are not radial fluxes
         shouldHaveUnits = inVar
     else: # These are radial fluxes
-        parts = inVar.split('_')
-        if len(parts) != 3:
-            raise IOError('Conversion factor has not yet been specified for the variable {}.'.format(inVar))
-        if parts[1] != 'vm': # With 'vm', the full distribution function is taken into account rather than only the leading-order contribution
-            raise IOError('Conversion factor has not yet been specified for the variable {}.'.format(inVar))
-        shouldHaveUnits = parts[0]
+        shouldHaveUnits = inVar.split('_')[0]
 
     # Convert to SI units 
     if shouldHaveUnits == 'Er':
@@ -187,9 +182,21 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
     
     elif shouldHaveUnits == 'particleFlux':
         return nBar * vBar * inFloat # m^-2*s^-1, note that we do not divide by RBar
+    
+    elif shouldHaveUnits == 'classicalParticleFlux':
+        return nBar * vBar * inFloat # m^-2*s^-1, note that we do not multiply by Z*e or divide by RBar
+    
+    elif shouldHaveUnits == 'classicalParticleFluxNoPhi1':
+        return nBar * vBar * inFloat # m^-2*s^-1, note that we do not multiply by Z*e or divide by RBar
 
     elif shouldHaveUnits == 'heatFlux':
         return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not divide by RBar
+    
+    elif shouldHaveUnits == 'classicalHeatFlux':
+        return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not multiply by Z*e or divide by RBar
+    
+    elif shouldHaveUnits == 'classicalHeatFluxNoPhi1':
+        return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not multiply by Z*e or divide by RBar
 
     elif shouldHaveUnits == 'momentumFlux':
         return mBar * nBar * vBar**2 * inFloat # kg*m^-1*s^-2, note that we do not divide by RBar or multiply by BBar
