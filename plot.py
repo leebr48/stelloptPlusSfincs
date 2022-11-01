@@ -26,7 +26,7 @@ IOlists, _, _ = adjustInputLengths(inLists)
 
 # If saveLoc was not specified, decide whether to use the profiles or equilibria locations
 if all([item == None for item in IOlists['saveLoc']]):
-    saveDefaultTarget = IOlists['sfincsDir']
+    saveDefaultTarget = [join(item,'plots') for item in IOlists['sfincsDir']]
 else:
     saveDefaultTarget = IOlists['saveLoc']
 
