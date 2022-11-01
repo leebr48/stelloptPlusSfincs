@@ -21,6 +21,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     # List out some hard-coded variables
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
     ambipolarSolve = '.true.' # Determine the ambipolar Er
+    ambipolarSolveOption = 2 # (Default) Use a Brent method
     geometryScheme = 5 # Read a VMEC wout file to specify the magnetic geometry
     VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
     Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
@@ -76,6 +77,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
 
     stringToWrite += '&general\n'
     stringToWrite += '\tambipolarSolve = {} ! Determine the ambipolar Er\n'.format(ambipolarSolve)
+    stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
     stringToWrite += '\tEr_min = {} ! Minimum value of Er accessible to ambipolarSolve\n'.format(Er_min)
     stringToWrite += '\tEr_max = {} ! Maximum value of Er accessible to ambipolarSolve\n'.format(Er_max)
     stringToWrite += '/\n'

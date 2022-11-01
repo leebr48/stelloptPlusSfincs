@@ -1,4 +1,4 @@
-# This script generates plots of interest given a sfincs .h5 file. #FIXME WORK IN PROGRESS! fix all comments and such when finished. also note that this doesn't do 3d plotting 
+# This script generates plots of interest given a sfincs .h5 file. #FIXME WORK IN PROGRESS! fix all comments and such when finished. also note that this doesn't do 3d plotting. Also make sure that your input args explain everything properly
 
 # Import necessary modules
 from os.path import dirname, abspath, join, basename
@@ -157,67 +157,76 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         # Actually plot things
         nameOfDir = basename(directory)
 
-        if dataDepth == 2: # Only radial directories are present #FIXME might need to put this logic elsewhere, hopefully in a more compressed/general way than repeating loops
-
-            IVvec = []
-            for IV in IVs: # Select the radial variable you're plotting against
-                
-                DVvec = []
-                for DV in DVs: # Select the data you want to plot
-                    
-                    baseName = nameOfDir + '-' + DV + '-vs-' + IV 
-                    plotName = baseName + '.pdf'
-                    dataName = baseName + '.dat'
-                    Zsname = baseName + '.Zs'
-
-                    fullPlotPath = join(outDir, plotName)
-                    fullDataPath = join(outDir, dataName)
-                    fullZsPath = join(outDir, Zsname)
+        IVvec = []
+        for IV in IVs: # Select the radial variable you're plotting against
             
-                    for key,data in stuffToPlot.items():
-                       
-                        IVvec.append(data[IV])
-                        DVvec.append(fixOutputUnits(DV, data[DV]))
+            DVvec = []
+            for DV in DVs: # Select the data you want to plot
+                
+                baseName = nameOfDir + '-' + DV + '-vs-' + IV 
+                plotName = baseName + '.pdf'
+                dataName = baseName + '.dat'
+                Zsname = baseName + '.Zs'
 
-                    IVvec = np.array(IVvec)
-                    DVvec = np.array(DVvec)
+                fullPlotPath = join(outDir, plotName)
+                fullDataPath = join(outDir, dataName)
+                fullZsPath = join(outDir, Zsname)
+        
+                for key,data in stuffToPlot.items():
+
+                    if dataDepth == 2: # Only radial directories are present
+                        dataToUse = data
+
+                    else: # Radial and Er directories are present
+                        convergedErAbsVals = dict([(ErKey, np.abs(ErData['Er'])) for ErKey, ErData in data.items()])
+                        minErKey = min(convergedErAbsVals) # Returns key of Er subdirectory that has the smallest |Er| 
+                        # If there are multiple minima, only the key of the first minimum will be returned.
+                        # This should be fine - one would expect SFINCS runs with matching |Er| values to have converged to the same answer.
+                        dataToUse = data[minErKey]
+                   
+                    IVvec.append(dataToUse[IV])
+                    DVvec.append(fixOutputUnits(DV, dataToUse[DV]))
+
+                IVvec = np.array(IVvec)
+                DVvec = np.array(DVvec)
+                
+                DVshape = DVvec.shape
+                if DVshape[-1] == 1: # Indicates that floats are being stores as single-element lists
+                    DVvec = DVvec.reshape(DVshape[:-1]) # Gets rid of those extra lists so floats behave like floats
+
+                combined = np.column_stack((IVvec,DVvec)) # The IV values will be the first column. The data comes in subsequent columns.
+                combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly ascending
+
+                np.savetxt(fullDataPath, combined)
+
+                plt.figure()
+                plt.plot(combined[:,0], combined[:,1:]) # One horizontal axis data vector, (possibly) multiple vertical axis data vectors
+                plt.xlabel(prettyRadialVar(IV))
+                plt.ylabel(prettyDataLabel(DV))
+                
+                numLines = combined.shape[1] - 1
+                
+                if numLines > 1:
                     
-                    DVshape = DVvec.shape
-                    if DVshape[-1] == 1: # Indicates that floats are being stores as single-element lists
-                        DVvec = DVvec.reshape(DVshape[:-1]) # Gets rid of those extra lists so floats behave like floats
+                    #Zs = stuffToPlot[list(stuffToPlot.keys())[0]]['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant)
+                    Zs = dataToUse['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant)
 
-                    combined = np.column_stack((IVvec,DVvec)) # The IV values will be the first column. The data comes in subsequent columns.
-                    combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly ascending
-
-                    np.savetxt(fullDataPath, combined)
-
-                    plt.figure()
-                    plt.plot(combined[:,0], combined[:,1:]) # One horizontal axis data vector, (possibly) multiple vertical axis data vectors
-                    plt.xlabel(prettyRadialVar(IV))
-                    plt.ylabel(prettyDataLabel(DV))
+                    np.savetxt(fullZsPath, Zs)
                     
-                    numLines = combined.shape[1] - 1
-                    
-                    if numLines > 1:
-                        
-                        Zs = stuffToPlot[list(stuffToPlot.keys())[0]]['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant)
+                    leg = []
+                    for specNum in range(numLines):
+                        leg.append(r'$Z={}$'.format(int(Zs[specNum])))
 
-                        np.savetxt(fullZsPath, Zs)
-                        
-                        leg = []
-                        for specNum in range(numLines):
-                            leg.append(r'$Z={}$'.format(int(Zs[specNum])))
+                    plt.legend(leg, loc='best')
 
-                        plt.legend(leg, loc='best')
+                plt.xlim(xmin=0)
+                plt.margins(0.01)
+                
+                plt.savefig(fullPlotPath, bbox_inches='tight', dpi=400)
+                plt.close('all')
 
-                    plt.xlim(xmin=0)
-                    plt.margins(0.01)
-                    
-                    plt.savefig(fullPlotPath, bbox_inches='tight', dpi=400)
-                    plt.close('all')
-
-                    IVvec = []
-                    DVvec = []
+                IVvec = []
+                DVvec = []
                         
         allData = {} # This should be clean for each new directory
         messagePrinter('Finished processing all available data in {}.'.format(directory))

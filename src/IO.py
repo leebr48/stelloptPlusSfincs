@@ -51,7 +51,7 @@ def getRunArgs():
     parser.add_argument('--nTasksPerNode', type=int, nargs=1, required=False, default=[None], help='Number of MPI tasks to use on each node for each SFINCS run. This parameter should only be used if <nNodes> is specified and should not be used with <nTasks>.')
     parser.add_argument('--nTasks', type=int, nargs=1, required=False, default=[None], help='Total number of MPI tasks to use for each SFINCS run. You must specify at least one of <nNodes> and <nTasks>.')
     parser.add_argument('--mem', type=int, nargs=1, required=False, default=[None], help='Total amount of memory (MB) allocated for each SFINCS run.')
-    parser.add_argument('--time', type=str, nargs=1, required=False, default=['00-00:10:00'], help='Wall clock time limit for the batch runs. Format is DD-HH:MM:SS.')
+    parser.add_argument('--time', type=str, nargs=1, required=False, default=['00-06:00:00'], help='Wall clock time limit for the batch runs. Format is DD-HH:MM:SS.')
     parser.add_argument('--noProfiles', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a profiles file.')
     parser.add_argument('--noNamelist', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write an input.namelist file.')
     parser.add_argument('--noBatch', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a job.sfincsScan file.')
