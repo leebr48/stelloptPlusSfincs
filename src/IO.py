@@ -402,15 +402,17 @@ def generateDataText(radii, *funcs):
 
     return stringOut
 
-def writeFile(outFile, stringToWrite):
+def writeFile(outFile, stringToWrite, silent=False):
 
     '''
     Inputs:
         outFile: absolute name (with path) of file
                  to be written.
         stringToWrite: string to write in outFile.
+        silent: if True, suppresses the output message
+                that outFile has been written.
     Outputs:
-        [A written file and a notification message.]
+        [A written file, and possibly a notification message.]
     '''
    
     _, outFileName, _, _, _ = getFileInfo(outFile, '/arbitrary/path/', 'arbitrary')
@@ -418,7 +420,8 @@ def writeFile(outFile, stringToWrite):
     with open(outFile, 'w') as f:
         f.write(stringToWrite)
 
-    messagePrinter('{} file written.'.format(outFileName))
+    if not silent:
+        messagePrinter('{} file written.'.format(outFileName))
 
 def findFiles(name, path):
 

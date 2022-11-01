@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, prettyRadialVar, prettyDataLabel, messagePrinter
+from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, writeFile, prettyRadialVar, prettyDataLabel, messagePrinter
 from dataProc import fixOutputUnits
 
 # Get command line arguments and radial variables
@@ -61,33 +61,34 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
     for j,file in enumerate(dataFiles): # Scans through radial directories, and Er directories if present
 
         subdictNames = splitSubdirs[j]
-        
-        # Open the output file
+
+        # Open the output file and do a basic (not 100% conclusive) convergence check before reading its data
+        dirOfFileName = dirname(file)
+
         try:
             f = h5py.File(file, 'r')
-        except:
-            raise IOError('Unable to open SFINCS output (*.h5) file.')
-
-        # Do a basic (not 100% conclusive) convergence check before reading an output file's data
-        try:
             _ = f['finished'][()]
             shouldBePresent = f['FSABFlow'][()]
-        except KeyError:
+            if any(np.isnan(shouldBePresent)):
+                raise ValueError
+            convergenceState = 'PASS'
+        
+        except (IOError, KeyError, ValueError):
             didNotConverge.append(file)
-            continue
+            convergenceState = 'FAIL'
 
-        if any(np.isnan(shouldBePresent)):
-            didNotConverge.append(file)
-            continue
-
-        if args.checkConv:
+        convergenceString = 'This run {}ED basic convergence tests.'.format(convergenceState)
+        fileToWrite = join(dirOfFileName, 'convergence{}.txt'.format(convergenceState))
+        writeFile(fileToWrite, convergenceString, silent=True)
+        
+        if args.checkConv or convergenceState == 'FAIL':
             continue
 
         # Read the desired data from the file
         defaults = ['Delta', 'alpha', 'nu_n']
         
         IVs = list(radialVars.values())
-        nonSpeciesDependentQuantities = ['Er', 'FSABjHat', 'FSABFlow']
+        notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow']
         
         makeNeoclassicalNames = lambda x: [x+'_vm_'+IV for IV in IVs]
         particleFluxes = makeNeoclassicalNames('particleFlux')
@@ -100,7 +101,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         classicalHeatFluxes = makeClassicalNames('classicalHeatFlux')
         classicalHeatFluxesNoPhi1 = makeClassicalNames('classicalHeatFluxNoPhi1')
 
-        DVs = nonSpeciesDependentQuantities + particleFluxes + heatFluxes + momentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
+        DVs = notRadialFluxes + particleFluxes + heatFluxes + momentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
         extras = ['Zs']
 
         for varName in defaults + IVs + DVs + extras:
