@@ -1,4 +1,4 @@
-# This script generates plots of interest given a sfincs .h5 file. #FIXME WORK IN PROGRESS! fix all comments and such when finished. also note that this doesn't do 3d plotting. Also make sure that your input args explain everything properly
+# This script generates plots of interest given a sfincs *.h5 file. #FIXME WORK IN PROGRESS! fix all comments and such when finished. also note that this doesn't do 3d plotting. Also make sure that your input args explain everything properly
 
 # Import necessary modules
 from os.path import dirname, abspath, join, basename
@@ -26,14 +26,24 @@ IOlists, _, _ = adjustInputLengths(inLists)
 
 # If saveLoc was not specified, decide whether to use the profiles or equilibria locations
 if all([item == None for item in IOlists['saveLoc']]):
-    saveDefaultTarget = [join(item,'plots') for item in IOlists['sfincsDir']] # Give plots a subdirectory if no save locations are explicitely specified
+    saveDefaultTarget = [join(item,'processedData') for item in IOlists['sfincsDir']] # Give plots a subdirectory if no save locations are explicitely specified
 else:
     saveDefaultTarget = IOlists['saveLoc'] 
 
-allData = {}
-didNotConverge = []
-for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
+# These are small functions that are useful only in this script
+makeNeoclassicalNames = lambda x: [x+'_vm_'+IV for IV in IVs]
+makeClassicalNames = lambda x: [x+'_'+IV for IV in IVs]
+def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
+    stringToWrite = ''.join(listOfStrings)
+    fileToMake = join(outputDir, '{}-{}.txt'.format(inputDir, fileIDName))
+    writeFile(fileToMake, stringToWrite, silent=True)
 
+allData = {}
+didNotConvergeAll = []
+didNotConvergeDir = []
+for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
+    
+    # Regularize input directory name
     _, _, _, directory, _ = getFileInfo('/arbitrary/path', unRegDirectory, 'arbitrary')
 
     # Make target directory if it does not exist
@@ -74,11 +84,12 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             convergenceState = 'PASS'
         
         except (IOError, KeyError, ValueError):
-            didNotConverge.append(file)
+            didNotConvergeAll.append(file)
+            didNotConvergeDir.append(file)
             convergenceState = 'FAIL'
 
-        convergenceString = 'This run {}ED basic convergence tests.'.format(convergenceState)
         fileToWrite = join(dirOfFileName, 'convergence{}.txt'.format(convergenceState))
+        convergenceString = 'This run {}ED basic convergence tests.'.format(convergenceState)
         writeFile(fileToWrite, convergenceString, silent=True)
         
         if args.checkConv or convergenceState == 'FAIL':
@@ -90,12 +101,10 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         IVs = list(radialVars.values())
         notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow']
         
-        makeNeoclassicalNames = lambda x: [x+'_vm_'+IV for IV in IVs]
         particleFluxes = makeNeoclassicalNames('particleFlux')
         heatFluxes = makeNeoclassicalNames('heatFlux')
         momentumFluxes = makeNeoclassicalNames('momentumFlux')
 
-        makeClassicalNames = lambda x: [x+'_'+IV for IV in IVs]
         classicalParticleFluxes = makeClassicalNames('classicalParticleFlux')
         classicalParticleFluxesNoPhi1 = makeClassicalNames('classicalParticleFluxNoPhi1')
         classicalHeatFluxes = makeClassicalNames('classicalHeatFlux')
@@ -137,7 +146,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
         loadedData = {} # This should be clean for each new file
 
-    if not args.checkConv:
+    if not args.checkConv and len(didNotConvergeDir) != len(dataFiles):
     
         # Now sort out what to plot
         stuffToPlot = {}
@@ -157,6 +166,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         # Actually plot things
         nameOfDir = basename(directory)
 
+        ErChoices = []
         IVvec = []
         for IV in IVs: # Select the radial variable you're plotting against
             
@@ -172,17 +182,18 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 fullDataPath = join(outDir, dataName)
                 fullZsPath = join(outDir, Zsname)
         
-                for key,data in stuffToPlot.items():
+                for radKey,radData in stuffToPlot.items():
 
                     if dataDepth == 2: # Only radial directories are present
-                        dataToUse = data
+                        dataToUse = radData
 
                     else: # Radial and Er directories are present
-                        convergedErAbsVals = dict([(ErKey, np.abs(ErData['Er'])) for ErKey, ErData in data.items()])
+                        convergedErAbsVals = dict([(ErKey, np.abs(ErData['Er'])) for ErKey, ErData in radData.items()])
                         minErKey = min(convergedErAbsVals) # Returns key of Er subdirectory that has the smallest |Er| 
                         # If there are multiple minima, only the key of the first minimum will be returned.
                         # This should be fine - one would expect SFINCS runs with matching |Er| values to have converged to the same answer.
-                        dataToUse = data[minErKey]
+                        dataToUse = radData[minErKey]
+                        ErChoices.append(join(radKey, minErKey) + '\n')
                    
                     IVvec.append(dataToUse[IV])
                     DVvec.append(fixOutputUnits(DV, dataToUse[DV]))
@@ -208,7 +219,6 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 
                 if numLines > 1:
                     
-                    #Zs = stuffToPlot[list(stuffToPlot.keys())[0]]['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant)
                     Zs = dataToUse['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant)
 
                     np.savetxt(fullZsPath, Zs)
@@ -227,11 +237,21 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
                 IVvec = []
                 DVvec = []
-                        
+        
+        if len(didNotConvergeDir) > 0: # Note that if every output in an input directory did not converge, this file will not be written
+            formattedList = [item + '\n' for item in didNotConvergeDir]
+            writeInfoFile(formattedList, nameOfDir, outDir, 'didNotConverge')
+
+        if len(ErChoices) > 0:
+            uniqueChoices = list(set(ErChoices))
+            uniqueChoices.sort()
+            writeInfoFile(uniqueChoices, nameOfDir, outDir, 'ErChoices')
+        
         allData = {} # This should be clean for each new directory
+        didNotConvergeDir = [] # This should be clean for each new directory
         messagePrinter('Finished processing all available data in {}.'.format(directory))
 
 # Notify the user of convergence issues if necessary
-if len(didNotConverge) > 0:
+if len(didNotConvergeAll) > 0:
     messagePrinter('It appears that the SFINCS run(s) which created the output file(s) in the list below did not complete/converge properly.')
-    print(didNotConverge)
+    print(didNotConvergeAll)
