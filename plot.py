@@ -1,6 +1,5 @@
 # This script generates plots, plot data, and informational *.txt files given SFINCS output (*.h5) files. It can also perform basic convergence checks on the output files.
 # Currently, this script cannot create 3D plots.
-#FIXME WORK IN PROGRESS! fix all comments and such when finished. also note that this doesn't do 3d plotting. Also make sure that your input args explain everything properly
 
 # Import necessary modules
 from os.path import dirname, abspath, join, basename
