@@ -26,9 +26,9 @@ IOlists, _, _ = adjustInputLengths(inLists)
 
 # If saveLoc was not specified, decide whether to use the profiles or equilibria locations
 if all([item == None for item in IOlists['saveLoc']]):
-    saveDefaultTarget = [join(item,'plots') for item in IOlists['sfincsDir']]
+    saveDefaultTarget = [join(item,'plots') for item in IOlists['sfincsDir']] # Give plots a subdirectory if no save locations are explicitely specified
 else:
-    saveDefaultTarget = IOlists['saveLoc']
+    saveDefaultTarget = IOlists['saveLoc'] 
 
 allData = {}
 didNotConverge = []
@@ -163,10 +163,15 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 
                 DVvec = []
                 for DV in DVs: # Select the data you want to plot
-                        
-                    plotName = nameOfDir + '-' + DV + '-vs-' + IV + '.pdf'
+                    
+                    baseName = nameOfDir + '-' + DV + '-vs-' + IV 
+                    plotName = baseName + '.pdf'
+                    dataName = baseName + '.dat'
+                    Zsname = baseName + '.Zs'
 
                     fullPlotPath = join(outDir, plotName)
+                    fullDataPath = join(outDir, dataName)
+                    fullZsPath = join(outDir, Zsname)
             
                     for key,data in stuffToPlot.items():
                        
@@ -183,6 +188,8 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                     combined = np.column_stack((IVvec,DVvec)) # The IV values will be the first column. The data comes in subsequent columns.
                     combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly ascending
 
+                    np.savetxt(fullDataPath, combined)
+
                     plt.figure()
                     plt.plot(combined[:,0], combined[:,1:]) # One horizontal axis data vector, (possibly) multiple vertical axis data vectors
                     plt.xlabel(prettyRadialVar(IV))
@@ -193,6 +200,8 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                     if numLines > 1:
                         
                         Zs = stuffToPlot[list(stuffToPlot.keys())[0]]['Zs'] # Note that this assumes the Z for each species is the same throughout the plasma (i.e. the amount of stripping is constant)
+
+                        np.savetxt(fullZsPath, Zs)
                         
                         leg = []
                         for specNum in range(numLines):
