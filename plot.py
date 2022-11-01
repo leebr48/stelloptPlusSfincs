@@ -1,4 +1,6 @@
-# This script generates plots of interest given a sfincs *.h5 file. #FIXME WORK IN PROGRESS! fix all comments and such when finished. also note that this doesn't do 3d plotting. Also make sure that your input args explain everything properly
+# This script generates plots, plot data, and informational *.txt files given SFINCS output (*.h5) files. It can also perform basic convergence checks on the output files.
+# Currently, this script cannot create 3D plots.
+#FIXME WORK IN PROGRESS! fix all comments and such when finished. also note that this doesn't do 3d plotting. Also make sure that your input args explain everything properly
 
 # Import necessary modules
 from os.path import dirname, abspath, join, basename
@@ -26,11 +28,11 @@ IOlists, _, _ = adjustInputLengths(inLists)
 
 # If saveLoc was not specified, decide whether to use the profiles or equilibria locations
 if all([item == None for item in IOlists['saveLoc']]):
-    saveDefaultTarget = [join(item,'processedData') for item in IOlists['sfincsDir']] # Give plots a subdirectory if no save locations are explicitely specified
+    saveDefaultTarget = [join(item,'processed') for item in IOlists['sfincsDir']] # Give plots a subdirectory if no save locations are explicitely specified
 else:
     saveDefaultTarget = IOlists['saveLoc'] 
 
-# These are small functions that are useful only in this script
+# Create small functions that are useful only in this script
 makeNeoclassicalNames = lambda x: [x+'_vm_'+IV for IV in IVs]
 makeClassicalNames = lambda x: [x+'_'+IV for IV in IVs]
 def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
@@ -38,6 +40,34 @@ def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
     fileToMake = join(outputDir, '{}-{}.txt'.format(inputDir, fileIDName))
     writeFile(fileToMake, stringToWrite, silent=True)
 
+# Name some important variables
+defaults = ['Delta', 'alpha', 'nu_n']
+
+IVs = list(radialVars.values())
+notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow']
+
+particleFluxes = makeNeoclassicalNames('particleFlux')
+heatFluxes = makeNeoclassicalNames('heatFlux')
+momentumFluxes = makeNeoclassicalNames('momentumFlux')
+
+classicalParticleFluxes = makeClassicalNames('classicalParticleFlux')
+classicalParticleFluxesNoPhi1 = makeClassicalNames('classicalParticleFluxNoPhi1')
+classicalHeatFluxes = makeClassicalNames('classicalHeatFlux')
+classicalHeatFluxesNoPhi1 = makeClassicalNames('classicalHeatFluxNoPhi1')
+
+nonCalcDVs = notRadialFluxes + particleFluxes + heatFluxes + momentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
+extras = ['Zs']
+
+# Name some other variables to be calculated later (just radial current at the moment)
+radialCurrents = []
+for flux in particleFluxes:
+   parts = flux.split('_')
+   name = 'radialCurrent' + '_' + parts[1] + '_' + parts[2]
+   radialCurrents.append(name)
+
+DVs = nonCalcDVs + radialCurrents
+
+# Loop through each directory
 allData = {}
 didNotConvergeAll = []
 didNotConvergeDir = []
@@ -96,36 +126,16 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             continue
 
         # Read the desired data from the file
-        defaults = ['Delta', 'alpha', 'nu_n']
-        
-        IVs = list(radialVars.values())
-        notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow']
-        
-        particleFluxes = makeNeoclassicalNames('particleFlux')
-        heatFluxes = makeNeoclassicalNames('heatFlux')
-        momentumFluxes = makeNeoclassicalNames('momentumFlux')
-
-        classicalParticleFluxes = makeClassicalNames('classicalParticleFlux')
-        classicalParticleFluxesNoPhi1 = makeClassicalNames('classicalParticleFluxNoPhi1')
-        classicalHeatFluxes = makeClassicalNames('classicalHeatFlux')
-        classicalHeatFluxesNoPhi1 = makeClassicalNames('classicalHeatFluxNoPhi1')
-
-        DVs = notRadialFluxes + particleFluxes + heatFluxes + momentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
-        extras = ['Zs']
-
-        for varName in defaults + IVs + DVs + extras:
+        for varName in defaults + IVs + nonCalcDVs + extras:
             loadedData[varName] = f[varName][()]
 
         # Check that the default parameters are in order
         if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1 or loadedData['nu_n'] != 0.00833:
             raise IOError('It appears that the values of Delta, alpha, or nu_n were changed from their defaults. Please use the defaults to make unit conversions simpler.')
 
-        # Calculate other desired quantities (just radial current at the moment) and add them to the list of DVs
-        for flux in particleFluxes:
-           parts = flux.split('_')
-           name = 'radialCurrent' + '_' + parts[1] + '_' + parts[2]
-           DVs.append(name)
-           loadedData[name] = np.dot(loadedData['Zs'], loadedData[flux])
+        # Calculate other desired quantities (just radial current at the moment)
+        for ind,radialCurrent in enumerate(radialCurrents):
+           loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[particleFluxes[ind]])
 
         # Put the data in the appropriate place
         if dataDepth == 2: # Only radial directories are present
