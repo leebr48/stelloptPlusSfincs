@@ -31,6 +31,10 @@ def run(profilesInUse, saveLocUse, eqInUse):
     includeXDotTerm = '.true.' # (Default) Necessary to calculate full trajectories
     includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
     magneticDriftScheme = 1 # Whether or not to include angular drifts, and if so, what model to use
+    #preconditioner_species = 0 # Keep all coupling between species in preconditioner matrix #FIXME
+    preconditioner_x = 4 # How many elements to keep for x in preconditioner matrix #FIXME
+    preconditioner_x_min_L = 2 # x structure of the preconditioner matrix with Legendre indices >= this value will be simplified #FIXME
+    #preconditioner_xi = 0 # Keep full xi coupling in preconditioner matrix #FIXME
     export_full_f = '.true.' # Save the full distribution function in the output file 
 
     # Sort out some variables prior to string creation
@@ -156,6 +160,10 @@ def run(profilesInUse, saveLocUse, eqInUse):
     stringToWrite += '\n'
 
     stringToWrite += '&preconditionerOptions\n'
+    #stringToWrite += '\tpreconditioner_species = {} ! Whether or not coupling between species is included in preconditioner matrix\n'.format(preconditioner_species) #FIXME
+    stringToWrite += '\tpreconditioner_x = {} ! Level of x coupling included in preconditioner matrix\n'.format(preconditioner_x) #FIXME
+    stringToWrite += '\tpreconditioner_x_min_L = {} ! x structure of the preconditioner matrix with Legendre indices >= this value will be simplified\n'.format(preconditioner_x_min_L) #FIXME
+    #stringToWrite += '\tpreconditioner_xi = {} ! Level of xi coupling included in preconditioner matrix\n'.format(preconditioner_xi) #FIXME
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
