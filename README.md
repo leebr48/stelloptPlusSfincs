@@ -8,3 +8,5 @@ Set two environment variables (preferably permanently, such as in your `.bashrc`
 ## Use
 
 You can see what this repo can do at the moment by running any of the scripts in the main directory with the `--help` flag.
+
+# FIXME explain how the input profiles have to be right, and give details about what SFINCS takes as input in general
