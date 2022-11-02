@@ -180,25 +180,19 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
     elif shouldHaveUnits == 'FSABFlow':
         return nBar * vBar * inFloat # m^-2*s^-1, note that we do not multiply by BBar
     
-    elif shouldHaveUnits == 'particleFlux':
+    elif shouldHaveUnits == 'particleFlux': # Neoclassical
         return nBar * vBar * inFloat # m^-2*s^-1, note that we do not divide by RBar
     
-    elif shouldHaveUnits == 'classicalParticleFlux':
+    elif shouldHaveUnits in ['classicalParticleFlux', 'classicalParticleFluxNoPhi1', 'totalParticleFlux']:
         return nBar * vBar * inFloat # m^-2*s^-1, note that we do not multiply by Z*e or divide by RBar
     
-    elif shouldHaveUnits == 'classicalParticleFluxNoPhi1':
-        return nBar * vBar * inFloat # m^-2*s^-1, note that we do not multiply by Z*e or divide by RBar
-
-    elif shouldHaveUnits == 'heatFlux':
+    elif shouldHaveUnits == 'heatFlux': # Neoclassical
         return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not divide by RBar
     
-    elif shouldHaveUnits == 'classicalHeatFlux':
+    elif shouldHaveUnits in ['classicalHeatFlux', 'classicalHeatFluxNoPhi1', 'totalHeatFlux']:
         return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not multiply by Z*e or divide by RBar
     
-    elif shouldHaveUnits == 'classicalHeatFluxNoPhi1':
-        return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not multiply by Z*e or divide by RBar
-
-    elif shouldHaveUnits == 'momentumFlux':
+    elif shouldHaveUnits == 'momentumFlux': # Neoclassical 
         return mBar * nBar * vBar**2 * inFloat # kg*m^-1*s^-2, note that we do not divide by RBar or multiply by BBar
 
     elif shouldHaveUnits == 'radialCurrent':

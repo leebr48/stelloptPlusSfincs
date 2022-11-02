@@ -31,9 +31,9 @@ if all([item == None for item in IOlists['saveLoc']]):
 else:
     saveDefaultTarget = IOlists['saveLoc'] 
 
-# Create small functions that are useful only in this script
+# Specify some small functions that are useful only in this script
 makeNeoclassicalNames = lambda x: [x+'_vm_'+IV for IV in IVs]
-makeClassicalNames = lambda x: [x+'_'+IV for IV in IVs]
+makeOtherNames = lambda x: [x+'_'+IV for IV in IVs]
 def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
     stringToWrite = ''.join(listOfStrings)
     fileToMake = join(outputDir, '{}-{}.txt'.format(inputDir, fileIDName))
@@ -45,26 +45,25 @@ defaults = ['Delta', 'alpha', 'nu_n']
 IVs = list(radialVars.values())
 notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow']
 
-particleFluxes = makeNeoclassicalNames('particleFlux')
-heatFluxes = makeNeoclassicalNames('heatFlux')
-momentumFluxes = makeNeoclassicalNames('momentumFlux')
+neoclassicalParticleFluxes = makeNeoclassicalNames('particleFlux')
+neoclassicalHeatFluxes = makeNeoclassicalNames('heatFlux')
+neoclassicalMomentumFluxes = makeNeoclassicalNames('momentumFlux')
 
-classicalParticleFluxes = makeClassicalNames('classicalParticleFlux')
-classicalParticleFluxesNoPhi1 = makeClassicalNames('classicalParticleFluxNoPhi1')
-classicalHeatFluxes = makeClassicalNames('classicalHeatFlux')
-classicalHeatFluxesNoPhi1 = makeClassicalNames('classicalHeatFluxNoPhi1')
+classicalParticleFluxes = makeOtherNames('classicalParticleFlux')
+classicalParticleFluxesNoPhi1 = makeOtherNames('classicalParticleFluxNoPhi1')
+classicalHeatFluxes = makeOtherNames('classicalHeatFlux')
+classicalHeatFluxesNoPhi1 = makeOtherNames('classicalHeatFluxNoPhi1')
 
-nonCalcDVs = notRadialFluxes + particleFluxes + heatFluxes + momentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
+nonCalcDVs = notRadialFluxes + neoclassicalParticleFluxes + neoclassicalHeatFluxes + neoclassicalMomentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
 extras = ['Zs']
 
-# Name some other variables to be calculated later (just radial current at the moment)
-radialCurrents = []
-for flux in particleFluxes:
-   parts = flux.split('_')
-   name = 'radialCurrent' + '_' + parts[1] + '_' + parts[2]
-   radialCurrents.append(name)
+# Name some other variables to be calculated later
+totalParticleFluxes = makeOtherNames('totalParticleFlux')
+totalHeatFluxes = makeOtherNames('totalHeatFlux')
 
-DVs = nonCalcDVs + radialCurrents
+radialCurrents = makeNeoclassicalNames('radialCurrent')
+
+DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + radialCurrents
 
 # Loop through each directory
 allData = {}
@@ -132,9 +131,13 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1 or loadedData['nu_n'] != 0.00833:
             raise IOError('It appears that the values of Delta, alpha, or nu_n were changed from their defaults. Please use the defaults to make unit conversions simpler.')
 
-        # Calculate other desired quantities (just radial current at the moment)
+        # Calculate other desired quantities
+        for ind,(totalParticleFlux, totalHeatFlux) in enumerate(zip(totalParticleFluxes, totalHeatFluxes)):
+            loadedData[totalParticleFlux] = loadedData[neoclassicalParticleFluxes[ind]] + loadedData[classicalParticleFluxes[ind]]
+            loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[ind]] + loadedData[classicalHeatFluxes[ind]]
+
         for ind,radialCurrent in enumerate(radialCurrents):
-           loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[particleFluxes[ind]])
+           loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[ind]])
 
         # Put the data in the appropriate place
         if dataDepth == 2: # Only radial directories are present

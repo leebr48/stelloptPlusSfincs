@@ -576,12 +576,9 @@ def prettyDataLabel(inString):
     
     else: # These are radial fluxes
         
-        # Sort out the parts you need to make sense of inString
+        # Sort out the parts you need to make sense of inString and do some basic administrative checks
         parts = inString.split('_')
-        radVar = prettyRadialVar(parts[-1], innerOnly=True)
-        directionStatement = r'in $\nabla {}$ direction'.format(radVar)
         
-        # Do some basic administrative checks
         if len(parts) != 2 and len(parts) != 3:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
 
@@ -589,31 +586,45 @@ def prettyDataLabel(inString):
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
         
         label = parts[0]
+        radVar = prettyRadialVar(parts[-1], innerOnly=True)
+        
+        # Write some label strings that will be used below
+        directionStatement = r' in $\nabla {}$ direction '.format(radVar) # Note that this includes spaces on either side for convenience
+        particleFluxUnits = r'$\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
+        heatFluxUnits = r'$\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
+        momentumFluxUnits = r'$\mathrm{\left(\frac{kg}{m s^{2}}\right)}$'
+        radialCurrentUnits = r'$\mathrm{\left(\frac{A}{m^{2}}\right)}$'
 
         # Write the output
-        if label == 'particleFlux': #FIXME only neoclassical?
-            return r'Particle flux '+directionStatement+r' $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
+        if label == 'particleFlux': # Neoclassical
+            return r'Particle flux' + directionStatement + particleFluxUnits
 
-        if label == 'classicalParticleFlux':
-            return r'Classical particle flux '+directionStatement+r' $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
+        elif label == 'classicalParticleFlux':
+            return r'Classical particle flux' + directionStatement + particleFluxUnits
         
-        if label == 'classicalParticleFluxNoPhi1':
-            return r'Classical particle flux (neglecting $\Phi_{1}$) '+directionStatement+r' $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
+        elif label == 'classicalParticleFluxNoPhi1':
+            return r'Classical particle flux (neglecting $\Phi_{1}$)' + directionStatement + particleFluxUnits
 
-        elif label == 'heatFlux': #FIXME only neoclassical?
-            return r'Heat flux '+directionStatement+r' $\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
+        elif label == 'totalParticleFlux':
+            return r'Total particle flux' + directionStatement + particleFluxUnits
+
+        elif label == 'heatFlux': # Neoclassical
+            return r'Heat flux' + directionStatement + heatFluxUnits
         
         elif label == 'classicalHeatFlux':
-            return r'Classical heat flux '+directionStatement+r' $\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
+            return r'Classical heat flux' + directionStatement + heatFluxUnits
         
         elif label == 'classicalHeatFluxNoPhi1':
-            return r'Classical heat flux (neglecting $\Phi_{1}$) '+directionStatement+r' $\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
+            return r'Classical heat flux (neglecting $\Phi_{1}$)' + directionStatement + heatFluxUnits
 
-        elif label == 'momentumFlux': #FIXME only neoclassical?
-            return r'Momentum flux '+directionStatement+r' $\mathrm{\left(\frac{kg}{m s^{2}}\right)}$'
+        elif label == 'totalHeatFlux':
+            return r'Total heat flux' + directionStatement + heatFluxUnits
+
+        elif label == 'momentumFlux': # Neoclassical
+            return r'Momentum flux' + directionStatement + momentumFluxUnits
 
         elif label == 'radialCurrent':
-            return r'Radial current '+directionStatement+r' $\mathrm{\left(\frac{A}{m^{2}}\right)}$'
+            return r'Radial current' + directionStatement + radialCurrentUnits
 
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
