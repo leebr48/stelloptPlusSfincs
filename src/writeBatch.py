@@ -17,24 +17,23 @@ def run(profilesInUse, saveLocUse):
     # Name output file
     _, _, _, _, outFile = getFileInfo(profilesInUse, saveLocUse, 'job.sfincsScan')
 
-    # Load the email address to notify of job developments
-    email = environ['SFINCS_BATCH_EMAIL']
-
-    # Load the location of the SFINCS directory
+    # Load location of SFINCS directory
     sfincsLoc = join(environ['SFINCS_PATH'],'fortran/version3/sfincs')
 
-    # Load the machine name
+    # Load machine name
     machineVar = 'MACHINE'
     machine = environ[machineVar]
 
-    # Create the string to be written
+    # Create string to be written
     stringToWrite = '#!/bin/bash -l\n'
+    
     stringToWrite += '# Standard output and error:\n'
     stringToWrite += '#SBATCH -o ./sfincsJob.out.%j\n'
     stringToWrite += '#SBATCH -e ./sfincsJob.err.%j\n'
     stringToWrite += '# Initial working directory:\n'
     stringToWrite += '#SBATCH -D ./\n'
     stringToWrite += '#\n'
+    
     stringToWrite += '# Resource allocation:\n'
     if args.nNodes[0] is not None:
         stringToWrite += '#SBATCH --nodes={}\n'.format(args.nNodes[0])
@@ -45,14 +44,23 @@ def run(profilesInUse, saveLocUse):
     if args.mem[0] is not None:
         stringToWrite += '#SBATCH --mem={}\n'.format(args.mem[0])
     stringToWrite += '#\n'
-    if args.notifs[0] == 'bad':
-        stringToWrite += '#SBATCH --mail-type=fail,invalid_depend,requeue,stage_out\n'
-    elif args.notifs[0] == 'all':
-        stringToWrite += '#SBATCH --mail-type=all\n'
-    elif args.notifs[0] == 'none':
-        stringToWrite += '#SBATCH --mail-type=none\n'
-    stringToWrite += '#SBATCH --mail-user={}\n'.format(email)
-    stringToWrite += '#\n'
+    
+    try: # Set up job notification emails if possible 
+        email = environ['SFINCS_BATCH_EMAIL']
+        
+        if args.notifs[0] == 'bad':
+            stringToWrite += '#SBATCH --mail-type=fail,invalid_depend,requeue,stage_out\n'
+        elif args.notifs[0] == 'all':
+            stringToWrite += '#SBATCH --mail-type=all\n'
+        elif args.notifs[0] == 'none':
+            stringToWrite += '#SBATCH --mail-type=none\n'
+        
+        stringToWrite += '#SBATCH --mail-user={}\n'.format(email)
+        stringToWrite += '#\n'
+    
+    except KeyError:
+        pass
+    
     stringToWrite += '# Wall clock limit:\n'
     stringToWrite += '#SBATCH --time={}\n'.format(args.time[0].strip())
     stringToWrite += '\n'
@@ -72,6 +80,7 @@ def run(profilesInUse, saveLocUse):
         stringToWrite += 'module load mumps-32-noomp/5.1.2\n'
         stringToWrite += 'module load netcdf-mpi/4.7.0\n'
         stringToWrite += '\n'
+    
     else:
         from os.path import abspath
         from inspect import getfile, currentframe
