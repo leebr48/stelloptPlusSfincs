@@ -15,7 +15,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     args = getRunArgs()
 
     # Name input and output files
-    _, _, _, _, outFile = getFileInfo(profilesInUse, saveLocUse, 'input.namelist') # Name mandated by SFINCS
+    profilesFile, _, _, _, outFile = getFileInfo(profilesInUse, saveLocUse, 'input.namelist') # Name mandated by SFINCS
 
     eqFile, _, _, _, _ = getFileInfo(eqInUse, '/arbitrary/path/', 'arbitrary')
 
@@ -34,7 +34,20 @@ def run(profilesInUse, saveLocUse, eqInUse):
     magneticDriftScheme = 1 # Whether or not to include angular drifts, and if so, what model to use
     export_full_f = '.true.' # Save the full distribution function in the output file 
 
-    # Sort out some variables prior to string creation
+    # Load necessary variables from profilesFile
+    # FIXME is it worth making a class that would load the BEAMS3D inputs only once and store them? How would you do that? Would it even be useful?
+    Zs = ' '.join([str(Z) for Z in args.Zs]) # FIXME load this!
+    mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in args.mHats]) #FIXME load this!
+    # FIXME don't forget to add electrons!
+    # FIXME could add command line args for a 'default species' to make things general but still play nice with STELLOPT
+    # FIXME actually, don't you have to say that you're using electrons in STELLOPT?
+    # FIXME will all the quasineutrality stuff explode if you have only one ion species?
+    
+    if len(Zs) != len(mHats):
+        raise IOError('It appears that some data is specified incorrectly in {}. The number of species (according to the "Z" and "M" namelist items) must be consistent.'.format(profilesFile))
+    numSpecies = len(Zs)
+
+    # Sort out some variables set by command line inputs
     if args.resScan:
         scanType = 1
     elif args.numManErScan[0] == 0:
@@ -50,12 +63,10 @@ def run(profilesInUse, saveLocUse, eqInUse):
     selectedRadialVar = radialVars[args.radialVar[0]]
     selectedRadialGradientVar = radialVars[args.radialGradientVar[0]] # Note that option 4 has special Er behavior (see <help> for details)
 
-    Zs = ' '.join([str(Z) for Z in args.Zs])
-    mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in args.mHats])
-    nHats = ' '.join(['{:.15e}'.format(nHat).replace('e','d') for nHat in args.defaultDens]) #FIXME IO changed!
-    THats = ' '.join(['{:.15e}'.format(THat).replace('e','d') for THat in args.defaultTemps]) #FIXME IO changed!
-    dNHatDer = ' '.join(['{:.15e}'.format(dnHat).replace('e','d') for dnHat in args.defaultDensDer]) #FIXME IO changed!
-    dTHatDer = ' '.join(['{:.15e}'.format(dTHat).replace('e','d') for dTHat in args.defaultTempsDer]) #FIXME IO changed!
+    nHats = ' '.join(['{:.15e}'.format(nHat).replace('e','d') for nHat in args.defaultDens*numSpecies])
+    THats = ' '.join(['{:.15e}'.format(THat).replace('e','d') for THat in args.defaultTemps*numSpecies])
+    dNHatDer = ' '.join(['{:.15e}'.format(dnHat).replace('e','d') for dnHat in args.defaultDensDer*numSpecies])
+    dTHatDer = ' '.join(['{:.15e}'.format(dTHat).replace('e','d') for dTHat in args.defaultTempsDer*numSpecies])
 
     NthetaScanVars = findNumCalcs(args.Ntheta[0], args.NthetaScan, powersMode=False)
     NzetaScanVars = findNumCalcs(args.Nzeta[0], args.NzetaScan, powersMode=False)

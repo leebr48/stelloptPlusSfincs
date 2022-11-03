@@ -211,11 +211,10 @@ def listifyBEAMS3DFile(inputFile):
         filtered such that only one copy remains.
     '''
     
-    import itertools
+    from itertools import groupby
         
     with open(inputFile,'r') as f:
         beams3dSectionStartFlag = False
-        beams3dSectionEndFlag = False
         dataLines = []
         
         for line in f:
@@ -237,7 +236,7 @@ def listifyBEAMS3DFile(inputFile):
         precleaned = [i.strip() for i in line.split('=')]
 
         if len(precleaned) != 2:
-            raise IOError('The script thinks that there were two equals signs in a variable assignment line of the input file. Something is wrong.')
+            raise IOError('The script thinks that there were two equals signs in a variable assignment line in {}. Something is wrong.'.format(inputFile))
         
         if (' ' or '\t') in precleaned[1]:
             cleaned = [precleaned[0]] + precleaned[1].split()
@@ -248,7 +247,7 @@ def listifyBEAMS3DFile(inputFile):
 
     listifiedData.sort()
 
-    redundanciesRemoved = list(listifiedData for listifiedData,_ in itertools.groupby(listifiedData))
+    redundanciesRemoved = list(listifiedData for listifiedData,_ in groupby(listifiedData))
 
     return redundanciesRemoved
 

@@ -7,6 +7,7 @@ def run(profilesInUse, saveLocUse):
     '''
 
     # Import necessary modules
+    # FIXME double-check at the end to ensure all of these imports are still needed!
     import numpy as np
     from os.path import join
     from matplotlib.pyplot import subplots
@@ -23,7 +24,7 @@ def run(profilesInUse, saveLocUse):
     plotFile = join(outDir, plotName+'.pdf')
 
     # Clean input variable names and do some clerical checks
-    prefixesOfInterest = cleanStrings(args.vars)
+    prefixesOfInterest = cleanStrings(args.vars) #FIXME just hardcode these in, I guess
 
     # Extract the data from the BEAMS3D input file
     listifiedInFile = listifyBEAMS3DFile(inFile)
