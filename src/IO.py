@@ -14,7 +14,6 @@ def getRunArgs():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--profilesIn', type=str, nargs='*', required=True, help='File(s) with relevant profiles written as in STELLOPT, with path(s) if necessary. This script currently reads the BEAMS3D section of STELLOPT namelist files. If you input multiple files, order matters!')
     parser.add_argument('--eqIn', type=str, nargs='*', help='File(s) from which to load the magnetic equilibrium(ia). Can be VMEC wout file(s) in netCDF or ASCII format, or IPP .bc file(s). If you input multiple files, order matters!')
-    parser.add_argument("--vars", type=str, nargs='*', required=False, default=['NE', 'TI', 'NE', 'TE'], help='''Prefixes of variables to be read, normalized, and written. You should enter each prefix in quotes and put spaces between prefixes. The prefix names are not case sensitive. The density and temperature prefixes should come in the format <'N1' 'T1' 'N2' 'T2' ...> where '1' and '2' often indicate species identifiers (such as 'I' or 'E'). Note that you can write duplicate data by repeating entries. For instance, inputting <'NE' 'TI' 'NE' 'TE'> enforces NI=NE. The order in which the species prefixes are specified should match the species order in input.namelist. If you have potential data to input to calculate the radial electric field, 'POT' can be added anywhere in the list. The potential should give -Er when differentiated with respect to the STELLOPT coordinate S, which is psiN in SFINCS.''')
     parser.add_argument('--minBmn', type=float, nargs=1, required=False, default=[0.0], help='Only Fourier modes of at least this size will be loaded from the <eqIn> file(s).')
     parser.add_argument('--Nyquist', type=int, nargs=1, required=False, default=[2], help='Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available, if this parameter is set to 2. Exclude these mode numbers if this parameter is set to 1.')
     parser.add_argument('--numInterpSurf', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large.')
@@ -23,17 +22,15 @@ def getRunArgs():
     parser.add_argument('--numCalcSurf', type=int, nargs=1, required=False, default=[16], help='Number of radial surfaces on which to perform full SFINCS calculations.')
     parser.add_argument('--minRad', type=float, nargs=1, required=False, default=[0.1], help='Lower bound for the radial scan. If <resScan> is used, the flux surface specified by this parameter will be used for the convergence scan. Note that VMEC has resolution issues near the magnetic axis and SFINCS often converges much slower there due to the relatively low collisionality, so setting <minRad> to be very small may cause problems.')
     parser.add_argument('--maxRad', type=float, nargs=1, required=False, default=[0.95], help='Upper bound for the radial scan.')
-    parser.add_argument('--Zs', type=float, nargs='*', required=False, default=[1, -1], help='Charge of each species in units of the proton charge. The species ordering must match that in the <vars> option.')
-    parser.add_argument('--mHats', type=float, nargs='*', required=False, default=[1, 0.000545509], help='Mass of each species in units of the proton mass.')
     parser.add_argument('--seedEr', type=float, nargs=1, required=False, default=[0], help="Input an initial guess for the radial electric field in units of <radialGradientVar>. The default value is typically fine. This will be overwritten if you trigger an electric field scan with <numManErScan>.")
     parser.add_argument('--numManErScan', type=int, nargs=1, required=False, default=[0], help='Number of manual radial electric field scans to perform (using scanType=5). This parameter generates equidistant radial electric field seed values between <minEr> and <maxEr> for the root-finding algorithm in SFINCS. This parameter will be overwritten if <resScan> is activated.')
     parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-10], help='Minimum seed value of the generalized Er variable. This parameter is also used to derive the smallest electric field available to ambipolarSolve. Note that you may need to change this to get good results. It is suggested that you seed ambipolarSolve with values near Er=0 initially, otherwise the solver could converge to a very large (and erroneous) value of Er. Keep in mind that "smallest electric field available to ambipolarSolve" (mentioned before) must have the opposite sign of the "largest electric field available to ambipolarSolve" (mentioned in the <maxEr> help).')
     parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[10], help='Maximum seed value of the generalized Er variable. This parameter is also used to derive the largest electric field available to ambipolarSolve. Note that you may need to change this to get good results. It is suggested that you seed ambipolarSolve with values near Er=0 initially, otherwise the solver could converge to a very large (and erroneous) value of Er. Keep in mind that "largest electric field available to ambipolarSolve" (mentioned before) must have the opposite sign of the "smallest electric field available to ambipolarSolve" (mentioned in the <minEr> help).')
     parser.add_argument('--resScan', action='store_true', default=False, help='Triggers a SFINCS resolution scan run.')
-    parser.add_argument('--defaultDens', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the density of each species in units of 1e20 m^-3. Note that you must specify a density for EACH species. The exact values are probably not important.')
-    parser.add_argument('--defaultTemps', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the temperature of each species in keV. Note that you must specify a temperature for EACH species. The exact values are probably not important.')
-    parser.add_argument('--defaultDensDer', type=float, nargs='*', required=False, default=[-0.5e0, -0.5e0], help='If <resScan> is used, this sets the derivative of the density of each species (in units of 1e20 m^-3) with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
-    parser.add_argument('--defaultTempsDer', type=float, nargs='*', required=False, default=[-2e0, -2e0], help='If <resScan> is used, this sets the derivative of the temperature of each species (in keV) with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
+    parser.add_argument('--defaultDens', type=float, nargs=1, required=False, default=[1], help='If <resScan> is used, this sets the density of each species in units of 1e20 m^-3. The exact value is probably not important.')
+    parser.add_argument('--defaultTemps', type=float, nargs=1, required=False, default=[1], help='If <resScan> is used, this sets the temperature of each species in keV. The exact value is probably not important.')
+    parser.add_argument('--defaultDensDer', type=float, nargs=1, required=False, default=[-0.5e0], help='If <resScan> is used, this sets the derivative of the density of each species (in units of 1e20 m^-3) with respect to the radial variable specified by <radialGradientVar>. The exact value is probably not important.')
+    parser.add_argument('--defaultTempsDer', type=float, nargs=1, required=False, default=[-2e0], help='If <resScan> is used, this sets the derivative of the temperature of each species (in keV) with respect to the radial variable specified by <radialGradientVar>. The exact value is probably not important.')
     parser.add_argument('--Nzeta', type=int, nargs=1, required=False, default=[55], help='Number of toroidal grid points per period. This should be an odd number.')
     parser.add_argument('--NzetaScan', type=float, nargs=2, required=False, default=[0.5, 1.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nzeta that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--Ntheta', type=int, nargs=1, required=False, default=[25], help='Number of poloidal grid points. This should be an odd number.')
@@ -71,24 +68,6 @@ def getRunArgs():
     
     if args.radialGradientVar[0] not in [0,1,2,3,4]:
         raise IOError('An invalid <radialGradientVar> choice was specified. Valid inputs are the integers 0, 1, 2, 3, and 4.')
-
-    if len(args.Zs) != len(args.vars)/2 and len(args.Zs) != (len(args.vars)-1)/2:
-        raise IOError('The <Zs> input length is inconsistent with the <vars> input length.')
-    
-    if len(args.mHats) != len(args.vars)/2 and len(args.mHats) != (len(args.vars)-1)/2:
-        raise IOError('The <mHats> input length is inconsistent with the <vars> input length.')
-    
-    if len(args.defaultDens) != len(args.vars)/2 and len(args.defaultDens) != (len(args.vars)-1)/2:
-        raise IOError('The <defaultDens> input length is inconsistent with the <vars> input length.')
-    
-    if len(args.defaultTemps) != len(args.vars)/2 and len(args.defaultTemps) != (len(args.vars)-1)/2:
-        raise IOError('The <defaultTemps> input length is inconsistent with the <vars> input length.')
-
-    if len(args.defaultDensDer) != len(args.vars)/2 and len(args.defaultDensDer) != (len(args.vars)-1)/2:
-        raise IOError('The <defaultDensDer> input length is inconsistent with the <vars> input length.')
-    
-    if len(args.defaultTempsDer) != len(args.vars)/2 and len(args.defaultTempsDer) != (len(args.vars)-1)/2:
-        raise IOError('The <defaultTempsDer> input length is inconsistent with the <vars> input length.')
 
     if args.Nzeta[0]%2 == 0:
         raise IOError('<Nzeta> should be odd.')

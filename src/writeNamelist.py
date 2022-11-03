@@ -1,3 +1,4 @@
+# FIXME your checks for the lengths of M and Z should be done in Python somehow (before you run SFINCS)... unless of course you just trust your profiles, which you may
 # This script creates a SFINCS-readable input.namelist file.
 
 def run(profilesInUse, saveLocUse, eqInUse):
@@ -51,10 +52,10 @@ def run(profilesInUse, saveLocUse, eqInUse):
 
     Zs = ' '.join([str(Z) for Z in args.Zs])
     mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in args.mHats])
-    nHats = ' '.join(['{:.15e}'.format(nHat).replace('e','d') for nHat in args.defaultDens])
-    THats = ' '.join(['{:.15e}'.format(THat).replace('e','d') for THat in args.defaultTemps])
-    dNHatDer = ' '.join(['{:.15e}'.format(dnHat).replace('e','d') for dnHat in args.defaultDensDer])
-    dTHatDer = ' '.join(['{:.15e}'.format(dTHat).replace('e','d') for dTHat in args.defaultTempsDer])
+    nHats = ' '.join(['{:.15e}'.format(nHat).replace('e','d') for nHat in args.defaultDens]) #FIXME IO changed!
+    THats = ' '.join(['{:.15e}'.format(THat).replace('e','d') for THat in args.defaultTemps]) #FIXME IO changed!
+    dNHatDer = ' '.join(['{:.15e}'.format(dnHat).replace('e','d') for dnHat in args.defaultDensDer]) #FIXME IO changed!
+    dTHatDer = ' '.join(['{:.15e}'.format(dTHat).replace('e','d') for dTHat in args.defaultTempsDer]) #FIXME IO changed!
 
     NthetaScanVars = findNumCalcs(args.Ntheta[0], args.NthetaScan, powersMode=False)
     NzetaScanVars = findNumCalcs(args.Nzeta[0], args.NzetaScan, powersMode=False)
