@@ -31,6 +31,8 @@ def getRunArgs():
     parser.add_argument('--defaultTemps', type=float, nargs=1, required=False, default=[1], help='If <resScan> is used, this sets the temperature of each species in keV. The exact value is probably not important.')
     parser.add_argument('--defaultDensDer', type=float, nargs=1, required=False, default=[-0.5e0], help='If <resScan> is used, this sets the derivative of the density of each species (in units of 1e20 m^-3) with respect to the radial variable specified by <radialGradientVar>. The exact value is probably not important.')
     parser.add_argument('--defaultTempsDer', type=float, nargs=1, required=False, default=[-2e0], help='If <resScan> is used, this sets the derivative of the temperature of each species (in keV) with respect to the radial variable specified by <radialGradientVar>. The exact value is probably not important.')
+    parser.add_argument('--assumedSpeciesMass', type=float, nargs=1, required=False, default=[9.109383701528e-31], help='Mass in kg of a species that will be included in the SFINCS run(s) regardless of what other species the STELLOPT profiles file specifies. Because of how STELLLOPT is set up, this should always be electrons. This option is included for completeness, but you should probably never change it.')
+    parser.add_argument('--assumedSpeciesCharge', type=float, nargs=1, required=False, default=[-1.0], help='Charge in units of the proton charge of a species that will be included in the SFINCS run(s) regardless of what other species the STELLOPT profiles file specifies. Because of how STELLLOPT is set up, this should always be electrons. This option is included for completeness, but you should probably never change it.')
     parser.add_argument('--Nzeta', type=int, nargs=1, required=False, default=[55], help='Number of toroidal grid points per period. This should be an odd number.')
     parser.add_argument('--NzetaScan', type=float, nargs=2, required=False, default=[0.5, 1.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nzeta that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--Ntheta', type=int, nargs=1, required=False, default=[25], help='Number of poloidal grid points. This should be an odd number.')
@@ -262,8 +264,9 @@ def makeProfileNames(listOfPrefixes):
                         profiles for two different variables,
                         such as NI and NE.
     Outputs:
-        A list of BEAMS3D variables using listOfPrefixes, such as
-        [name1_AUX_S, name1_AUX_F, ...].
+        A list of lists containing BEAMS3D variables derived 
+        from listOfPrefixes, such as
+        [[name1_AUX_S, name1_AUX_F], ...].
     '''
   
     output_names = []
@@ -275,7 +278,7 @@ def makeProfileNames(listOfPrefixes):
 
     return output_names
 
-def extractDataList(dataList, nameList):
+def extractProfileData(dataList, nameList):
 
     '''
     Inputs:  
@@ -317,6 +320,7 @@ def extractDataList(dataList, nameList):
                         raise IOError('The read variable suffix is not "S" or "F". Something is wrong.')
                     
                     foundMatch = True
+                    break # FIXME test this to ensure it works
 
             if not foundMatch:
                 warnings.warn('No match could be found for the variable "{}" in the given dataList!'.format(name))
@@ -324,6 +328,45 @@ def extractDataList(dataList, nameList):
         matched.append(matchedPair)
         dataDict[strippedName] = matchedPair
 
+    if not any(matched):
+        raise IOError('No searched variables were found.')
+    
+    return dataDict
+
+def extractScalarData(dataList, nameList):
+
+    '''
+    Inputs:  
+        dataList: A list of lists, as from the listifyBEAMS3DFile function,
+                   with a string as the first element and length >= 2.
+        nameList: A list of variable names to search for in dataList. 
+    Outputs:
+        A dictionary. Each key is a brief name of a variable from nameList.
+        Each value contains a list with one or more floats corresponding to
+        the variable.
+    '''
+
+    import warnings
+    
+    matched = []
+    dataDict = {}
+    for name in nameList:
+        
+        foundMatch = False
+        strippedName = name.split('_')[-1]
+        
+        for dataVec in dataList:
+            
+            if dataVec[0] == name:
+                floats = [float(i) for i in dataVec[1:]]
+                dataDict[strippedName] = floats
+                foundMatch = True
+                matched.append(floats)
+                break
+
+        if not foundMatch:
+            warnings.warn('No match could be found for the variable "{}" in the given dataList!'.format(name))
+        
     if not any(matched):
         raise IOError('No searched variables were found.')
     

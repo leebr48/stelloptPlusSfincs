@@ -1,4 +1,3 @@
-# FIXME your checks for the lengths of M and Z should be done in Python somehow (before you run SFINCS)... unless of course you just trust your profiles, which you may
 # This script creates a SFINCS-readable input.namelist file.
 
 def run(profilesInUse, saveLocUse, eqInUse):
@@ -8,15 +7,14 @@ def run(profilesInUse, saveLocUse, eqInUse):
     '''
 
     # Import necessary modules
-    from IO import getRunArgs, getFileInfo, radialVarDict, writeFile
-    from dataProc import findNumCalcs
+    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractScalarData, radialVarDict, writeFile
+    from dataProc import scaleInputData, findNumCalcs
 
     # Get command line arguments
     args = getRunArgs()
 
     # Name input and output files
     profilesFile, _, _, _, outFile = getFileInfo(profilesInUse, saveLocUse, 'input.namelist') # Name mandated by SFINCS
-
     eqFile, _, _, _, _ = getFileInfo(eqInUse, '/arbitrary/path/', 'arbitrary')
 
     # List out some hard-coded variables
@@ -35,17 +33,21 @@ def run(profilesInUse, saveLocUse, eqInUse):
     export_full_f = '.true.' # Save the full distribution function in the output file 
 
     # Load necessary variables from profilesFile
-    # FIXME is it worth making a class that would load the BEAMS3D inputs only once and store them? How would you do that? Would it even be useful?
-    Zs = ' '.join([str(Z) for Z in args.Zs]) # FIXME load this!
-    mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in args.mHats]) #FIXME load this!
-    # FIXME don't forget to add electrons!
-    # FIXME could add command line args for a 'default species' to make things general but still play nice with STELLOPT
-    # FIXME actually, don't you have to say that you're using electrons in STELLOPT?
-    # FIXME will all the quasineutrality stuff explode if you have only one ion species?
+    varsOfInterest = cleanStrings(['NI_AUX_M', 'NI_AUX_Z']) # STELLOPT has the mass and charge of electrons built in, so only the ions need to be specified
+    listifiedInFile = listifyBEAMS3DFile(profilesFile)
+    dataOfInterest = extractScalarData(listifiedInFile, varsOfInterest)
+    dataOfInterest['m'].insert(0, args.assumedSpeciesMass[0])
+    dataOfInterest['z'].insert(0, args.assumedSpeciesCharge[0])
+    scaledData = scaleInputData(dataOfInterest, profiles=False)
+    mHatsList = scaledData['m']
+    ZsList = scaledData['z']
     
-    if len(Zs) != len(mHats):
+    if len(mHatsList) != len(ZsList):
         raise IOError('It appears that some data is specified incorrectly in {}. The number of species (according to the "Z" and "M" namelist items) must be consistent.'.format(profilesFile))
-    numSpecies = len(Zs)
+    numSpecies = len(ZsList)
+    
+    mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in mHatsList])
+    Zs = ' '.join([str(Z) for Z in ZsList])
 
     # Sort out some variables set by command line inputs
     if args.resScan:

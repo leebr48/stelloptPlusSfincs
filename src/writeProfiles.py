@@ -11,8 +11,8 @@ def run(profilesInUse, saveLocUse):
     import numpy as np
     from os.path import join
     from matplotlib.pyplot import subplots
-    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText, writeFile, messagePrinter
-    from dataProc import findMinMax, scaleData, nonlinearInterp
+    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractProfileData, makeProfileNames, generatePreamble, generateDataText, writeFile, messagePrinter
+    from dataProc import findMinMax, scaleInputData, nonlinearInterp
 
     # Get command line arguments
     args = getRunArgs()
@@ -30,12 +30,12 @@ def run(profilesInUse, saveLocUse):
     listifiedInFile = listifyBEAMS3DFile(inFile)
 
     varsOfInterest = makeProfileNames(prefixesOfInterest)
-    dataOfInterest = extractDataList(listifiedInFile, varsOfInterest)
+    dataOfInterest = extractProfileData(listifiedInFile, varsOfInterest)
 
     radialBounds = findMinMax(dataOfInterest)
 
     # Scale the data according to the reference variable values
-    scaledData = scaleData(dataOfInterest)
+    scaledData = scaleInputData(dataOfInterest)
     
     # Interpolate the data in case the radial lists do not all contain the same points
     ders = {}

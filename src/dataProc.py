@@ -4,7 +4,7 @@ def findMinMax(dataOfInterest):
 
     '''
     Inputs:
-        Dictionary, as from the extractDataList function.
+        Dictionary, as from the extractProfileData function.
     Outputs:
         Dictionary that indicates the largest minimum bound
         and smallest maximum bound from the independent
@@ -70,11 +70,16 @@ def findNumCalcs(baseVal, minMaxList, powersMode=False):
 
     return {'min':minMult, 'max':maxMult, 'num':out}
 
-def scaleData(dataOfInterest, phiBar=1, nBar=1e20, TBar=1):
+def scaleInputData(dataOfInterest, profiles=True, phiBar=1, nBar=1e20, TBar=1, mBar=1.672621911e-27, ZBar=1):
 
     '''
     Inputs:
-        dataOfInterest: Dictionary, as from the extractDataList function.
+        dataOfInterest: Dictionary, as from the extractProfileData or
+                        extractScalarData functions.
+        profiles: Boolean toggle. If True, dataOfInterest is assumed to contain
+                  profile information (such as from extractProfileData). If
+                  False, dataOfInterest is assumed to contain scalar information
+                  (such as from extractScalarData).
         phiBar: Reference value of the electrostatic potential in units of kV.
                 Changing this will break other things!
         nBar: Reference value of density in units of m^(-3). Note that Python
@@ -82,8 +87,12 @@ def scaleData(dataOfInterest, phiBar=1, nBar=1e20, TBar=1):
               Changing this will break other things!
         TBar: Reference value of temperature in units of keV.
               Changing this will break other things!
+        mBar: Reference value of mass (which is the proton mass) in kg.
+              Changing this will break other things!
+        ZBar: Reference value of charge in units of proton charge.
+              Changing this will break other things!
     Outputs:
-        dataOfInterest, but with the appropriate values scaled for SFINCS.
+        dataOfInterest, but with the appropriate values scaled for SFINCS input.
     '''
 
     for key, data in dataOfInterest.items():
@@ -94,12 +103,19 @@ def scaleData(dataOfInterest, phiBar=1, nBar=1e20, TBar=1):
             multip = 1/nBar
         elif key[0] == 't': # Temperature
             multip = 1/1000/TBar # BEAMS3D uses eV instead of keV
+        elif key[0] == 'm': # Mass
+            multip = 1/mBar # BEAMS3D uses kg instead of proton mass
+        elif key[0] == 'z': # Charge
+            multip = 1
         else:
             raise IOError('I am not sure how to scale at least one of the input data arrays.')
-
-        scaled = [item * multip for item in data['dv']]
-
-        dataOfInterest[key]['dv'] = scaled
+        
+        if profiles:
+            scaled = [item * multip for item in data['dv']]
+            dataOfInterest[key]['dv'] = scaled
+        else:
+            scaled = [item * multip for item in data]
+            dataOfInterest[key] = scaled
 
     return dataOfInterest
 
@@ -107,7 +123,8 @@ def nonlinearInterp(inputData, ders, k=3, s=0):
 
     '''
     Inputs:
-        inputData: Dictionary, as from the scaleData function.
+        inputData: Dictionary, as from the scaleInputData
+                   function.
         ders: Dictionary with the same keys as inputData and
               values describing how many derivatives should
               be taken to determine the final interpolation
