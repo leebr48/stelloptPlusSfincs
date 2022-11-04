@@ -575,7 +575,7 @@ def prettyDataLabel(inString):
 
         # Write the output
         if label == 'particleFlux': # Neoclassical
-            return r'Particle flux' + directionStatement + particleFluxUnits
+            return r'Neoclassical particle flux' + directionStatement + particleFluxUnits
 
         elif label == 'classicalParticleFlux':
             return r'Classical particle flux' + directionStatement + particleFluxUnits
@@ -587,7 +587,7 @@ def prettyDataLabel(inString):
             return r'Total particle flux' + directionStatement + particleFluxUnits
 
         elif label == 'heatFlux': # Neoclassical
-            return r'Heat flux' + directionStatement + heatFluxUnits
+            return r'Neoclassical heat flux' + directionStatement + heatFluxUnits
         
         elif label == 'classicalHeatFlux':
             return r'Classical heat flux' + directionStatement + heatFluxUnits
@@ -599,7 +599,7 @@ def prettyDataLabel(inString):
             return r'Total heat flux' + directionStatement + heatFluxUnits
 
         elif label == 'momentumFlux': # Neoclassical
-            return r'Momentum flux' + directionStatement + momentumFluxUnits
+            return r'Neoclassical momentum flux' + directionStatement + momentumFluxUnits
 
         elif label == 'radialCurrent':
             return r'Radial current' + directionStatement + radialCurrentUnits

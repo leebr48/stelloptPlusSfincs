@@ -45,21 +45,16 @@ defaults = ['Delta', 'alpha', 'nu_n']
 IVs = list(radialVars.values())
 notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow']
 
-neoclassicalParticleFluxes = makeNeoclassicalNames('particleFlux')
-neoclassicalHeatFluxes = makeNeoclassicalNames('heatFlux')
-neoclassicalMomentumFluxes = makeNeoclassicalNames('momentumFlux')
+[neoclassicalParticleFluxes, neoclassicalHeatFluxes, neoclassicalMomentumFluxes] = [makeNeoclassicalNames(item) for item in ['particleFlux', 'heatFlux', 'momentumFlux']]
 
-classicalParticleFluxes = makeOtherNames('classicalParticleFlux')
-classicalParticleFluxesNoPhi1 = makeOtherNames('classicalParticleFluxNoPhi1')
-classicalHeatFluxes = makeOtherNames('classicalHeatFlux')
-classicalHeatFluxesNoPhi1 = makeOtherNames('classicalHeatFluxNoPhi1')
+[classicalParticleFluxes, classicalParticleFluxesNoPhi1, classicalHeatFluxes, classicalHeatFluxesNoPhi1] = [makeOtherNames(item) for item in ['classicalParticleFlux', 'classicalParticleFluxNoPhi1', 'classicalHeatFlux', 'classicalHeatFluxNoPhi1']]
 
 nonCalcDVs = notRadialFluxes + neoclassicalParticleFluxes + neoclassicalHeatFluxes + neoclassicalMomentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
+
 extras = ['Zs']
 
 # Name some other variables to be calculated later
-totalParticleFluxes = makeOtherNames('totalParticleFlux')
-totalHeatFluxes = makeOtherNames('totalHeatFlux')
+[totalParticleFluxes, totalHeatFluxes] = [makeOtherNames(item) for item in ['totalParticleFlux', 'totalHeatFlux']]
 
 radialCurrents = makeNeoclassicalNames('radialCurrent')
 
@@ -132,12 +127,12 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             raise IOError('It appears that the values of Delta, alpha, or nu_n were changed from their defaults. Please use the defaults to make unit conversions simpler.')
 
         # Calculate other desired quantities
-        for ind,(totalParticleFlux, totalHeatFlux) in enumerate(zip(totalParticleFluxes, totalHeatFluxes)):
-            loadedData[totalParticleFlux] = loadedData[neoclassicalParticleFluxes[ind]] + loadedData[classicalParticleFluxes[ind]]
-            loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[ind]] + loadedData[classicalHeatFluxes[ind]]
+        for radInd,(totalParticleFlux, totalHeatFlux) in enumerate(zip(totalParticleFluxes, totalHeatFluxes)):
+            loadedData[totalParticleFlux] = loadedData[neoclassicalParticleFluxes[radInd]] + loadedData[classicalParticleFluxes[radInd]]
+            loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[radInd]] + loadedData[classicalHeatFluxes[radInd]]
 
-        for ind,radialCurrent in enumerate(radialCurrents):
-           loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[ind]])
+        for radInd,radialCurrent in enumerate(radialCurrents):
+           loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[radInd]])
 
         # Put the data in the appropriate place
         if dataDepth == 2: # Only radial directories are present
@@ -184,8 +179,13 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             
             DVvec = []
             for DV in DVs: # Select the data you want to plot
+
+                if 'Flux' in DV and DV[0] not in ['c','t']: # If DV is a neoclassical flux #FIXME test this
+                    DVnameForPlot = 'neoclassical' + DV[0].upper() + DV[1:]
+                else:
+                    DVnameForPlot = DV
                 
-                baseName = nameOfDir + '-' + DV + '-vs-' + IV 
+                baseName = nameOfDir + '-' + DVnameForPlot + '-vs-' + IV 
                 plotName = baseName + '.pdf'
                 dataName = baseName + '.dat'
                 Zsname = baseName + '.Zs'
