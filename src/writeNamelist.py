@@ -116,9 +116,9 @@ def run(profilesInUse, saveLocUse, eqInUse):
     stringToWrite += '\tincludeElectricFieldTermInXiDot = {} ! (Default) Necessary to calculate full trajectories\n'.format(includeElectricFieldTermInXiDot)
     # Note that the physics parameters above this point are SFINCS defaults - they are included only for code self-documentation.
     if args.radialGradientVar[0] != 4:
-        stringToWrite += '\tdPhiHatd{} = {} ! Value of the radial electric field (proxy) that will be used for all flux surfaces\n'.format(selectedRadialGradientVar, args.seedEr[0])
+        stringToWrite += '\tdPhiHatd{} = {} ! Seed value of the radial electric field (proxy) for this flux surface\n'.format(selectedRadialGradientVar, args.seedEr[0])
     else:
-        stringToWrite += '\tEr = {} ! Value of the radial electric field that will be used for all flux surfaces\n'.format(args.seedEr[0])
+        stringToWrite += '\tEr = {} ! Seed value of the radial electric field for this flux surface\n'.format(args.seedEr[0])
     stringToWrite += '\tmagneticDriftScheme = {} ! Whether or not to include angular drifts, and if so, what model to use\n'.format(magneticDriftScheme)
     stringToWrite += '/\n'
     stringToWrite += '\n'
