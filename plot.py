@@ -5,6 +5,7 @@
 from os.path import dirname, abspath, join, basename
 from inspect import getfile, currentframe
 import sys
+import datetime
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
@@ -34,6 +35,7 @@ else:
 # Specify some small functions that are useful only in this script
 makeNeoclassicalNames = lambda x: [x+'_vm_'+IV for IV in IVs]
 makeOtherNames = lambda x: [x+'_'+IV for IV in IVs]
+now = lambda: str(datetime.datetime.now())
 def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
     stringToWrite = ''.join(listOfStrings)
     fileToMake = join(outputDir, '{}-{}.txt'.format(inputDir, fileIDName))
@@ -78,22 +80,28 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
     if len(dataFiles) == 0:
         raise IOError('No SFINCS output (*.h5) file could be found in the input directory {}.'.format(directory))
 
-    # Sort out the SFINCS subdirectories
-    subdirs = [item.replace(directory+'/','') for item in dataFiles]
+    # FIXME kill this commented code if you can
+    '''
+    # Sort out the SFINCS subdirectories 
+    #subdirs = [item.replace(directory+'/','') for item in dataFiles]
 
-    splitSubdirs = [item.split('/') for item in subdirs]
+    #splitSubdirs = [item.split('/') for item in subdirs]
 
-    dataDepth = len(splitSubdirs[0])
+    #dataDepth = len(splitSubdirs[0])
 
-    if not all([len(item) == dataDepth for item in splitSubdirs]):
-        raise IOError('The structure of the SFINCS directory {} does not seem to be normal.'.format(directory))
+    #if not all([len(item) == dataDepth for item in splitSubdirs]):
+        #raise IOError('The structure of the SFINCS directory {} does not seem to be normal.'.format(directory))
+    '''
 
     # Cycle through each file, read its data, and put that data in the proper place
     radDirName = None
     loadedData = {}
     for j,file in enumerate(dataFiles): # Scans through radial directories, and Er directories if present
 
-        subdictNames = splitSubdirs[j]
+        subdir = file.replace(directory+'/','') #FIXME this code should allow you to plot SFINCS directories with some scanType4 and some scanType5 runs... check!
+        subdictNames = subdir.split('/')
+        dataDepth = len(subdictNames)
+        #subdictNames = splitSubdirs[j]
 
         # Open the output file and do a basic (not 100% conclusive) convergence check before reading its data
         dirOfFileName = dirname(file)
@@ -111,9 +119,13 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             didNotConvergeDir.append(file)
             convergenceState = 'FAIL'
 
-        fileToWrite = join(dirOfFileName, 'convergence{}.txt'.format(convergenceState))
-        convergenceString = 'This run {}ED basic convergence tests.'.format(convergenceState)
-        writeFile(fileToWrite, convergenceString, silent=True)
+        #fileToWrite = join(dirOfFileName, 'convergence{}.txt'.format(convergenceState)) # FIXME kill this code if you can
+        #convergenceString = 'This run {}ED basic convergence tests.'.format(convergenceState)
+        #writeFile(fileToWrite, convergenceString, silent=True)
+
+        convergenceStringList = [now() + '\n'] #FIXME make sure this code works!
+        convergenceStringList.append('This run {}ED basic convergence tests.\n'.format(convergenceState))
+        writeInfoFile(convergenceStringList, basename(dirOfFileName), dirOfFileName, 'convergence')
         
         if args.checkConv or convergenceState == 'FAIL':
             continue
@@ -252,11 +264,13 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         
         if len(didNotConvergeDir) > 0: # Note that if every output in an input directory did not converge, this file will not be written
             formattedList = [item + '\n' for item in didNotConvergeDir]
+            formattedList.insert(0, now() + '\n') # FIXME ensure this works
             writeInfoFile(formattedList, nameOfDir, outDir, 'didNotConverge')
 
         if len(ErChoices) > 0:
             uniqueChoices = list(set(ErChoices))
             uniqueChoices.sort()
+            uniqueChoices.insert(0, now() + '\n') # FIXME ensure this works
             writeInfoFile(uniqueChoices, nameOfDir, outDir, 'ErChoices')
         
         allData = {} # This should be clean for each new directory
