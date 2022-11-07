@@ -24,25 +24,24 @@ def run(profilesInUse, saveLocUse):
     plotFile = join(outDir, plotName+'.pdf')
 
     # Clean input variable names and do some clerical checks
-    prefixesOfInterest = cleanStrings(args.vars) #FIXME just hardcode these in, I guess
+    prefixesOfInterest = cleanStrings(['NE', 'NI', 'TE', 'TI'])
 
     # Extract the data from the BEAMS3D input file
     listifiedInFile = listifyBEAMS3DFile(inFile)
 
     varsOfInterest = makeProfileNames(prefixesOfInterest)
     dataOfInterest = extractProfileData(listifiedInFile, varsOfInterest)
+    print(dataOfInterest); print('**********************')
 
     radialBounds = findMinMax(dataOfInterest)
-
+    print(radialBounds); print('**********************')
+    
     # Scale the data according to the reference variable values
     scaledData = scaleInputData(dataOfInterest)
-    
+    print(scaledData); print('**********************')
     # Interpolate the data in case the radial lists do not all contain the same points
-    ders = {}
-    for key,val in scaledData.items():
-        ders[key] = 0
-
-    interpolatedData = nonlinearInterp(scaledData, ders)
+    interpolatedData = nonlinearInterp(scaledData) # FIXME at some point, you will need to set the temperature profiles to be the same for each ion if they're not specified... maybe even before this, in a different function?
+    print(interpolatedData); quit()
 
     # Gather the components of profiles file
     radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is S in STELLOPT and psiN in SFINCS
@@ -55,8 +54,8 @@ def run(profilesInUse, saveLocUse):
     generalEr_max = lambda x: args.maxEr[0]
 
     funcs = [NErs, generalEr_min, generalEr_max]
-
-    funcs.extend([interpolatedData[prefix] for prefix in prefixesOfInterest])
+    # FIXME everything works up to here, I think
+    funcs.extend([interpolatedData[prefix] for prefix in prefixesOfInterest]) #FIXME you need to unpack interpolatedData properly
 
     # Plot the fitted interpolation functions to ensure they represent the data well
     fig,ax = subplots()
@@ -64,14 +63,14 @@ def run(profilesInUse, saveLocUse):
     leg = []
     for key, data in scaledData.items():
         ax.scatter(data['iv'], data['dv'])
-        ax.plot(radii, interpolatedData[key](radii))
+        ax.plot(radii, interpolatedData[key](radii)) #FIXME interpolatedData probably won't work like this anymore
         leg.append(key)
 
     ax.legend(leg, loc='best')
     ax.set_xlabel(r'SFINCS $\psi_{N}$ $\left(= \mathrm{STELLOPT}{\ }S\right)$')
     ax.set_ylabel('Normalized Value')
 
-    fig.savefig(plotFile, bbox_inches='tight', dpi=400)
+    fig.savefig(plotFile, bbox_inches='tight', dpi=400) # FIXME ensure that the plot is still correct (that is, your interpolation functions are still working)
     messagePrinter('{} plot created.'.format(plotName))
 
     # Get the string to write in profiles file

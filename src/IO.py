@@ -289,14 +289,20 @@ def extractProfileData(dataList, nameList):
                   dataList.
     Outputs:
         A dictionary. Each key is a unique prefix from nameList. Each value
-        contains a dictionary with two entries. The 'iv' entry is the radial
-        coordinate (normalized toroidal flux) list for the given variable. 
-        The 'dv' entry gives the list of values corresponding to those
-        radial coordinates.
+        contains a dictionary with two entries. The 'iv' entry is a list
+        of lists with the radial coordinate (normalized toroidal flux) for
+        the given variable. The 'dv' entry is a lists of lists with values
+        corresponding to those radial coordinates. If only a single species
+        is specified for a given prefix, the lists will look like
+        [[...values...]]. With multiple species, they will look like
+        [[...values1...],[...values2...],...]. Note that the dimensions of
+        the 'iv' and 'dv' arrays will always match. This means that some
+        'iv' values may be repeated, such as when multiple ion densities
+        are specified using the same set of radial coordinates.
     '''
 
     import warnings
-    
+
     matched = []
     dataDict = {}
     for namePair in nameList:
@@ -307,27 +313,64 @@ def extractProfileData(dataList, nameList):
         for name in namePair:
             foundMatch = False
 
+            allSpeciesData = [[]] * 100 # 100 is arbitrarily large on purpose (we'll never have that many species in the calculations)
             for dataVec in dataList:
+
+                # We need to isolate the name of the variable
+                dataLabel = dataVec[0]
+                splitAtOpenPar = dataLabel.split('(')
+                dataName = splitAtOpenPar[0]
                 
-                if dataVec[0] == name:
-                    floats = [float(i) for i in dataVec[1:]]
+                if dataName == name:
+                    # We need to sort out the variable indices
+                    if len(splitAtOpenPar) == 1: # The label has no indices, so its array has only one row
+                        speciesIndex = 0
                     
-                    if name[-1] == 's':
-                        matchedPair['iv'] = floats
-                    elif name[-1] == 'f':
-                        matchedPair['dv'] = floats
+                    elif len(splitAtOpenPar) == 2: # The label has indices that we need to sort out
+                        indices = [item.strip() for item in splitAtOpenPar[1].split(')')[0].split(',')]
+                        speciesIndex = int(indices[0]) - 1 # Python indices start from 0, STELLOPT indices start from 1
+                        if indices[1] != ':':
+                            raise IOError('Piecewise indexing for profile declarations (as in {}) is not yet supported.'.format(dataLabel))
+                    
                     else:
-                        raise IOError('The read variable suffix is not "S" or "F". Something is wrong.')
-                    
+                        raise IOError('In the variable declaration line for {}, the "(" character apparently appears twice. Something is wrong.'.format(dataLabel))
+
+                    # Now assign the data as an IV or a DV
+                    allSpeciesData[speciesIndex] = [float(i) for i in dataVec[1:]] # Notice that we'll always have a list of lists, even after cleaning up all the empty internal lists
                     foundMatch = True
-                    break # FIXME test this to ensure it works
+                    
+            if name[-1] == 's':
+                matchedPair['iv'] = allSpeciesData
+            elif name[-1] == 'f':
+                matchedPair['dv'] = allSpeciesData
+            else:
+                raise IOError('The read variable suffix for {} is not "S" or "F". Something is wrong.'.format(dataLabel))
 
             if not foundMatch:
                 warnings.warn('No match could be found for the variable "{}" in the given dataList!'.format(name))
-        
-        matched.append(matchedPair)
-        dataDict[strippedName] = matchedPair
 
+        # Clean up the empty lists in matchedPair
+        cleanMatchedPair = {}
+        for key,data in matchedPair.items():
+            cleanMatchedPair[key] = [item for item in data if item != []]
+ 
+        # Store the data
+        matched.append(cleanMatchedPair)
+        dataDict[strippedName] = cleanMatchedPair
+
+    # Make the IV and DV parts of cleanMatchedPair the same length
+    for key,data in dataDict.items():
+        ivLen = len(data['iv'])
+        dvLen = len(data['dv'])
+        if ivLen == dvLen:
+            pass
+        elif ivLen == 1 and dvLen > 1:
+            dataDict[key]['iv'] = data['iv'] * dvLen
+        elif ivLen > 1 and dvLen == 1:
+            raise IOError('Multiple independent variable sets were specified for one dependent variable set in the {} array. Something is wrong.'.format(strippedName))
+        else:
+            raise IOError('The structure of the data in the {} array is irregular. Something is wrong.'.format(strippedName))
+    
     if not any(matched):
         raise IOError('No searched variables were found.')
     

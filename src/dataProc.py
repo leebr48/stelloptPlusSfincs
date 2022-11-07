@@ -13,13 +13,15 @@ def findMinMax(dataOfInterest):
         radial domain over which all the profile information
         could be accurately specified.
     '''
+
+    import numpy as np
     
     out = {}
     mins = []
     maxes = []
     for key,data in dataOfInterest.items():
-        mins.append(min(data['iv']))
-        maxes.append(max(data['iv']))
+        mins.append(np.min(data['iv']))
+        maxes.append(np.max(data['iv']))
 
     out['min'] = max(mins)
     out['max'] = min(maxes)
@@ -95,6 +97,8 @@ def scaleInputData(dataOfInterest, profiles=True, phiBar=1, nBar=1e20, TBar=1, m
         dataOfInterest, but with the appropriate values scaled for SFINCS input.
     '''
 
+    import numpy as np
+
     for key, data in dataOfInterest.items():
         
         if key[0] == 'p': # Potential
@@ -111,44 +115,40 @@ def scaleInputData(dataOfInterest, profiles=True, phiBar=1, nBar=1e20, TBar=1, m
             raise IOError('I am not sure how to scale at least one of the input data arrays.')
         
         if profiles:
-            scaled = [item * multip for item in data['dv']]
-            dataOfInterest[key]['dv'] = scaled
+            dataOfInterest[key]['dv'] = (multip * np.array(data['dv'])).tolist()
         else:
-            scaled = [item * multip for item in data]
-            dataOfInterest[key] = scaled
+            dataOfInterest[key] = (multip * np.array(data)).tolist()
 
     return dataOfInterest
 
-def nonlinearInterp(inputData, ders, k=3, s=0):
+def nonlinearInterp(inputData, k=3, s=0):
 
     '''
     Inputs:
         inputData: Dictionary, as from the scaleInputData
                    function.
-        ders: Dictionary with the same keys as inputData and
-              values describing how many derivatives should
-              be taken to determine the final interpolation
-              object. The entries are typically zero, but may
-              be 1 for calculating (say) derivatives of the 
-              electric potential.
-        k: Degree of the spline (prior to any derivatives 
-           being taken).
+        k: Degree of the spline.
         s: Smoothing parameter. For details, see the docs on
            scipy.interpolate.splrep. s=0 corresponds to no
            smoothing, meaning that the interpolation function
            will go through every data point.
     Outputs:
-        inputData, but with SciPy interpolation objects in place
-        of the data.
+        inputData, but with lists of SciPy interpolation
+        objects in place of the data.
     '''
 
     from scipy.interpolate import splrep, splev
 
     outputData = {}
     for key, data in inputData.items():
-        tck = splrep(data['iv'], data['dv'], k=k, s=s)
-        interpObj = lambda x, tck=tck, der=ders[key]: splev(x, tck, der=der, ext=2) # Will raise an error if extrapolation is requested
-        outputData[key] = interpObj
+        
+        interpObjs = []
+        for ivVec,dvVec in zip(data['iv'], data['dv']):
+            tck = splrep(ivVec, dvVec, k=k, s=s)
+            interpObj = lambda x, tck=tck: splev(x, tck, ext=2) # Will raise an error if extrapolation is requested
+            interpObjs.append(interpObj)
+        
+        outputData[key] = interpObjs
 
     return outputData
 
