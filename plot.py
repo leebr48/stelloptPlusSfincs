@@ -1,3 +1,4 @@
+# FIXME YOU NEED TO REVALIDATE THIS SCRIPT'S ACCURACY!
 # This script generates plots, plot data, and informational *.txt files given SFINCS output (*.h5) files. It can also perform basic convergence checks on the output files.
 # Currently, this script cannot create 3D plots.
 
@@ -40,6 +41,14 @@ def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
     stringToWrite = ''.join(listOfStrings)
     fileToMake = join(outputDir, '{}-{}.txt'.format(inputDir, fileIDName))
     writeFile(fileToMake, stringToWrite, silent=True)
+def findRadialInfo(radialDict, radialVar):
+    try: # Will only work if there are no Er subdirectories
+        radialVal = radialDict[radialVar]
+        dataDepth = 2
+    except KeyError:
+        radialVal = radialDict[list(radialDict.keys())[0]][radialVar] # Note that the same flux surface is used in each Er subdirectory
+        dataDepth = 3
+    return radialVal, dataDepth
 
 # Name some important variables
 defaults = ['Delta', 'alpha', 'nu_n']
@@ -80,27 +89,17 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
     if len(dataFiles) == 0:
         raise IOError('No SFINCS output (*.h5) file could be found in the input directory {}.'.format(directory))
 
-    # FIXME kill this commented code if you can
-    '''
-    # Sort out the SFINCS subdirectories 
-    #subdirs = [item.replace(directory+'/','') for item in dataFiles]
-
-    #splitSubdirs = [item.split('/') for item in subdirs]
-
-    #dataDepth = len(splitSubdirs[0])
-
-    #if not all([len(item) == dataDepth for item in splitSubdirs]):
-        #raise IOError('The structure of the SFINCS directory {} does not seem to be normal.'.format(directory))
-    '''
-
     # Cycle through each file, read its data, and put that data in the proper place
     radDirName = None
     loadedData = {}
     for j,file in enumerate(dataFiles): # Scans through radial directories, and Er directories if present
 
-        subdir = file.replace(directory+'/','') #FIXME this code should allow you to plot SFINCS directories with some scanType4 and some scanType5 runs... check!
+        subdir = file.replace(directory+'/','')
         subdictNames = subdir.split('/')
         dataDepth = len(subdictNames)
+
+        if dataDepth not in [2,3]:
+            raise IOError('The structure of the SFINCS directory {} does not seem to be normal. This error was encountered while processing {}.'.format(directory, file))
 
         # Open the output file and do a basic (not 100% conclusive) convergence check before reading its data
         dirOfFileName = dirname(file)
@@ -142,35 +141,32 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
            loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[radInd]])
 
         # Put the data in the appropriate place
-        if dataDepth == 2: # Only radial directories are present
-            allData[subdictNames[0]] = loadedData
-        
-        elif dataDepth == 3: # Radial and Er directories are present
+        if radDirName != subdictNames[0]: # You are in a different radial directory from the last iteration over dataFiles
+            if j != 0: # We shouldn't try to append data on the first loop iteration (not all variables are instantiated correctly yet)
+                allData[radDirName] = radData # Notice that in every loop iteration, we append data from the previous iteration
 
-            if radDirName != subdictNames[0]: # You are in a different radial directory from the last iteration over dataFiles
-                if j != 0: # We shouldn't try to append data on the first loop iteration
-                    allData[radDirName] = radData
-                radDirName = subdictNames[0]
-                radData = {}
-            
-            radData[subdictNames[1]] = loadedData
+            radDirName = subdictNames[0]
+            radData = {}
         
-        else:
-            raise IOError('The structure of the SFINCS directory {} does not seem to be normal.'.format(directory))
+        if dataDepth == 2:
+            radData = loadedData # With no Er directories, physical data is stored directly in the radial directories
+        
+        elif dataDepth == 3:
+            radData[subdictNames[1]] = loadedData # With Er directories, physical data is stored inside of them, and they are inside the radial directories
 
+        if j == len(dataFiles) - 1: # This is the last file, so we need to append the data before exiting the loop
+            allData[radDirName] = radData
+        
         loadedData = {} # This should be clean for each new file
-
+    
     if not args.checkConv and len(didNotConvergeDir) != len(dataFiles):
     
         # Now sort out what to plot
         stuffToPlot = {}
         for key,val in allData.items():
             
-            if dataDepth == 2: # Only radial directories are present
-                radialVal = val[radialVar]
-            else: # Radial and Er directories are present
-                radialVal = val[list(val.keys())[0]][radialVar] # Note that the same flux surface is used for each electric field sub-run
-            
+            radialVal, _ = findRadialInfo(val, radialVar)
+
             minPass = minBound < 0 or minBound <= radialVal
             maxPass = maxBound < 0 or maxBound >= radialVal
 
@@ -187,7 +183,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             DVvec = []
             for DV in DVs: # Select the data you want to plot
 
-                if 'Flux' in DV and DV[0] not in ['c','t']: # If DV is a neoclassical flux #FIXME test this
+                if 'Flux' in DV and DV[0] not in ['c','t']: # If DV is a neoclassical flux
                     DVnameForPlot = 'neoclassical' + DV[0].upper() + DV[1:]
                 else:
                     DVnameForPlot = DV
@@ -202,7 +198,9 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 fullZsPath = join(outDir, Zsname)
         
                 for radKey,radData in stuffToPlot.items():
-
+            
+                    _, dataDepth = findRadialInfo(radData, IV)
+                    
                     if dataDepth == 2: # Only radial directories are present
                         dataToUse = radData
 
@@ -259,13 +257,13 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         
         if len(didNotConvergeDir) > 0: # Note that if every output in an input directory did not converge, this file will not be written
             formattedList = [item + '\n' for item in didNotConvergeDir]
-            formattedList.insert(0, now() + '\n') # FIXME ensure this works
+            formattedList.insert(0, now() + '\n')
             writeInfoFile(formattedList, nameOfDir, outDir, 'didNotConverge')
 
         if len(ErChoices) > 0:
             uniqueChoices = list(set(ErChoices))
             uniqueChoices.sort()
-            uniqueChoices.insert(0, now() + '\n') # FIXME ensure this works
+            uniqueChoices.insert(0, now() + '\n')
             writeInfoFile(uniqueChoices, nameOfDir, outDir, 'ErChoices')
         
         allData = {} # This should be clean for each new directory

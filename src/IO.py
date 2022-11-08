@@ -278,7 +278,7 @@ def makeProfileNames(listOfPrefixes):
 
     return output_names
 
-def extractProfileData(dataList, nameList):
+def extractProfileData(dataList, nameList, numSpeciesUpperBound=100):
 
     '''
     Inputs:  
@@ -287,6 +287,10 @@ def extractProfileData(dataList, nameList):
         nameList: A list of lists, as from the makeProfileNames function. 
                   Each sublist contains a pair of strings to search for in 
                   dataList.
+        numSpeciesUpperBound: An arbitrarily large integer used internally
+                              to preallocate a list. In the unlikely event
+                              you run SFINCS with more than this many species,
+                              you can simply increase the value of the parameter.
     Outputs:
         A dictionary. Each key is a unique prefix from nameList. Each value
         contains a dictionary with two entries. The 'iv' entry is a list
@@ -313,7 +317,7 @@ def extractProfileData(dataList, nameList):
         for name in namePair:
             foundMatch = False
 
-            allSpeciesData = [[]] * 100 # 100 is arbitrarily large on purpose (we'll never have that many species in the calculations)
+            allSpeciesData = [[]] * numSpeciesUpperBound # FIXME you could make this slicker by storing matches in an intermediate array... or perhaps using a dictionary
             for dataVec in dataList:
 
                 # We need to isolate the name of the variable
