@@ -35,7 +35,6 @@ def run(profilesInUse, saveLocUse):
     
     # Scale the data according to the reference variable values
     scaledData = scaleInputData(dataOfInterest)
-    print(scaledData)
 
     # Interpolate the data in case the radial lists do not all contain the same points
     interpolatedData = nonlinearInterp(scaledData)

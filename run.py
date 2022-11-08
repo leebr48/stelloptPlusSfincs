@@ -1,6 +1,4 @@
-# FIXME MERGE THIS BRANCH BACK INTO FIXSLURM (OR VICE VERSA) AND THEN MERGE EVERYTHING INTO MAIN WHEN YOU'RE ALL DONE
-# This script is the top-level wrapper from which all the other scripts can be called.
-# You can trigger scripts to be written and run from here.
+# This script sets up SFINCS runs and queues them using Slurm
 
 # Import necessary modules
 from os.path import dirname, abspath, join

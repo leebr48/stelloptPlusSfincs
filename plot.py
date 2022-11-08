@@ -101,7 +101,6 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         subdir = file.replace(directory+'/','') #FIXME this code should allow you to plot SFINCS directories with some scanType4 and some scanType5 runs... check!
         subdictNames = subdir.split('/')
         dataDepth = len(subdictNames)
-        #subdictNames = splitSubdirs[j]
 
         # Open the output file and do a basic (not 100% conclusive) convergence check before reading its data
         dirOfFileName = dirname(file)
@@ -119,11 +118,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             didNotConvergeDir.append(file)
             convergenceState = 'FAIL'
 
-        #fileToWrite = join(dirOfFileName, 'convergence{}.txt'.format(convergenceState)) # FIXME kill this code if you can
-        #convergenceString = 'This run {}ED basic convergence tests.'.format(convergenceState)
-        #writeFile(fileToWrite, convergenceString, silent=True)
-
-        convergenceStringList = [now() + '\n'] #FIXME make sure this code works!
+        convergenceStringList = [now() + '\n']
         convergenceStringList.append('This run {}ED basic convergence tests.\n'.format(convergenceState))
         writeInfoFile(convergenceStringList, basename(dirOfFileName), dirOfFileName, 'convergence')
         
