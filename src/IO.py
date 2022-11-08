@@ -415,6 +415,48 @@ def extractScalarData(dataList, nameList):
     
     return dataDict
 
+def sortProfileFunctions(inDict):
+
+    '''
+    Inputs:
+        A dictionary (such as from the interpolatedData function) whose keys are 'ne', 'ni', 'te', and 'ti',
+        and whose values are lists of functions corresponding to the profiles of each species. It is expected
+        that the values of the *i variables have length 1 since electrons are a unique species. The lengths
+        of the 'ni' and 'ti' values can be arbitrary (since one can include as many ion species in the calculation as
+        they wish), subject to the constraint that both are either the same length (unique profiles for each species)
+        or one is length 1 (the same profile will be used for all species).
+    Outputs:
+        A list with the interpolation functions ordered in the form [N1, T1, N2, T2, ...] suitable for use in
+        the generateDataText function. Note that electrons are always species 1! 
+    '''
+
+    if len(inDict['ne']) != 1 or len(inDict['te']) != 1 :
+        raise IOError('The lengths of the "ne" and "te" values must be 1.')
+
+    lenNI = len(inDict['ni'])
+    lenTI = len(inDict['ti'])
+
+    if (lenNI != lenTI) and (lenNI != 1 and lenTI != 1):
+        raise IOError('The lengths of "ni" and "ti" must either be the same, or one of them must have length 1.')
+
+    outList = [inDict['ne'][0], inDict['te'][0]]
+
+    if lenNI > lenTI:
+        NIs = inDict['ni']
+        TIs = inDict['ti'] * lenNI
+    elif lenNI < lenTI:
+        NIs = inDict['ni'] * lenTI
+        TIs = inDict['ti']
+    else:
+        NIs = inDict['ni']
+        TIs = inDict['ti']
+
+    for (NI, TI) in zip(NIs, TIs):
+        outList.append(NI)
+        outList.append(TI)
+
+    return outList
+
 def generatePreamble(radial_coordinate_ID=1):
 
     '''

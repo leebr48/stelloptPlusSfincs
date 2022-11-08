@@ -1,3 +1,4 @@
+# FIXME test with and without impurities!
 # This script creates a SFINCS-readable profiles file.
 
 def run(profilesInUse, saveLocUse):
@@ -11,7 +12,7 @@ def run(profilesInUse, saveLocUse):
     import numpy as np
     from os.path import join
     from matplotlib.pyplot import subplots
-    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractProfileData, makeProfileNames, generatePreamble, generateDataText, writeFile, messagePrinter
+    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, sortProfileFunctions,  generatePreamble, generateDataText, writeFile, messagePrinter
     from dataProc import findMinMax, scaleInputData, nonlinearInterp
 
     # Get command line arguments
@@ -31,17 +32,15 @@ def run(profilesInUse, saveLocUse):
 
     varsOfInterest = makeProfileNames(prefixesOfInterest)
     dataOfInterest = extractProfileData(listifiedInFile, varsOfInterest)
-    print(dataOfInterest); print('**********************')
 
     radialBounds = findMinMax(dataOfInterest)
-    print(radialBounds); print('**********************')
     
     # Scale the data according to the reference variable values
     scaledData = scaleInputData(dataOfInterest)
-    print(scaledData); print('**********************')
+
     # Interpolate the data in case the radial lists do not all contain the same points
-    interpolatedData = nonlinearInterp(scaledData) # FIXME at some point, you will need to set the temperature profiles to be the same for each ion if they're not specified... maybe even before this, in a different function?
-    print(interpolatedData); quit()
+    interpolatedData = nonlinearInterp(scaledData)
+    sortedInterpolatedData = sortProfileFunctions(interpolatedData)
 
     # Gather the components of profiles file
     radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is S in STELLOPT and psiN in SFINCS
@@ -54,23 +53,30 @@ def run(profilesInUse, saveLocUse):
     generalEr_max = lambda x: args.maxEr[0]
 
     funcs = [NErs, generalEr_min, generalEr_max]
-    # FIXME everything works up to here, I think
-    funcs.extend([interpolatedData[prefix] for prefix in prefixesOfInterest]) #FIXME you need to unpack interpolatedData properly
+    funcs.extend(sortedInterpolatedData)
 
     # Plot the fitted interpolation functions to ensure they represent the data well
     fig,ax = subplots()
 
     leg = []
     for key, data in scaledData.items():
-        ax.scatter(data['iv'], data['dv'])
-        ax.plot(radii, interpolatedData[key](radii)) #FIXME interpolatedData probably won't work like this anymore
-        leg.append(key)
+        color = next(ax._get_lines.prop_cycler)['color']
+        ax.scatter(data['iv'], data['dv'], c=color)
+
+        for specInd, func in enumerate(interpolatedData[key]):
+            ax.plot(radii, func(radii), c=color)
+            
+            if key in ['ni','ti']:
+                keyUse = key + str(specInd)
+            else:
+                keyUse = key
+            leg.append(keyUse)
 
     ax.legend(leg, loc='best')
     ax.set_xlabel(r'SFINCS $\psi_{N}$ $\left(= \mathrm{STELLOPT}{\ }S\right)$')
     ax.set_ylabel('Normalized Value')
 
-    fig.savefig(plotFile, bbox_inches='tight', dpi=400) # FIXME ensure that the plot is still correct (that is, your interpolation functions are still working)
+    fig.savefig(plotFile, bbox_inches='tight', dpi=400)
     messagePrinter('{} plot created.'.format(plotName))
 
     # Get the string to write in profiles file
