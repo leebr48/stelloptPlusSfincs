@@ -1,4 +1,3 @@
-# FIXME test with and without impurities!
 # This script creates a SFINCS-readable profiles file.
 
 def run(profilesInUse, saveLocUse):
@@ -8,11 +7,10 @@ def run(profilesInUse, saveLocUse):
     '''
 
     # Import necessary modules
-    # FIXME double-check at the end to ensure all of these imports are still needed!
     import numpy as np
     from os.path import join
     from matplotlib.pyplot import subplots
-    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, sortProfileFunctions,  generatePreamble, generateDataText, writeFile, messagePrinter
+    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, sortProfileFunctions, generatePreamble, generateDataText, writeFile, messagePrinter
     from dataProc import findMinMax, scaleInputData, nonlinearInterp
 
     # Get command line arguments
@@ -37,6 +35,7 @@ def run(profilesInUse, saveLocUse):
     
     # Scale the data according to the reference variable values
     scaledData = scaleInputData(dataOfInterest)
+    print(scaledData)
 
     # Interpolate the data in case the radial lists do not all contain the same points
     interpolatedData = nonlinearInterp(scaledData)
@@ -60,16 +59,12 @@ def run(profilesInUse, saveLocUse):
 
     leg = []
     for key, data in scaledData.items():
-        color = next(ax._get_lines.prop_cycler)['color']
-        ax.scatter(data['iv'], data['dv'], c=color)
 
-        for specInd, func in enumerate(interpolatedData[key]):
-            ax.plot(radii, func(radii), c=color)
-            
-            if key in ['ni','ti']:
-                keyUse = key + str(specInd)
-            else:
-                keyUse = key
+        for specInd, (IVvec, DVvec) in enumerate(zip(data['iv'], data['dv'])):
+            color = next(ax._get_lines.prop_cycler)['color']
+            ax.scatter(IVvec, DVvec, c=color)
+            ax.plot(radii, interpolatedData[key][specInd](radii), c=color)
+            keyUse = key + str(specInd+1)
             leg.append(keyUse)
 
     ax.legend(leg, loc='best')
