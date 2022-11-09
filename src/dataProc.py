@@ -175,7 +175,7 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
         return phiBar / RBar * inFloat # V/m
     
     elif shouldHaveUnits == 'FSABjHat':
-        return e * nBar * vBar * BBar * inFloat # T*A*m^-2 = kg*m^-2*s^-2
+        return e * nBar * vBar * inFloat # A*m^-2, note that we do not multiply by BBar
     
     elif shouldHaveUnits == 'FSABFlow':
         return nBar * vBar * inFloat # m^-2*s^-1, note that we do not multiply by BBar

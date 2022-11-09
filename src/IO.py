@@ -566,7 +566,7 @@ def prettyDataLabel(inString):
             return r'Radial electric field $\mathrm{\left(\frac{V}{m}\right)}$'
         
         elif inString == 'FSABjHat':
-            return r'FSAB bootstrap current $\mathrm{\left(\frac{T A}{m^{2}}\right)}$'
+            return r'FSAB bootstrap current $\mathrm{\left(\frac{A}{m^{2}}\right)}$'
         
         elif inString == 'FSABFlow':
             return r'FSAB parallel flow $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
