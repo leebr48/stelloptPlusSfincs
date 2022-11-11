@@ -22,7 +22,6 @@ def run(profilesInUse, saveLocUse, eqInUse):
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
     ambipolarSolve = '.true.' # Determine the ambipolar Er
     ambipolarSolveOption = 2 # (Default) Use a Brent method
-    geometryScheme = 5 # Read a VMEC wout file to specify the magnetic geometry
     VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
     Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
     alpha = str(1.0e+0).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
@@ -45,6 +44,14 @@ def run(profilesInUse, saveLocUse, eqInUse):
     Er_min = args.minEr[0] - 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
     Er_max = args.maxEr[0] + 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
     
+    eqFileExt = eqFile.split('.')[-1]
+    if eqFileExt == 'bc' and args.bcSymmetry[0] == 'sym':
+        geometryScheme = 11
+    elif eqFileExt == 'bc' and args.bcSymmetry[0] == 'asym':
+        geometryScheme = 12
+    else:
+        geometryScheme = 5
+        
     radialVars = radialVarDict()
     selectedRadialVar = radialVars[args.radialVar[0]]
     selectedRadialGradientVar = radialVars[args.radialGradientVar[0]] # Note that option 4 has special Er behavior (see <help> for details)
@@ -84,7 +91,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     stringToWrite += '\n'
 
     stringToWrite += '&geometryParameters\n'
-    stringToWrite += '\tgeometryScheme = {} ! Read a VMEC wout file to specify the magnetic geometry\n'.format(geometryScheme)
+    stringToWrite += '\tgeometryScheme = {} ! Read a VMEC wout file or an IPP *.bc file to specify the magnetic geometry\n'.format(geometryScheme)
     stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0], selectedRadialVar)
     if scanType == 1:
         stringToWrite += '\t{}_wish = {} ! Surface on which to perform the resolution scan\n'.format(selectedRadialVar, args.minRad[0])
@@ -92,7 +99,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     stringToWrite += '\tVMECRadialOption = {} ! Interpolate when the target surface does not exactly match a VMEC flux surface\n'.format(VMECRadialOption)
     stringToWrite += '\tequilibriumFile = "{}"\n'.format(eqFile)
     stringToWrite += '\tmin_Bmn_to_load = {} ! Only Fourier modes of at least this size will be loaded from the equilibriumFile\n'.format(args.minBmn[0])
-    stringToWrite += '\tVMEC_Nyquist_option = {} ! If 2, include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays (where available)\n'.format(args.Nyquist[0])
+    #stringToWrite += '\tVMEC_Nyquist_option = {} ! If 2, include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays (where available)\n'.format(args.Nyquist[0]) #FIXME not relevant for .bc files
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
@@ -119,7 +126,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
         stringToWrite += '\tdPhiHatd{} = {} ! Seed value of the radial electric field (proxy) for this flux surface\n'.format(selectedRadialGradientVar, args.seedEr[0])
     else:
         stringToWrite += '\tEr = {} ! Seed value of the radial electric field for this flux surface\n'.format(args.seedEr[0])
-    stringToWrite += '\tmagneticDriftScheme = {} ! Whether or not to include angular drifts, and if so, what model to use\n'.format(magneticDriftScheme)
+    #stringToWrite += '\tmagneticDriftScheme = {} ! Whether or not to include angular drifts, and if so, what model to use\n'.format(magneticDriftScheme) #FIXME killed for neotransp comparison
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
