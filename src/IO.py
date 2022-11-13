@@ -560,7 +560,10 @@ def prettyDataLabel(inString):
         form of inString, such as with Matplotlib.
     '''
 
-    if '_' not in inString: # These are not radial fluxes
+    if '_' not in inString: # These items are loaded or calculated explicitely rather than in a loop
+        
+        extensiveParticleFluxUnits = r' $\mathrm{\left(\frac{1}{s}\right)}$'
+        extensiveHeatFluxUnits = r' $\mathrm{\left(\frac{J}{s}\right)}$'
         
         if inString == 'Er':
             return r'Radial electric field $\mathrm{\left(\frac{V}{m}\right)}$'
@@ -570,6 +573,12 @@ def prettyDataLabel(inString):
         
         elif inString == 'FSABFlow':
             return r'FSAB parallel flow $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
+        
+        elif inString == 'extensiveParticleFlux': # Neoclassical
+            return r'Neoclassical particle flux' + extensiveParticleFluxUnits
+        
+        elif inString == 'extensiveHeatFlux': # Neoclassical
+            return r'Neoclassical heat flux' + extensiveHeatFluxUnits
         
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
@@ -610,7 +619,7 @@ def prettyDataLabel(inString):
 
         elif label == 'heatFlux': # Neoclassical
             return r'Heat flux' + directionStatement + heatFluxUnits
-        
+ 
         elif label == 'classicalHeatFlux':
             return r'Classical heat flux' + directionStatement + heatFluxUnits
         

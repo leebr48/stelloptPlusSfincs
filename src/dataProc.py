@@ -183,11 +183,17 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
     elif shouldHaveUnits == 'particleFlux': # Neoclassical
         return nBar * vBar * inFloat # m^-2*s^-1, note that we do not divide by RBar
     
+    elif shouldHaveUnits == 'extensiveParticleFlux': # Neoclassical
+        return nBar * vBar * RBar**2 * inFloat # s^-1
+    
     elif shouldHaveUnits in ['classicalParticleFlux', 'classicalParticleFluxNoPhi1', 'totalParticleFlux']:
         return nBar * vBar * inFloat # m^-2*s^-1, note that we do not multiply by Z*e or divide by RBar
-    
+
     elif shouldHaveUnits == 'heatFlux': # Neoclassical
         return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not divide by RBar
+
+    elif shouldHaveUnits == 'extensiveHeatFlux': # Neoclassical
+        return mBar * nBar * vBar**3 * RBar**2 * inFloat # J*s^-1
     
     elif shouldHaveUnits in ['classicalHeatFlux', 'classicalHeatFluxNoPhi1', 'totalHeatFlux']:
         return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not multiply by Z*e or divide by RBar

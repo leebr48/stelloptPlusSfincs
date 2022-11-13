@@ -55,15 +55,18 @@ classicalHeatFluxes = makeOtherNames('classicalHeatFlux')
 classicalHeatFluxesNoPhi1 = makeOtherNames('classicalHeatFluxNoPhi1')
 
 nonCalcDVs = notRadialFluxes + neoclassicalParticleFluxes + neoclassicalHeatFluxes + neoclassicalMomentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
-extras = ['Zs']
+extras = ['Zs', 'aHat', 'VPrimeHat', 'psiAHat']
 
 # Name some other variables to be calculated later
 totalParticleFluxes = makeOtherNames('totalParticleFlux')
 totalHeatFluxes = makeOtherNames('totalHeatFlux')
 
+extensiveNeoclassicalFluxes = ['extensiveParticleFlux', 'extensiveHeatFlux']
+#FIXME in principle, could add the classical and total ones too
+
 radialCurrents = makeNeoclassicalNames('radialCurrent')
 
-DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + radialCurrents
+DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + extensiveNeoclassicalFluxes + radialCurrents
 
 # Loop through each directory
 allData = {}
@@ -136,7 +139,12 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             loadedData[totalParticleFlux] = loadedData[neoclassicalParticleFluxes[ind]] + loadedData[classicalParticleFluxes[ind]]
             loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[ind]] + loadedData[classicalHeatFluxes[ind]]
 
-        for ind,radialCurrent in enumerate(radialCurrents):
+        #FIXME calculate new fluxes!!!
+        normalizedAreaFactor = 2 * loadedData['rN'] / loadedData['aHat'] * loadedData['VPrimeHat'] * loadedData['psiAHat']
+        loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux_vm_rHat'] #FIXME is this right?
+        loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux_vm_rHat'] #FIXME is this right?
+
+        for ind,radialCurrent in enumerate(radialCurrents): # FIXME if it matters, SFINCS defines radial flux using rN only...
            loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[ind]])
 
         # Put the data in the appropriate place
@@ -180,7 +188,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
         ErChoices = []
         IVvec = []
-        for IV in IVs: # Select the radial variable you're plotting against
+        for IV in IVs: # Select the radial variable you're plotting against #FIXME note that for some quantities, this could be repetitive (rewriting the same plot several times)
             
             DVvec = []
             for DV in DVs: # Select the data you want to plot
