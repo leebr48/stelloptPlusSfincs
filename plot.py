@@ -43,7 +43,8 @@ def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
 defaults = ['Delta', 'alpha', 'nu_n']
 
 IVs = list(radialVars.values())
-notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow']
+notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow'] # FIXME maybe should swap FSABjHat with FSABjHatOverRootFSAB2? Don't forget to change that in your unit changing scripts and such!!!
+# FIXME not that your units for FSABFlow are probably wrong as well...
 
 neoclassicalParticleFluxes = makeNeoclassicalNames('particleFlux')
 neoclassicalHeatFluxes = makeNeoclassicalNames('heatFlux')
