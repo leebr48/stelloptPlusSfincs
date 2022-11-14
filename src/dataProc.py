@@ -162,47 +162,50 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
 
     # Other important quantities
     e = 1.602176634e-19 # C (proton charge)
-    vBar = np.sqrt(2 * TBar / mBar) # meters/second by default
+    vBar = np.sqrt(2 * TBar / mBar) # m/s by default
 
-    # Identify inVar and perform some administrative checks
-    if '_' not in inVar: # These are not radial fluxes
+    # Identify inVar
+    if '_' not in inVar:
         shouldHaveUnits = inVar
-    else: # These are radial fluxes
+    else:
         shouldHaveUnits = inVar.split('_')[0]
 
     # Convert to SI units 
     if shouldHaveUnits == 'Er':
         return phiBar / RBar * inFloat # V/m
     
-    elif shouldHaveUnits == 'FSABjHat':
-        return e * nBar * vBar * inFloat # A*m^-2, note that we do not multiply by BBar
-    
     elif shouldHaveUnits == 'FSABFlow':
-        return nBar * vBar * inFloat # m^-2*s^-1, note that we do not multiply by BBar
+        return nBar * vBar * BBar * inFloat # T*m^-2*s^-1
     
-    elif shouldHaveUnits == 'particleFlux': # Neoclassical
-        return nBar * vBar * inFloat # m^-2*s^-1, note that we do not divide by RBar
+    elif shouldHaveUnits == 'FSABjHat':
+        return e * nBar * vBar * BBar * inFloat # T*A*m^-2
+
+    elif shouldHaveUnits in ['FSABjHatOverRootFSAB2', 'FSABjHatOverB0']:
+        return e * nBar * vBar * inFloat # A*m^-2
+     
+    elif shouldHaveUnits in ['particleFlux', 'classicalParticleFlux', 'classicalParticleFluxNoPhi1', 'totalParticleFlux']:
+        return nBar * vBar / RBar * inFloat # m^-3*s^-1
     
-    elif shouldHaveUnits == 'extensiveParticleFlux': # Neoclassical
+    elif shouldHaveUnits in ['extensiveParticleFlux', 'extensiveClassicalParticleFlux', 'extensiveTotalParticleFlux']:
         return nBar * vBar * RBar**2 * inFloat # s^-1
     
-    elif shouldHaveUnits in ['classicalParticleFlux', 'classicalParticleFluxNoPhi1', 'totalParticleFlux']:
-        return nBar * vBar * inFloat # m^-2*s^-1, note that we do not multiply by Z*e or divide by RBar
+    elif shouldHaveUnits in ['heatFlux', 'classicalHeatFlux', 'classicalHeatFluxNoPhi1', 'totalHeatFlux']:
+        return mBar * nBar * vBar**3 / RBar * inFloat # J*m^-3*s^-1
 
-    elif shouldHaveUnits == 'heatFlux': # Neoclassical
-        return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not divide by RBar
-
-    elif shouldHaveUnits == 'extensiveHeatFlux': # Neoclassical
+    elif shouldHaveUnits in ['extensiveHeatFlux', 'extensiveClassicalHeatFlux', 'extensiveTotalHeatFlux']:
         return mBar * nBar * vBar**3 * RBar**2 * inFloat # J*s^-1
     
-    elif shouldHaveUnits in ['classicalHeatFlux', 'classicalHeatFluxNoPhi1', 'totalHeatFlux']:
-        return mBar * nBar * vBar**3 * inFloat # J*m^-2*s^-1 = kg*s^-3, note that we do not multiply by Z*e or divide by RBar
-    
     elif shouldHaveUnits == 'momentumFlux': # Neoclassical 
-        return mBar * nBar * vBar**2 * inFloat # kg*m^-1*s^-2, note that we do not divide by RBar or multiply by BBar
+        return mBar * nBar * vBar**2 * BBar / RBar * inFloat # kg*T*m^-2*s^-2
+
+    elif shouldHaveUnits == 'extensiveMomentumFlux': # Neoclassical
+        return mBar * nBar * vBar**2 * BBar * RBar**2 * inFloat # kg*T*m*s^-2
 
     elif shouldHaveUnits == 'radialCurrent':
-        return e * nBar * vBar * inFloat # A*m^-2
+        return e * nBar * vBar / RBar * inFloat # A*m^-3
+
+    elif shouldHaveUnits == 'extensiveRadialCurrent':
+        return e * nBar * vBar * RBar**2 * inFloat # A
 
     else:
         raise IOError('Conversion factor has not yet been specified for the variable {}.'.format(inVar))

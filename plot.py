@@ -43,8 +43,7 @@ def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
 defaults = ['Delta', 'alpha', 'nu_n']
 
 IVs = list(radialVars.values())
-notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow'] # FIXME maybe should swap FSABjHat with FSABjHatOverRootFSAB2? Don't forget to change that in your unit changing scripts and such!!!
-# FIXME not that your units for FSABFlow are probably wrong as well...
+notRadialFluxes = ['Er', 'FSABFlow', 'FSABjHat', 'FSABjHatOverRootFSAB2', 'FSABjHatOverB0']
 
 neoclassicalParticleFluxes = makeNeoclassicalNames('particleFlux')
 neoclassicalHeatFluxes = makeNeoclassicalNames('heatFlux')
@@ -56,18 +55,18 @@ classicalHeatFluxes = makeOtherNames('classicalHeatFlux')
 classicalHeatFluxesNoPhi1 = makeOtherNames('classicalHeatFluxNoPhi1')
 
 nonCalcDVs = notRadialFluxes + neoclassicalParticleFluxes + neoclassicalHeatFluxes + neoclassicalMomentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
-extras = ['Zs', 'aHat', 'VPrimeHat', 'psiAHat']
+extras = ['Zs', 'VPrimeHat', 'psiAHat']
 
 # Name some other variables to be calculated later
 totalParticleFluxes = makeOtherNames('totalParticleFlux')
 totalHeatFluxes = makeOtherNames('totalHeatFlux')
 
-extensiveNeoclassicalFluxes = ['extensiveParticleFlux', 'extensiveHeatFlux']
-#FIXME in principle, could add the classical and total ones too
+extensiveFluxes = ['extensiveParticleFlux', 'extensiveHeatFlux', 'extensiveMomentumFlux', 'extensiveClassicalParticleFlux', 'extensiveClassicalHeatFlux', 'extensiveTotalParticleFlux', 'extensiveTotalHeatFlux']
 
 radialCurrents = makeNeoclassicalNames('radialCurrent')
+extensiveRadialCurrent = ['extensiveRadialCurrent']
 
-DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + extensiveNeoclassicalFluxes + radialCurrents
+DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + extensiveFluxes + radialCurrents + extensiveRadialCurrent
 
 # Loop through each directory
 allData = {}
@@ -140,13 +139,18 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             loadedData[totalParticleFlux] = loadedData[neoclassicalParticleFluxes[ind]] + loadedData[classicalParticleFluxes[ind]]
             loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[ind]] + loadedData[classicalHeatFluxes[ind]]
 
-        #FIXME calculate new fluxes!!!
-        normalizedAreaFactor = 2 * loadedData['rN'] / loadedData['aHat'] * loadedData['VPrimeHat'] * loadedData['psiAHat']
-        loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux_vm_rHat'] #FIXME is this right?
-        loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux_vm_rHat'] #FIXME is this right?
+        normalizedAreaFactor = loadedData['VPrimeHat'] * loadedData['psiAHat'] # = dVHat/dpsiHat * dpsiHat/dpsiN = dVHat/dpsiN
+        loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux_vm_psiN']
+        loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux_vm_psiN']
+        loadedData['extensiveMomentumFlux'] = normalizedAreaFactor * loadedData['momentumFlux_vm_psiN']
+        loadedData['extensiveClassicalParticleFlux'] = normalizedAreaFactor * loadedData['classicalParticleFlux_psiN']
+        loadedData['extensiveClassicalHeatFlux'] = normalizedAreaFactor * loadedData['classicalHeatFlux_psiN']
+        loadedData['extensiveTotalParticleFlux'] = loadedData['extensiveParticleFlux'] + loadedData['extensiveClassicalParticleFlux']
+        loadedData['extensiveTotalHeatFlux'] = loadedData['extensiveHeatFlux'] + loadedData['extensiveClassicalHeatFlux']
 
-        for ind,radialCurrent in enumerate(radialCurrents): # FIXME if it matters, SFINCS defines radial flux using rN only...
+        for ind,radialCurrent in enumerate(radialCurrents):
            loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[ind]])
+        loadedData['extensiveRadialCurrent'] = normalizedAreaFactor * loadedData['radialCurrent_vm_psiN']
 
         # Put the data in the appropriate place
         if dataDepth == 2: # Only radial directories are present
@@ -189,7 +193,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
         ErChoices = []
         IVvec = []
-        for IV in IVs: # Select the radial variable you're plotting against #FIXME note that for some quantities, this could be repetitive (rewriting the same plot several times)
+        for IV in IVs: # Select the radial variable you're plotting against
             
             DVvec = []
             for DV in DVs: # Select the data you want to plot

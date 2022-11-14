@@ -560,35 +560,58 @@ def prettyDataLabel(inString):
         form of inString, such as with Matplotlib.
     '''
 
-    if '_' not in inString: # These items are loaded or calculated explicitely rather than in a loop
+    if '_' not in inString:
         
         extensiveParticleFluxUnits = r' $\mathrm{\left(\frac{1}{s}\right)}$'
         extensiveHeatFluxUnits = r' $\mathrm{\left(\frac{J}{s}\right)}$'
+        extensiveMomentumFluxUnits = r' $\mathrm{\left(\frac{kg T m}{s^{-2}}\right)}$'
+        extensiveRadialCurrentUnits = r' $\mathrm{\left(A\right)}$'
         
         if inString == 'Er':
             return r'Radial electric field $\mathrm{\left(\frac{V}{m}\right)}$'
         
-        elif inString == 'FSABjHat':
-            return r'FSAB bootstrap current $\mathrm{\left(\frac{A}{m^{2}}\right)}$'
-        
         elif inString == 'FSABFlow':
-            return r'FSAB parallel flow $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
+            return r'FSAB parallel flow $\mathrm{\left(\frac{T}{m^{2} s}\right)}$'
         
-        elif inString == 'extensiveParticleFlux': # Neoclassical
+        elif inString == 'FSABjHat':
+            return r'FSAB bootstrap current $\mathrm{\left(\frac{T A}{m^{2}}\right)}$'
+
+        elif inString in ['FSABjHatOverRootFSAB2', 'FSABjHatOverB0']:
+            return r'Bootstrap current $\mathrm{\left(\frac{A}{m^{2}}\right)}$'
+        
+        elif inString == 'extensiveParticleFlux':
             return r'Neoclassical particle flux' + extensiveParticleFluxUnits
+
+        elif inString == 'extensiveClassicalParticleFlux':
+            return r'Classical particle flux' + extensiveParticleFluxUnits
         
-        elif inString == 'extensiveHeatFlux': # Neoclassical
+        elif inString == 'extensiveTotalParticleFlux':
+            return r'Total particle flux' + extensiveParticleFluxUnits
+        
+        elif inString == 'extensiveHeatFlux':
             return r'Neoclassical heat flux' + extensiveHeatFluxUnits
+        
+        elif inString == 'extensiveClassicalHeatFlux':
+            return r'Classical heat flux' + extensiveHeatFluxUnits
+        
+        elif inString == 'extensiveTotalHeatFlux':
+            return r'Total heat flux' + extensiveHeatFluxUnits
+        
+        elif inString == 'extensiveMomentumFlux':
+            return r'Neoclassical momentum flux' + extensiveMomentumFluxUnits
+        
+        elif inString == 'extensiveRadialCurrent':
+            return r'Radial current' + extensiveRadialCurrentUnits
         
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
     
-    else: # These are radial fluxes
+    else:
         
         # Sort out the parts you need to make sense of inString and do some basic administrative checks
         parts = inString.split('_')
         
-        if len(parts) != 2 and len(parts) != 3:
+        if len(parts) not in [2, 3]:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
 
         if len(parts) == 3 and parts[1] != 'vm': # With 'vm', the full distribution function is taken into account rather than only the leading-order contribution
@@ -599,14 +622,14 @@ def prettyDataLabel(inString):
         
         # Write some label strings that will be used below
         directionStatement = r' in $\nabla {}$ direction '.format(radVar) # Note that this includes spaces on either side for convenience
-        particleFluxUnits = r'$\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
-        heatFluxUnits = r'$\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
-        momentumFluxUnits = r'$\mathrm{\left(\frac{kg}{m s^{2}}\right)}$'
-        radialCurrentUnits = r'$\mathrm{\left(\frac{A}{m^{2}}\right)}$'
+        particleFluxUnits = r'$\mathrm{\left(\frac{1}{m^{3} s}\right)}$'
+        heatFluxUnits = r'$\mathrm{\left(\frac{J}{m^{3} s}\right)}$'
+        momentumFluxUnits = r'$\mathrm{\left(\frac{kg T}{m^{2} s^{2}}\right)}$'
+        radialCurrentUnits = r'$\mathrm{\left(\frac{A}{m^{3}}\right)}$'
 
         # Write the output
-        if label == 'particleFlux': # Neoclassical
-            return r'Particle flux' + directionStatement + particleFluxUnits
+        if label == 'particleFlux':
+            return r'Neoclassical particle flux' + directionStatement + particleFluxUnits
 
         elif label == 'classicalParticleFlux':
             return r'Classical particle flux' + directionStatement + particleFluxUnits
@@ -617,8 +640,8 @@ def prettyDataLabel(inString):
         elif label == 'totalParticleFlux':
             return r'Total particle flux' + directionStatement + particleFluxUnits
 
-        elif label == 'heatFlux': # Neoclassical
-            return r'Heat flux' + directionStatement + heatFluxUnits
+        elif label == 'heatFlux':
+            return r'Neoclassical heat flux' + directionStatement + heatFluxUnits
  
         elif label == 'classicalHeatFlux':
             return r'Classical heat flux' + directionStatement + heatFluxUnits
@@ -629,8 +652,8 @@ def prettyDataLabel(inString):
         elif label == 'totalHeatFlux':
             return r'Total heat flux' + directionStatement + heatFluxUnits
 
-        elif label == 'momentumFlux': # Neoclassical
-            return r'Momentum flux' + directionStatement + momentumFluxUnits
+        elif label == 'momentumFlux':
+            return r'Neoclassical momentum flux' + directionStatement + momentumFluxUnits
 
         elif label == 'radialCurrent':
             return r'Radial current' + directionStatement + radialCurrentUnits
