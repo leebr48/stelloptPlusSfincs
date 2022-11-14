@@ -563,7 +563,7 @@ def prettyDataLabel(inString):
     if '_' not in inString:
         
         extensiveParticleFluxUnits = r' $\mathrm{\left(\frac{1}{s}\right)}$'
-        extensiveHeatFluxUnits = r' $\mathrm{\left(\frac{J}{s}\right)}$'
+        extensiveHeatFluxUnits = r' $\mathrm{\left(W\right)}$'
         extensiveMomentumFluxUnits = r' $\mathrm{\left(\frac{kg T m}{s^{-2}}\right)}$'
         extensiveRadialCurrentUnits = r' $\mathrm{\left(A\right)}$'
         
@@ -623,7 +623,7 @@ def prettyDataLabel(inString):
         # Write some label strings that will be used below
         directionStatement = r' in $\nabla {}$ direction '.format(radVar) # Note that this includes spaces on either side for convenience
         particleFluxUnits = r'$\mathrm{\left(\frac{1}{m^{3} s}\right)}$'
-        heatFluxUnits = r'$\mathrm{\left(\frac{J}{m^{3} s}\right)}$'
+        heatFluxUnits = r'$\mathrm{\left(\frac{W}{m^{3}}\right)}$'
         momentumFluxUnits = r'$\mathrm{\left(\frac{kg T}{m^{2} s^{2}}\right)}$'
         radialCurrentUnits = r'$\mathrm{\left(\frac{A}{m^{3}}\right)}$'
 
