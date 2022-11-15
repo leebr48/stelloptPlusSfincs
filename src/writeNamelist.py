@@ -1,6 +1,6 @@
 # This script creates a SFINCS-readable input.namelist file.
 
-def run(profilesInUse, saveLocUse, eqInUse):
+def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     
     '''
     The inputs are set by a wrapper script.
@@ -45,9 +45,9 @@ def run(profilesInUse, saveLocUse, eqInUse):
     Er_max = args.maxEr[0] + 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
     
     eqFileExt = eqFile.split('.')[-1]
-    if eqFileExt == 'bc' and args.bcSymmetry[0] == 'sym':
+    if eqFileExt == 'bc' and bcSymUse == 'sym':
         geometryScheme = 11
-    elif eqFileExt == 'bc' and args.bcSymmetry[0] == 'asym':
+    elif eqFileExt == 'bc' and bcSymUse == 'asym':
         geometryScheme = 12
     else:
         geometryScheme = 5
@@ -91,7 +91,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     stringToWrite += '\n'
 
     stringToWrite += '&geometryParameters\n'
-    stringToWrite += '\tgeometryScheme = {} ! Dictates how the magnetic geometry is specified\n'.format(geometryScheme)
+    stringToWrite += '\tgeometryScheme = {} ! Set how the magnetic geometry is specified\n'.format(geometryScheme)
     stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0], selectedRadialVar)
     if scanType == 1:
         stringToWrite += '\t{}_wish = {} ! Surface on which to perform the resolution scan\n'.format(selectedRadialVar, args.minRad[0])
