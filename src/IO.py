@@ -13,7 +13,7 @@ def getRunArgs():
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--profilesIn', type=str, nargs='*', required=True, help='File(s) with relevant profiles written as in STELLOPT, with path(s) if necessary. This script currently reads the BEAMS3D section of STELLOPT namelist files. If you input multiple files, order matters!')
-    parser.add_argument('--eqIn', type=str, nargs='*', help='File(s) from which to load the magnetic equilibrium(ia). Can be VMEC wout file(s) in netCDF or ASCII format, or IPP .bc file(s). If you input multiple files, order matters!')
+    parser.add_argument('--eqIn', type=str, nargs='*', required=True, help='File(s) from which to load the magnetic equilibrium(ia). Can be VMEC wout file(s) in netCDF or ASCII format, or IPP .bc file(s). If you input multiple files, order matters!')
     parser.add_argument('--minBmn', type=float, nargs=1, required=False, default=[0.0], help='Only Fourier modes of at least this size will be loaded from the <eqIn> file(s).')
     parser.add_argument('--Nyquist', type=int, nargs=1, required=False, default=[2], help='Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available, if this parameter is set to 2. Exclude these mode numbers if this parameter is set to 1.')
     parser.add_argument('--numInterpSurf', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large.')
@@ -278,7 +278,7 @@ def makeProfileNames(listOfPrefixes):
 
     return output_names
 
-def extractProfileData(dataList, nameList, numSpeciesUpperBound=100):
+def extractProfileData(dataList, nameList):
 
     '''
     Inputs:  
@@ -287,10 +287,6 @@ def extractProfileData(dataList, nameList, numSpeciesUpperBound=100):
         nameList: A list of lists, as from the makeProfileNames function. 
                   Each sublist contains a pair of strings to search for in 
                   dataList.
-        numSpeciesUpperBound: An arbitrarily large integer used internally
-                              to preallocate a list. In the unlikely event
-                              you run SFINCS with more than this many species,
-                              you can simply increase the value of the parameter.
     Outputs:
         A dictionary. Each key is a unique prefix from nameList. Each value
         contains a dictionary with two entries. The 'iv' entry is a list
@@ -317,7 +313,7 @@ def extractProfileData(dataList, nameList, numSpeciesUpperBound=100):
         for name in namePair:
             foundMatch = False
 
-            allSpeciesData = [[]] * numSpeciesUpperBound # FIXME you could make this slicker by storing matches in an intermediate array... or perhaps using a dictionary
+            allSpeciesData = {}
             for dataVec in dataList:
 
                 # We need to isolate the name of the variable
@@ -340,13 +336,14 @@ def extractProfileData(dataList, nameList, numSpeciesUpperBound=100):
                         raise IOError('In the variable declaration line for {}, the "(" character apparently appears twice. Something is wrong.'.format(dataLabel))
 
                     # Now assign the data as an IV or a DV
-                    allSpeciesData[speciesIndex] = [float(i) for i in dataVec[1:]] # Notice that we'll always have a list of lists, even after cleaning up all the empty internal lists
+                    allSpeciesData[speciesIndex] = [float(i) for i in dataVec[1:]]
                     foundMatch = True
-                    
+            
+            allSpeciesDataList = list(dict(sorted(allSpeciesData.items())).values()) # Note that we will always have a list of lists
             if name[-1] == 's':
-                matchedPair['iv'] = allSpeciesData
+                matchedPair['iv'] = allSpeciesDataList
             elif name[-1] == 'f':
-                matchedPair['dv'] = allSpeciesData
+                matchedPair['dv'] = allSpeciesDataList
             else:
                 raise IOError('The read variable suffix for {} is not "S" or "F". Something is wrong.'.format(dataLabel))
 
