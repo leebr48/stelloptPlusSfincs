@@ -14,18 +14,19 @@ def getRunArgs():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--profilesIn', type=str, nargs='*', required=True, help='File(s) with relevant profiles written as in STELLOPT, with path(s) if necessary. This script currently reads the BEAMS3D section of STELLOPT namelist files. If you input multiple files, order matters!')
     parser.add_argument('--eqIn', type=str, nargs='*', required=True, help='File(s) from which to load the magnetic equilibrium(ia). Can be VMEC wout file(s) in netCDF or ASCII format, or IPP .bc file(s). If you input multiple files, order matters!')
+    parser.add_argument('--bcSymmetry', type=str, nargs='*', required=False, default=['sym'], help='If one or more *.bc files are input via <eqIn>, this setting will control whether SFINCS assumes them to be stellarator-symmetric ("sym") or stellarator-asymmetric ("asym"). If one argument is specified, it will be used for all the <eqIn> files. Note that the length of this argument must be either 1 or equivalent to the length of <eqIn>, even if <eqIn> contains a mix of *.bc and VMEC wout files.')
     parser.add_argument('--minBmn', type=float, nargs=1, required=False, default=[0.0], help='Only Fourier modes of at least this size will be loaded from the <eqIn> file(s).')
-    parser.add_argument('--Nyquist', type=int, nargs=1, required=False, default=[2], help='Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available, if this parameter is set to 2. Exclude these mode numbers if this parameter is set to 1.')
+    parser.add_argument('--Nyquist', type=int, nargs=1, required=False, default=[2], help='This parameter is only relevant if you are loading VMEC equilibria. Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available, if this parameter is set to 2. Exclude these mode numbers if this parameter is set to 1.')
     parser.add_argument('--numInterpSurf', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large.')
     parser.add_argument('--radialVar', type=int, nargs=1, required=False, default=[3], help='ID of the radial coordinate used in the input.namelist file to specify which surfaces should be scanned over. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, and 3 = rN (which is the STELLOPT rho)')
     parser.add_argument('--radialGradientVar', type=int, nargs=1, required=False, default=[4], help='ID of the radial coordinate used to take derivatives. Relevant for the generalEr_* parameters in the profiles file and specifying the density and temperature derivatives on a single flux suface. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, 3 = rN (which is the STELLOPT rho), and 4 = rHat (like option 2, except that Er is used in place of dPhiHatdrHat). The default is recommended.')
     parser.add_argument('--numCalcSurf', type=int, nargs=1, required=False, default=[16], help='Number of radial surfaces on which to perform full SFINCS calculations.')
-    parser.add_argument('--minRad', type=float, nargs=1, required=False, default=[0.1], help='Lower bound for the radial scan. If <resScan> is used, the flux surface specified by this parameter will be used for the convergence scan. Note that VMEC has resolution issues near the magnetic axis and SFINCS often converges much slower there due to the relatively low collisionality, so setting <minRad> to be very small may cause problems.')
+    parser.add_argument('--minRad', type=float, nargs=1, required=False, default=[0.15], help='Lower bound for the radial scan. If <resScan> is used, the flux surface specified by this parameter will be used for the convergence scan. Note that VMEC has resolution issues near the magnetic axis and SFINCS often converges much slower there due to the relatively low collisionality, so setting <minRad> to be very small may cause problems.')
     parser.add_argument('--maxRad', type=float, nargs=1, required=False, default=[0.95], help='Upper bound for the radial scan.')
     parser.add_argument('--seedEr', type=float, nargs=1, required=False, default=[0], help="Input an initial guess for the radial electric field in units of <radialGradientVar>. The default value is typically fine. This will be overwritten if you trigger an electric field scan with <numManErScan>.")
     parser.add_argument('--numManErScan', type=int, nargs=1, required=False, default=[0], help='Number of manual radial electric field scans to perform (using scanType=5). This parameter generates equidistant radial electric field seed values between <minEr> and <maxEr> for the root-finding algorithm in SFINCS. This parameter will be overwritten if <resScan> is activated.')
-    parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-10], help='Minimum seed value of the generalized Er variable. This parameter is also used to derive the smallest electric field available to ambipolarSolve. Note that you may need to change this to get good results. It is suggested that you seed ambipolarSolve with values near Er=0 initially, otherwise the solver could converge to a very large (and erroneous) value of Er. Keep in mind that "smallest electric field available to ambipolarSolve" (mentioned before) must have the opposite sign of the "largest electric field available to ambipolarSolve" (mentioned in the <maxEr> help).')
-    parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[10], help='Maximum seed value of the generalized Er variable. This parameter is also used to derive the largest electric field available to ambipolarSolve. Note that you may need to change this to get good results. It is suggested that you seed ambipolarSolve with values near Er=0 initially, otherwise the solver could converge to a very large (and erroneous) value of Er. Keep in mind that "largest electric field available to ambipolarSolve" (mentioned before) must have the opposite sign of the "smallest electric field available to ambipolarSolve" (mentioned in the <minEr> help).')
+    parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-5], help='Minimum seed value of the radial electric field in units of <radialGradientVar>. This parameter is also used to derive the minimum and maximum Er available to ambipolarSolve. Note that you may need to change this to get good results. It is suggested that you seed ambipolarSolve with values near Er=0 initially, otherwise the solver could fail or converge to a very large (and erroneous) value of Er. Keep in mind that the value of the radial current at the "smallest electric field available to ambipolarSolve" (mentioned before) must have the opposite sign of the radial current at the "largest electric field available to ambipolarSolve" (mentioned in the <maxEr> help).')
+    parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[5], help='Maximum seed value of the radial electric field in units of <radialGradientVar>. This parameter is also used to derive the minimum and maximum Er available to ambipolarSolve. Note that you may need to change this to get good results. It is suggested that you seed ambipolarSolve with values near Er=0 initially, otherwise the solver could fail or converge to a very large (and erroneous) value of Er. Keep in mind that the value of the radial current at the "largest electric field available to ambipolarSolve" (mentioned before) must have the opposite sign of the radial current at the "smallest electric field available to ambipolarSolve" (mentioned in the <minEr> help).')
     parser.add_argument('--resScan', action='store_true', default=False, help='Triggers a SFINCS resolution scan run.')
     parser.add_argument('--defaultDens', type=float, nargs=1, required=False, default=[1], help='If <resScan> is used, this sets the density of each species in units of 1e20 m^-3. The exact value is probably not important.')
     parser.add_argument('--defaultTemps', type=float, nargs=1, required=False, default=[1], help='If <resScan> is used, this sets the temperature of each species in keV. The exact value is probably not important.')
@@ -50,7 +51,7 @@ def getRunArgs():
     parser.add_argument('--nTasksPerNode', type=int, nargs=1, required=False, default=[None], help='Number of MPI tasks to use on each node for each SFINCS run. This parameter should only be used if <nNodes> is specified and should not be used with <nTasks>.')
     parser.add_argument('--nTasks', type=int, nargs=1, required=False, default=[None], help='Total number of MPI tasks to use for each SFINCS run. You must specify at least one of <nNodes> and <nTasks>.')
     parser.add_argument('--mem', type=int, nargs=1, required=False, default=[None], help='Total amount of memory (MB) allocated for each SFINCS run.')
-    parser.add_argument('--time', type=str, nargs=1, required=False, default=['00-06:00:00'], help='Wall clock time limit for the batch runs. Format is DD-HH:MM:SS. Note that SFINCS typically has the most trouble converging near the magnetic axis (due to the lower collisionality there cause by peaked temperature profiles), so you may need to increase <time> for runs near the axis.')
+    parser.add_argument('--time', type=str, nargs=1, required=False, default=['00-18:00:00'], help='Wall clock time limit for the batch runs. Format is DD-HH:MM:SS. Note that SFINCS typically has the most trouble converging near the magnetic axis (due to the lower collisionality there cause by peaked temperature profiles), so you may need to increase <time> for runs near the axis.')
     parser.add_argument('--noProfiles', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a profiles file.')
     parser.add_argument('--noNamelist', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write an input.namelist file.')
     parser.add_argument('--noBatch', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a job.sfincsScan file.')
@@ -58,6 +59,12 @@ def getRunArgs():
     parser.add_argument('--notifs', type=str, nargs=1, required=False, default=['bad'], help='Dictate which Slurm notification emails you would like to receive. By default, you will only receive emails when something bad happens to your job (such as a failure). You may also specify "all" or "none", which have the (intuitive) meanings indicated in the Slurm documentation. Note that the environment variable SFINCS_BATCH_EMAIL must be set for <notifs> to work correctly.')
     parser.add_argument('--noConfirm', action='store_true', default=False, help='Instruct sfincsScan to create folders and jobs without asking for confirmation first.')
     args = parser.parse_args()
+
+    if not all([i in ['sym', 'asym'] for i in args.bcSymmetry]):
+        raise IOError('Each element of <bcSymmetry> must be set to either "sym" or "asym".')
+
+    if len(args.bcSymmetry) not in [1, len(args.eqIn)]:
+        raise IOError('The length of <bcSymmetry> must either be 1 or the same as <eqIn>.')
 
     if args.minEr >= args.maxEr:
         raise IOError('<minEr> must be less than <maxEr>.')
@@ -667,26 +674,58 @@ def prettyDataLabel(inString):
         form of inString, such as with Matplotlib.
     '''
 
-    if '_' not in inString: # These are not radial fluxes
+    if '_' not in inString:
+        
+        extensiveParticleFluxUnits = r' $\mathrm{\left(\frac{1}{s}\right)}$'
+        extensiveHeatFluxUnits = r' $\mathrm{\left(W\right)}$'
+        extensiveMomentumFluxUnits = r' $\mathrm{\left(\frac{kg T m}{s^{-2}}\right)}$'
+        extensiveRadialCurrentUnits = r' $\mathrm{\left(A\right)}$'
         
         if inString == 'Er':
             return r'Radial electric field $\mathrm{\left(\frac{V}{m}\right)}$'
         
+        elif inString == 'FSABFlow':
+            return r'FSAB parallel flow $\mathrm{\left(\frac{T}{m^{2} s}\right)}$'
+        
         elif inString == 'FSABjHat':
             return r'FSAB bootstrap current $\mathrm{\left(\frac{T A}{m^{2}}\right)}$'
+
+        elif inString in ['FSABjHatOverRootFSAB2', 'FSABjHatOverB0']:
+            return r'Bootstrap current $\mathrm{\left(\frac{A}{m^{2}}\right)}$'
         
-        elif inString == 'FSABFlow':
-            return r'FSAB parallel flow $\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
+        elif inString == 'extensiveParticleFlux':
+            return r'Neoclassical particle flux' + extensiveParticleFluxUnits
+
+        elif inString == 'extensiveClassicalParticleFlux':
+            return r'Classical particle flux' + extensiveParticleFluxUnits
+        
+        elif inString == 'extensiveTotalParticleFlux':
+            return r'Total particle flux' + extensiveParticleFluxUnits
+        
+        elif inString == 'extensiveHeatFlux':
+            return r'Neoclassical heat flux' + extensiveHeatFluxUnits
+        
+        elif inString == 'extensiveClassicalHeatFlux':
+            return r'Classical heat flux' + extensiveHeatFluxUnits
+        
+        elif inString == 'extensiveTotalHeatFlux':
+            return r'Total heat flux' + extensiveHeatFluxUnits
+        
+        elif inString == 'extensiveMomentumFlux':
+            return r'Neoclassical momentum flux' + extensiveMomentumFluxUnits
+        
+        elif inString == 'extensiveRadialCurrent':
+            return r'Radial current' + extensiveRadialCurrentUnits
         
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
     
-    else: # These are radial fluxes
+    else:
         
         # Sort out the parts you need to make sense of inString and do some basic administrative checks
         parts = inString.split('_')
         
-        if len(parts) != 2 and len(parts) != 3:
+        if len(parts) not in [2, 3]:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
 
         if len(parts) == 3 and parts[1] != 'vm': # With 'vm', the full distribution function is taken into account rather than only the leading-order contribution
@@ -697,13 +736,13 @@ def prettyDataLabel(inString):
         
         # Write some label strings that will be used below
         directionStatement = r' in $\nabla {}$ direction '.format(radVar) # Note that this includes spaces on either side for convenience
-        particleFluxUnits = r'$\mathrm{\left(\frac{1}{m^{2} s}\right)}$'
-        heatFluxUnits = r'$\mathrm{\left(\frac{J}{m^{2} s}\right)}$'
-        momentumFluxUnits = r'$\mathrm{\left(\frac{kg}{m s^{2}}\right)}$'
-        radialCurrentUnits = r'$\mathrm{\left(\frac{A}{m^{2}}\right)}$'
+        particleFluxUnits = r'$\mathrm{\left(\frac{1}{m^{3} s}\right)}$'
+        heatFluxUnits = r'$\mathrm{\left(\frac{W}{m^{3}}\right)}$'
+        momentumFluxUnits = r'$\mathrm{\left(\frac{kg T}{m^{2} s^{2}}\right)}$'
+        radialCurrentUnits = r'$\mathrm{\left(\frac{A}{m^{3}}\right)}$'
 
         # Write the output
-        if label == 'particleFlux': # Neoclassical
+        if label == 'particleFlux':
             return r'Neoclassical particle flux' + directionStatement + particleFluxUnits
 
         elif label == 'classicalParticleFlux':
@@ -715,9 +754,9 @@ def prettyDataLabel(inString):
         elif label == 'totalParticleFlux':
             return r'Total particle flux' + directionStatement + particleFluxUnits
 
-        elif label == 'heatFlux': # Neoclassical
+        elif label == 'heatFlux':
             return r'Neoclassical heat flux' + directionStatement + heatFluxUnits
-        
+
         elif label == 'classicalHeatFlux':
             return r'Classical heat flux' + directionStatement + heatFluxUnits
         
@@ -727,7 +766,7 @@ def prettyDataLabel(inString):
         elif label == 'totalHeatFlux':
             return r'Total heat flux' + directionStatement + heatFluxUnits
 
-        elif label == 'momentumFlux': # Neoclassical
+        elif label == 'momentumFlux':
             return r'Neoclassical momentum flux' + directionStatement + momentumFluxUnits
 
         elif label == 'radialCurrent':

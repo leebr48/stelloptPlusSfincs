@@ -30,11 +30,18 @@ if all([item == None for item in IOlists['saveLoc']]):
 else:
     saveDefaultTarget = [join(location,'arbitrary') for location in IOlists['saveLoc']]
 
+# Sort out the symmetry argument for *.bc files
+if len(args.bcSymmetry) == 1:
+    bcSym = args.bcSymmetry * maxLen
+else:
+    bcSym = args.bcSymmetry
+
 # Loop through the working directories
 for i in range(maxLen):
     profilesInUse = IOlists['profilesIn'][i]
     eqInUse = IOlists['eqIn'][i]
     actualSaveLoc = dirname(saveDefaultTarget[i])
+    bcSymUse = bcSym[i]
 
     # Make target directory if it does not exist
     outDir = makeDir(actualSaveLoc) # Note that this script has file overwrite powers!
@@ -44,7 +51,7 @@ for i in range(maxLen):
         writeProfiles.run(profilesInUse, outDir)
 
     if not args.noNamelist:
-        writeNamelist.run(profilesInUse, outDir, eqInUse)
+        writeNamelist.run(profilesInUse, outDir, eqInUse, bcSymUse)
 
     if not args.noBatch:
         writeBatch.run(profilesInUse, outDir)

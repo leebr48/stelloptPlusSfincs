@@ -1,6 +1,6 @@
 # This script creates a SFINCS-readable input.namelist file.
 
-def run(profilesInUse, saveLocUse, eqInUse):
+def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     
     '''
     The inputs are set by a wrapper script.
@@ -21,7 +21,6 @@ def run(profilesInUse, saveLocUse, eqInUse):
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
     ambipolarSolve = '.true.' # Determine the ambipolar Er
     ambipolarSolveOption = 2 # (Default) Use a Brent method
-    geometryScheme = 5 # Read a VMEC wout file to specify the magnetic geometry
     VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
     Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
     alpha = str(1.0e+0).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
@@ -29,7 +28,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     collisionOperator = 0 # (Default) Full linearized Fokker-Planck operator
     includeXDotTerm = '.true.' # (Default) Necessary to calculate full trajectories
     includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
-    magneticDriftScheme = 1 # Whether or not to include angular drifts, and if so, what model to use
+    magneticDriftScheme = 0 # Whether or not to include angular drifts, and if so, what model to use
     export_full_f = '.true.' # Save the full distribution function in the output file 
 
     # Load necessary variables from profilesFile
@@ -61,6 +60,14 @@ def run(profilesInUse, saveLocUse, eqInUse):
     Er_min = args.minEr[0] - 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
     Er_max = args.maxEr[0] + 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
     
+    eqFileExt = eqFile.split('.')[-1]
+    if eqFileExt == 'bc' and bcSymUse == 'sym':
+        geometryScheme = 11
+    elif eqFileExt == 'bc' and bcSymUse == 'asym':
+        geometryScheme = 12
+    else:
+        geometryScheme = 5
+        
     radialVars = radialVarDict()
     selectedRadialVar = radialVars[args.radialVar[0]]
     selectedRadialGradientVar = radialVars[args.radialGradientVar[0]] # Note that option 4 has special Er behavior (see <help> for details)
@@ -98,7 +105,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     stringToWrite += '\n'
 
     stringToWrite += '&geometryParameters\n'
-    stringToWrite += '\tgeometryScheme = {} ! Read a VMEC wout file to specify the magnetic geometry\n'.format(geometryScheme)
+    stringToWrite += '\tgeometryScheme = {} ! Set how the magnetic geometry is specified\n'.format(geometryScheme)
     stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0], selectedRadialVar)
     if scanType == 1:
         stringToWrite += '\t{}_wish = {} ! Surface on which to perform the resolution scan\n'.format(selectedRadialVar, args.minRad[0])
@@ -106,7 +113,8 @@ def run(profilesInUse, saveLocUse, eqInUse):
     stringToWrite += '\tVMECRadialOption = {} ! Interpolate when the target surface does not exactly match a VMEC flux surface\n'.format(VMECRadialOption)
     stringToWrite += '\tequilibriumFile = "{}"\n'.format(eqFile)
     stringToWrite += '\tmin_Bmn_to_load = {} ! Only Fourier modes of at least this size will be loaded from the equilibriumFile\n'.format(args.minBmn[0])
-    stringToWrite += '\tVMEC_Nyquist_option = {} ! If 2, include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays (where available)\n'.format(args.Nyquist[0])
+    if geometryScheme == 5:
+        stringToWrite += '\tVMEC_Nyquist_option = {} ! If 2, include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays (where available)\n'.format(args.Nyquist[0])
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
@@ -130,9 +138,9 @@ def run(profilesInUse, saveLocUse, eqInUse):
     stringToWrite += '\tincludeElectricFieldTermInXiDot = {} ! (Default) Necessary to calculate full trajectories\n'.format(includeElectricFieldTermInXiDot)
     # Note that the physics parameters above this point are SFINCS defaults - they are included only for code self-documentation.
     if args.radialGradientVar[0] != 4:
-        stringToWrite += '\tdPhiHatd{} = {} ! Value of the radial electric field (proxy) that will be used for all flux surfaces\n'.format(selectedRadialGradientVar, args.seedEr[0])
+        stringToWrite += '\tdPhiHatd{} = {} ! Seed value of the radial electric field (proxy) for this flux surface\n'.format(selectedRadialGradientVar, args.seedEr[0])
     else:
-        stringToWrite += '\tEr = {} ! Value of the radial electric field that will be used for all flux surfaces\n'.format(args.seedEr[0])
+        stringToWrite += '\tEr = {} ! Seed value of the radial electric field for this flux surface\n'.format(args.seedEr[0])
     stringToWrite += '\tmagneticDriftScheme = {} ! Whether or not to include angular drifts, and if so, what model to use\n'.format(magneticDriftScheme)
     stringToWrite += '/\n'
     stringToWrite += '\n'

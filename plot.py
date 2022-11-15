@@ -54,7 +54,7 @@ def findRadialInfo(radialDict, radialVar):
 defaults = ['Delta', 'alpha', 'nu_n']
 
 IVs = list(radialVars.values())
-notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow']
+notRadialFluxes = ['Er', 'FSABFlow', 'FSABjHat', 'FSABjHatOverRootFSAB2', 'FSABjHatOverB0']
 
 [neoclassicalParticleFluxes, neoclassicalHeatFluxes, neoclassicalMomentumFluxes] = [makeNeoclassicalNames(item) for item in ['particleFlux', 'heatFlux', 'momentumFlux']]
 
@@ -62,14 +62,17 @@ notRadialFluxes = ['Er', 'FSABjHat', 'FSABFlow']
 
 nonCalcDVs = notRadialFluxes + neoclassicalParticleFluxes + neoclassicalHeatFluxes + neoclassicalMomentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
 
-extras = ['Zs']
+extras = ['Zs', 'VPrimeHat', 'psiAHat']
 
 # Name some other variables to be calculated later
 [totalParticleFluxes, totalHeatFluxes] = [makeOtherNames(item) for item in ['totalParticleFlux', 'totalHeatFlux']]
 
-radialCurrents = makeNeoclassicalNames('radialCurrent')
+extensiveFluxes = ['extensiveParticleFlux', 'extensiveHeatFlux', 'extensiveMomentumFlux', 'extensiveClassicalParticleFlux', 'extensiveClassicalHeatFlux', 'extensiveTotalParticleFlux', 'extensiveTotalHeatFlux']
 
-DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + radialCurrents
+radialCurrents = makeNeoclassicalNames('radialCurrent')
+extensiveRadialCurrent = ['extensiveRadialCurrent']
+
+DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + extensiveFluxes + radialCurrents + extensiveRadialCurrent
 
 # Loop through each directory
 allData = {}
@@ -137,8 +140,18 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             loadedData[totalParticleFlux] = loadedData[neoclassicalParticleFluxes[radInd]] + loadedData[classicalParticleFluxes[radInd]]
             loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[radInd]] + loadedData[classicalHeatFluxes[radInd]]
 
+        normalizedAreaFactor = loadedData['VPrimeHat'] * loadedData['psiAHat'] # = dVHat/dpsiHat * dpsiHat/dpsiN = dVHat/dpsiN
+        loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux_vm_psiN']
+        loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux_vm_psiN']
+        loadedData['extensiveMomentumFlux'] = normalizedAreaFactor * loadedData['momentumFlux_vm_psiN']
+        loadedData['extensiveClassicalParticleFlux'] = normalizedAreaFactor * loadedData['classicalParticleFlux_psiN']
+        loadedData['extensiveClassicalHeatFlux'] = normalizedAreaFactor * loadedData['classicalHeatFlux_psiN']
+        loadedData['extensiveTotalParticleFlux'] = loadedData['extensiveParticleFlux'] + loadedData['extensiveClassicalParticleFlux']
+        loadedData['extensiveTotalHeatFlux'] = loadedData['extensiveHeatFlux'] + loadedData['extensiveClassicalHeatFlux']
+
         for radInd,radialCurrent in enumerate(radialCurrents):
            loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[radInd]])
+        loadedData['extensiveRadialCurrent'] = normalizedAreaFactor * loadedData['radialCurrent_vm_psiN']
 
         # Put the data in the appropriate place
         if radDirName != subdictNames[0]: # You are in a different radial directory from the last iteration over dataFiles
