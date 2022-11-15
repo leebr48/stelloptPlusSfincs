@@ -13,10 +13,11 @@ def getRunArgs():
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--profilesIn', type=str, nargs='*', required=True, help='File(s) with relevant profiles written as in STELLOPT, with path(s) if necessary. This script currently reads the BEAMS3D section of STELLOPT namelist files. If you input multiple files, order matters!')
-    parser.add_argument('--eqIn', type=str, nargs='*', help='File(s) from which to load the magnetic equilibrium(ia). Can be VMEC wout file(s) in netCDF or ASCII format, or IPP .bc file(s). If you input multiple files, order matters!')
+    parser.add_argument('--eqIn', type=str, nargs='*', help='File(s) from which to load the magnetic equilibrium(ia). Can be VMEC wout file(s) in netCDF or ASCII format, or IPP *.bc file(s). If you input multiple files, order matters!')
+    parser.add_argument('--bcSymmetry', type=str, nargs='*', required=False, default=['sym'], help='If one or more *.bc files are input via <eqIn>, this setting will control whether SFINCS assumes them to be stellarator-symmetric ("sym") or stellarator-asymmetric ("asym"). If one argument is specified, it will be used for all the <eqIn> files. Note that the length of this argument must be either 1 or equivalent to the length of <eqIn>, even if <eqIn> contains a mix of *.bc and VMEC wout files.')
     parser.add_argument("--vars", type=str, nargs='*', required=False, default=['NE', 'TI', 'NE', 'TE'], help='''Prefixes of variables to be read, normalized, and written. You should enter each prefix in quotes and put spaces between prefixes. The prefix names are not case sensitive. The density and temperature prefixes should come in the format <'N1' 'T1' 'N2' 'T2' ...> where '1' and '2' often indicate species identifiers (such as 'I' or 'E'). Note that you can write duplicate data by repeating entries. For instance, inputting <'NE' 'TI' 'NE' 'TE'> enforces NI=NE. The order in which the species prefixes are specified should match the species order in input.namelist. If you have potential data to input to calculate the radial electric field, 'POT' can be added anywhere in the list. The potential should give -Er when differentiated with respect to the STELLOPT coordinate S, which is psiN in SFINCS.''')
     parser.add_argument('--minBmn', type=float, nargs=1, required=False, default=[0.0], help='Only Fourier modes of at least this size will be loaded from the <eqIn> file(s).')
-    parser.add_argument('--Nyquist', type=int, nargs=1, required=False, default=[2], help='Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available, if this parameter is set to 2. Exclude these mode numbers if this parameter is set to 1.')
+    parser.add_argument('--Nyquist', type=int, nargs=1, required=False, default=[2], help='This parameter is only relevant if you are loading VMEC equilibria. Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available, if this parameter is set to 2. Exclude these mode numbers if this parameter is set to 1.')
     parser.add_argument('--numInterpSurf', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large.')
     parser.add_argument('--radialVar', type=int, nargs=1, required=False, default=[3], help='ID of the radial coordinate used in the input.namelist file to specify which surfaces should be scanned over. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, and 3 = rN (which is the STELLOPT rho)')
     parser.add_argument('--radialGradientVar', type=int, nargs=1, required=False, default=[4], help='ID of the radial coordinate used to take derivatives. Relevant for the generalEr_* parameters in the profiles file and specifying the density and temperature derivatives on a single flux suface. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, 3 = rN (which is the STELLOPT rho), and 4 = rHat (like option 2, except that Er is used in place of dPhiHatdrHat). The default is recommended.')
@@ -59,6 +60,12 @@ def getRunArgs():
     parser.add_argument('--notifs', type=str, nargs=1, required=False, default=['bad'], help='Dictate which Slurm notification emails you would like to receive. By default, you will only receive emails when something bad happens to your job (such as a failure). You may also specify "all" or "none", which have the (intuitive) meanings indicated in the Slurm documentation. Note that the environment variable SFINCS_BATCH_EMAIL must be set for <notifs> to work correctly.')
     parser.add_argument('--noConfirm', action='store_true', default=False, help='Instruct sfincsScan to create folders and jobs without asking for confirmation first.')
     args = parser.parse_args()
+
+    if not all([i in ['sym', 'asym'] for i in args.bcSymmetry]):
+        raise IOError('Each element of <bcSymmetry> must be set to either "sym" or "asym".')
+
+    if len(args.bcSymmetry) not in [1, len(args.eqIn)]:
+        raise IOError('The length of <bcSymmetry> must either be 1 or the same as <eqIn>.')
 
     if args.minEr >= args.maxEr:
         raise IOError('<minEr> must be less than <maxEr>.')
