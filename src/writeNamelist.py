@@ -7,15 +7,14 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     '''
 
     # Import necessary modules
-    from IO import getRunArgs, getFileInfo, radialVarDict, writeFile
-    from dataProc import findNumCalcs
+    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractScalarData, radialVarDict, writeFile
+    from dataProc import scaleInputData, findNumCalcs
 
     # Get command line arguments
     args = getRunArgs()
 
     # Name input and output files
-    _, _, _, _, outFile = getFileInfo(profilesInUse, saveLocUse, 'input.namelist') # Name mandated by SFINCS
-
+    profilesFile, _, _, _, outFile = getFileInfo(profilesInUse, saveLocUse, 'input.namelist') # Name mandated by SFINCS
     eqFile, _, _, _, _ = getFileInfo(eqInUse, '/arbitrary/path/', 'arbitrary')
 
     # List out some hard-coded variables
@@ -32,7 +31,24 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     magneticDriftScheme = 0 # Whether or not to include angular drifts, and if so, what model to use
     export_full_f = '.true.' # Save the full distribution function in the output file 
 
-    # Sort out some variables prior to string creation
+    # Load necessary variables from profilesFile
+    varsOfInterest = cleanStrings(['NI_AUX_M', 'NI_AUX_Z']) # STELLOPT has the mass and charge of electrons built in, so only the ions need to be specified
+    listifiedInFile = listifyBEAMS3DFile(profilesFile)
+    dataOfInterest = extractScalarData(listifiedInFile, varsOfInterest)
+    dataOfInterest['m'].insert(0, args.assumedSpeciesMass[0])
+    dataOfInterest['z'].insert(0, args.assumedSpeciesCharge[0])
+    scaledData = scaleInputData(dataOfInterest, profiles=False)
+    mHatsList = scaledData['m']
+    ZsList = scaledData['z']
+    
+    if len(mHatsList) != len(ZsList):
+        raise IOError('It appears that some data is specified incorrectly in {}. The number of species (according to the "Z" and "M" namelist items) must be consistent.'.format(profilesFile))
+    numSpecies = len(ZsList)
+    
+    mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in mHatsList])
+    Zs = ' '.join([str(Z) for Z in ZsList])
+
+    # Sort out some variables set by command line inputs
     if args.resScan:
         scanType = 1
     elif args.numManErScan[0] == 0:
@@ -56,12 +72,10 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     selectedRadialVar = radialVars[args.radialVar[0]]
     selectedRadialGradientVar = radialVars[args.radialGradientVar[0]] # Note that option 4 has special Er behavior (see <help> for details)
 
-    Zs = ' '.join([str(Z) for Z in args.Zs])
-    mHats = ' '.join(['{:.15e}'.format(mHat).replace('e','d') for mHat in args.mHats])
-    nHats = ' '.join(['{:.15e}'.format(nHat).replace('e','d') for nHat in args.defaultDens])
-    THats = ' '.join(['{:.15e}'.format(THat).replace('e','d') for THat in args.defaultTemps])
-    dNHatDer = ' '.join(['{:.15e}'.format(dnHat).replace('e','d') for dnHat in args.defaultDensDer])
-    dTHatDer = ' '.join(['{:.15e}'.format(dTHat).replace('e','d') for dTHat in args.defaultTempsDer])
+    nHats = ' '.join(['{:.15e}'.format(nHat).replace('e','d') for nHat in args.defaultDens*numSpecies])
+    THats = ' '.join(['{:.15e}'.format(THat).replace('e','d') for THat in args.defaultTemps*numSpecies])
+    dNHatDer = ' '.join(['{:.15e}'.format(dnHat).replace('e','d') for dnHat in args.defaultDensDer*numSpecies])
+    dTHatDer = ' '.join(['{:.15e}'.format(dTHat).replace('e','d') for dTHat in args.defaultTempsDer*numSpecies])
 
     NthetaScanVars = findNumCalcs(args.Ntheta[0], args.NthetaScan, powersMode=False)
     NzetaScanVars = findNumCalcs(args.Nzeta[0], args.NzetaScan, powersMode=False)

@@ -13,9 +13,8 @@ def getRunArgs():
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--profilesIn', type=str, nargs='*', required=True, help='File(s) with relevant profiles written as in STELLOPT, with path(s) if necessary. This script currently reads the BEAMS3D section of STELLOPT namelist files. If you input multiple files, order matters!')
-    parser.add_argument('--eqIn', type=str, nargs='*', help='File(s) from which to load the magnetic equilibrium(ia). Can be VMEC wout file(s) in netCDF or ASCII format, or IPP *.bc file(s). If you input multiple files, order matters!')
+    parser.add_argument('--eqIn', type=str, nargs='*', required=True, help='File(s) from which to load the magnetic equilibrium(ia). Can be VMEC wout file(s) in netCDF or ASCII format, or IPP .bc file(s). If you input multiple files, order matters!')
     parser.add_argument('--bcSymmetry', type=str, nargs='*', required=False, default=['sym'], help='If one or more *.bc files are input via <eqIn>, this setting will control whether SFINCS assumes them to be stellarator-symmetric ("sym") or stellarator-asymmetric ("asym"). If one argument is specified, it will be used for all the <eqIn> files. Note that the length of this argument must be either 1 or equivalent to the length of <eqIn>, even if <eqIn> contains a mix of *.bc and VMEC wout files.')
-    parser.add_argument("--vars", type=str, nargs='*', required=False, default=['NE', 'TI', 'NE', 'TE'], help='''Prefixes of variables to be read, normalized, and written. You should enter each prefix in quotes and put spaces between prefixes. The prefix names are not case sensitive. The density and temperature prefixes should come in the format <'N1' 'T1' 'N2' 'T2' ...> where '1' and '2' often indicate species identifiers (such as 'I' or 'E'). Note that you can write duplicate data by repeating entries. For instance, inputting <'NE' 'TI' 'NE' 'TE'> enforces NI=NE. The order in which the species prefixes are specified should match the species order in input.namelist. If you have potential data to input to calculate the radial electric field, 'POT' can be added anywhere in the list. The potential should give -Er when differentiated with respect to the STELLOPT coordinate S, which is psiN in SFINCS.''')
     parser.add_argument('--minBmn', type=float, nargs=1, required=False, default=[0.0], help='Only Fourier modes of at least this size will be loaded from the <eqIn> file(s).')
     parser.add_argument('--Nyquist', type=int, nargs=1, required=False, default=[2], help='This parameter is only relevant if you are loading VMEC equilibria. Include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays, where available, if this parameter is set to 2. Exclude these mode numbers if this parameter is set to 1.')
     parser.add_argument('--numInterpSurf', type=int, nargs=1, required=False, default=[1000], help='Number of radial surfaces on which to calculate and write interpolated profile data. This number should be quite large.')
@@ -24,17 +23,17 @@ def getRunArgs():
     parser.add_argument('--numCalcSurf', type=int, nargs=1, required=False, default=[16], help='Number of radial surfaces on which to perform full SFINCS calculations.')
     parser.add_argument('--minRad', type=float, nargs=1, required=False, default=[0.15], help='Lower bound for the radial scan. If <resScan> is used, the flux surface specified by this parameter will be used for the convergence scan. Note that VMEC has resolution issues near the magnetic axis and SFINCS often converges much slower there due to the relatively low collisionality, so setting <minRad> to be very small may cause problems.')
     parser.add_argument('--maxRad', type=float, nargs=1, required=False, default=[0.95], help='Upper bound for the radial scan.')
-    parser.add_argument('--Zs', type=float, nargs='*', required=False, default=[1, -1], help='Charge of each species in units of the proton charge. The species ordering must match that in the <vars> option.')
-    parser.add_argument('--mHats', type=float, nargs='*', required=False, default=[1, 0.000545509], help='Mass of each species in units of the proton mass.')
     parser.add_argument('--seedEr', type=float, nargs=1, required=False, default=[0], help="Input an initial guess for the radial electric field in units of <radialGradientVar>. The default value is typically fine. This will be overwritten if you trigger an electric field scan with <numManErScan>.")
     parser.add_argument('--numManErScan', type=int, nargs=1, required=False, default=[0], help='Number of manual radial electric field scans to perform (using scanType=5). This parameter generates equidistant radial electric field seed values between <minEr> and <maxEr> for the root-finding algorithm in SFINCS. This parameter will be overwritten if <resScan> is activated.')
     parser.add_argument('--minEr', type=float, nargs=1, required=False, default=[-5], help='Minimum seed value of the radial electric field in units of <radialGradientVar>. This parameter is also used to derive the minimum and maximum Er available to ambipolarSolve. Note that you may need to change this to get good results. It is suggested that you seed ambipolarSolve with values near Er=0 initially, otherwise the solver could fail or converge to a very large (and erroneous) value of Er. Keep in mind that the value of the radial current at the "smallest electric field available to ambipolarSolve" (mentioned before) must have the opposite sign of the radial current at the "largest electric field available to ambipolarSolve" (mentioned in the <maxEr> help).')
     parser.add_argument('--maxEr', type=float, nargs=1, required=False, default=[5], help='Maximum seed value of the radial electric field in units of <radialGradientVar>. This parameter is also used to derive the minimum and maximum Er available to ambipolarSolve. Note that you may need to change this to get good results. It is suggested that you seed ambipolarSolve with values near Er=0 initially, otherwise the solver could fail or converge to a very large (and erroneous) value of Er. Keep in mind that the value of the radial current at the "largest electric field available to ambipolarSolve" (mentioned before) must have the opposite sign of the radial current at the "smallest electric field available to ambipolarSolve" (mentioned in the <minEr> help).')
     parser.add_argument('--resScan', action='store_true', default=False, help='Triggers a SFINCS resolution scan run.')
-    parser.add_argument('--defaultDens', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the density of each species in units of 1e20 m^-3. Note that you must specify a density for EACH species. The exact values are probably not important.')
-    parser.add_argument('--defaultTemps', type=float, nargs='*', required=False, default=[1, 1], help='If <resScan> is used, this sets the temperature of each species in keV. Note that you must specify a temperature for EACH species. The exact values are probably not important.')
-    parser.add_argument('--defaultDensDer', type=float, nargs='*', required=False, default=[-0.5e0, -0.5e0], help='If <resScan> is used, this sets the derivative of the density of each species (in units of 1e20 m^-3) with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
-    parser.add_argument('--defaultTempsDer', type=float, nargs='*', required=False, default=[-2e0, -2e0], help='If <resScan> is used, this sets the derivative of the temperature of each species (in keV) with respect to psiN (which is the STELLOPT "S"). Note that you must specify a value for EACH species. The exact values are probably not important.')
+    parser.add_argument('--defaultDens', type=float, nargs=1, required=False, default=[1], help='If <resScan> is used, this sets the density of each species in units of 1e20 m^-3. The exact value is probably not important.')
+    parser.add_argument('--defaultTemps', type=float, nargs=1, required=False, default=[1], help='If <resScan> is used, this sets the temperature of each species in keV. The exact value is probably not important.')
+    parser.add_argument('--defaultDensDer', type=float, nargs=1, required=False, default=[-0.5e0], help='If <resScan> is used, this sets the derivative of the density of each species (in units of 1e20 m^-3) with respect to the radial variable specified by <radialGradientVar>. The exact value is probably not important.')
+    parser.add_argument('--defaultTempsDer', type=float, nargs=1, required=False, default=[-2e0], help='If <resScan> is used, this sets the derivative of the temperature of each species (in keV) with respect to the radial variable specified by <radialGradientVar>. The exact value is probably not important.')
+    parser.add_argument('--assumedSpeciesMass', type=float, nargs=1, required=False, default=[9.109383701528e-31], help='Mass in kg of a species that will be included in the SFINCS run(s) regardless of what other species the STELLOPT profiles file specifies. Because of how STELLLOPT is set up, this should always be electrons. This option is included for completeness, but you should probably never change it.')
+    parser.add_argument('--assumedSpeciesCharge', type=float, nargs=1, required=False, default=[-1.0], help='Charge in units of the proton charge of a species that will be included in the SFINCS run(s) regardless of what other species the STELLOPT profiles file specifies. Because of how STELLLOPT is set up, this should always be electrons. This option is included for completeness, but you should probably never change it.')
     parser.add_argument('--Nzeta', type=int, nargs=1, required=False, default=[55], help='Number of toroidal grid points per period. This should be an odd number.')
     parser.add_argument('--NzetaScan', type=float, nargs=2, required=False, default=[0.5, 1.5], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of Nzeta that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--Ntheta', type=int, nargs=1, required=False, default=[25], help='Number of poloidal grid points. This should be an odd number.')
@@ -78,24 +77,6 @@ def getRunArgs():
     
     if args.radialGradientVar[0] not in [0,1,2,3,4]:
         raise IOError('An invalid <radialGradientVar> choice was specified. Valid inputs are the integers 0, 1, 2, 3, and 4.')
-
-    if len(args.Zs) != len(args.vars)/2 and len(args.Zs) != (len(args.vars)-1)/2:
-        raise IOError('The <Zs> input length is inconsistent with the <vars> input length.')
-    
-    if len(args.mHats) != len(args.vars)/2 and len(args.mHats) != (len(args.vars)-1)/2:
-        raise IOError('The <mHats> input length is inconsistent with the <vars> input length.')
-    
-    if len(args.defaultDens) != len(args.vars)/2 and len(args.defaultDens) != (len(args.vars)-1)/2:
-        raise IOError('The <defaultDens> input length is inconsistent with the <vars> input length.')
-    
-    if len(args.defaultTemps) != len(args.vars)/2 and len(args.defaultTemps) != (len(args.vars)-1)/2:
-        raise IOError('The <defaultTemps> input length is inconsistent with the <vars> input length.')
-
-    if len(args.defaultDensDer) != len(args.vars)/2 and len(args.defaultDensDer) != (len(args.vars)-1)/2:
-        raise IOError('The <defaultDensDer> input length is inconsistent with the <vars> input length.')
-    
-    if len(args.defaultTempsDer) != len(args.vars)/2 and len(args.defaultTempsDer) != (len(args.vars)-1)/2:
-        raise IOError('The <defaultTempsDer> input length is inconsistent with the <vars> input length.')
 
     if args.Nzeta[0]%2 == 0:
         raise IOError('<Nzeta> should be odd.')
@@ -239,11 +220,10 @@ def listifyBEAMS3DFile(inputFile):
         filtered such that only one copy remains.
     '''
     
-    import itertools
+    from itertools import groupby
         
     with open(inputFile,'r') as f:
         beams3dSectionStartFlag = False
-        beams3dSectionEndFlag = False
         dataLines = []
         
         for line in f:
@@ -265,7 +245,7 @@ def listifyBEAMS3DFile(inputFile):
         precleaned = [i.strip() for i in line.split('=')]
 
         if len(precleaned) != 2:
-            raise IOError('The script thinks that there were two equals signs in a variable assignment line of the input file. Something is wrong.')
+            raise IOError('The script thinks that there were two equals signs in a variable assignment line in {}. Something is wrong.'.format(inputFile))
         
         if (' ' or '\t') in precleaned[1]:
             cleaned = [precleaned[0]] + precleaned[1].split()
@@ -276,7 +256,7 @@ def listifyBEAMS3DFile(inputFile):
 
     listifiedData.sort()
 
-    redundanciesRemoved = list(listifiedData for listifiedData,_ in itertools.groupby(listifiedData))
+    redundanciesRemoved = list(listifiedData for listifiedData,_ in groupby(listifiedData))
 
     return redundanciesRemoved
 
@@ -291,8 +271,9 @@ def makeProfileNames(listOfPrefixes):
                         profiles for two different variables,
                         such as NI and NE.
     Outputs:
-        A list of BEAMS3D variables using listOfPrefixes, such as
-        [name1_AUX_S, name1_AUX_F, ...].
+        A list of lists containing BEAMS3D variables derived 
+        from listOfPrefixes, such as
+        [[name1_AUX_S, name1_AUX_F], ...].
     '''
   
     output_names = []
@@ -304,7 +285,7 @@ def makeProfileNames(listOfPrefixes):
 
     return output_names
 
-def extractDataList(dataList, nameList):
+def extractProfileData(dataList, nameList):
 
     '''
     Inputs:  
@@ -315,14 +296,20 @@ def extractDataList(dataList, nameList):
                   dataList.
     Outputs:
         A dictionary. Each key is a unique prefix from nameList. Each value
-        contains a dictionary with two entries. The 'iv' entry is the radial
-        coordinate (normalized toroidal flux) list for the given variable. 
-        The 'dv' entry gives the list of values corresponding to those
-        radial coordinates.
+        contains a dictionary with two entries. The 'iv' entry is a list
+        of lists with the radial coordinate (normalized toroidal flux) for
+        the given variable. The 'dv' entry is a lists of lists with values
+        corresponding to those radial coordinates. If only a single species
+        is specified for a given prefix, the lists will look like
+        [[...values...]]. With multiple species, they will look like
+        [[...values1...],[...values2...],...]. Note that the dimensions of
+        the 'iv' and 'dv' arrays will always match. This means that some
+        'iv' values may be repeated, such as when multiple ion densities
+        are specified using the same set of radial coordinates.
     '''
 
     import warnings
-    
+
     matched = []
     dataDict = {}
     for namePair in nameList:
@@ -333,30 +320,150 @@ def extractDataList(dataList, nameList):
         for name in namePair:
             foundMatch = False
 
+            allSpeciesData = {}
             for dataVec in dataList:
+
+                # We need to isolate the name of the variable
+                dataLabel = dataVec[0]
+                splitAtOpenPar = dataLabel.split('(')
+                dataName = splitAtOpenPar[0]
                 
-                if dataVec[0] == name:
-                    floats = [float(i) for i in dataVec[1:]]
+                if dataName == name:
+                    # We need to sort out the variable indices
+                    if len(splitAtOpenPar) == 1: # The label has no indices, so its array has only one row
+                        speciesIndex = 0
                     
-                    if name[-1] == 's':
-                        matchedPair['iv'] = floats
-                    elif name[-1] == 'f':
-                        matchedPair['dv'] = floats
+                    elif len(splitAtOpenPar) == 2: # The label has indices that we need to sort out
+                        indices = [item.strip() for item in splitAtOpenPar[1].split(')')[0].split(',')]
+                        speciesIndex = int(indices[0]) - 1 # Python indices start from 0, STELLOPT indices start from 1
+                        if indices[1] != ':':
+                            raise IOError('Piecewise indexing for profile declarations (as in {}) is not yet supported.'.format(dataLabel))
+                    
                     else:
-                        raise IOError('The read variable suffix is not "S" or "F". Something is wrong.')
-                    
+                        raise IOError('In the variable declaration line for {}, the "(" character apparently appears twice. Something is wrong.'.format(dataLabel))
+
+                    # Now assign the data as an IV or a DV
+                    allSpeciesData[speciesIndex] = [float(i) for i in dataVec[1:]]
                     foundMatch = True
+            
+            allSpeciesDataList = list(dict(sorted(allSpeciesData.items())).values()) # Note that we will always have a list of lists
+            if name[-1] == 's':
+                matchedPair['iv'] = allSpeciesDataList
+            elif name[-1] == 'f':
+                matchedPair['dv'] = allSpeciesDataList
+            else:
+                raise IOError('The read variable suffix for {} is not "S" or "F". Something is wrong.'.format(dataLabel))
 
             if not foundMatch:
                 warnings.warn('No match could be found for the variable "{}" in the given dataList!'.format(name))
-        
-        matched.append(matchedPair)
-        dataDict[strippedName] = matchedPair
 
+        # Clean up the empty lists in matchedPair
+        cleanMatchedPair = {}
+        for key,data in matchedPair.items():
+            cleanMatchedPair[key] = [item for item in data if item != []]
+ 
+        # Store the data
+        matched.append(cleanMatchedPair)
+        dataDict[strippedName] = cleanMatchedPair
+
+    # Make the IV and DV parts of cleanMatchedPair the same length
+    for key,data in dataDict.items():
+        ivLen = len(data['iv'])
+        dvLen = len(data['dv'])
+        if ivLen == dvLen:
+            pass
+        elif ivLen == 1 and dvLen > 1:
+            dataDict[key]['iv'] = data['iv'] * dvLen
+        elif ivLen > 1 and dvLen == 1:
+            raise IOError('Multiple independent variable sets were specified for one dependent variable set in the {} array. Something is wrong.'.format(strippedName))
+        else:
+            raise IOError('The structure of the data in the {} array is irregular. Something is wrong.'.format(strippedName))
+    
     if not any(matched):
         raise IOError('No searched variables were found.')
     
     return dataDict
+
+def extractScalarData(dataList, nameList):
+
+    '''
+    Inputs:  
+        dataList: A list of lists, as from the listifyBEAMS3DFile function,
+                   with a string as the first element and length >= 2.
+        nameList: A list of variable names to search for in dataList. 
+    Outputs:
+        A dictionary. Each key is a brief name of a variable from nameList.
+        Each value contains a list with one or more floats corresponding to
+        the variable.
+    '''
+
+    import warnings
+    
+    matched = []
+    dataDict = {}
+    for name in nameList:
+        
+        foundMatch = False
+        strippedName = name.split('_')[-1]
+        
+        for dataVec in dataList:
+            
+            if dataVec[0] == name:
+                floats = [float(i) for i in dataVec[1:]]
+                dataDict[strippedName] = floats
+                foundMatch = True
+                matched.append(floats)
+                break
+
+        if not foundMatch:
+            warnings.warn('No match could be found for the variable "{}" in the given dataList!'.format(name))
+        
+    if not any(matched):
+        raise IOError('No searched variables were found.')
+    
+    return dataDict
+
+def sortProfileFunctions(inDict):
+
+    '''
+    Inputs:
+        A dictionary (such as from the interpolatedData function) whose keys are 'ne', 'ni', 'te', and 'ti',
+        and whose values are lists of functions corresponding to the profiles of each species. It is expected
+        that the values of the *i variables have length 1 since electrons are a unique species. The lengths
+        of the 'ni' and 'ti' values can be arbitrary (since one can include as many ion species in the calculation as
+        they wish), subject to the constraint that both are either the same length (unique profiles for each species)
+        or one is length 1 (the same profile will be used for all species).
+    Outputs:
+        A list with the interpolation functions ordered in the form [N1, T1, N2, T2, ...] suitable for use in
+        the generateDataText function. Note that electrons are always species 1! 
+    '''
+
+    if len(inDict['ne']) != 1 or len(inDict['te']) != 1 :
+        raise IOError('The lengths of the "ne" and "te" values must be 1.')
+
+    lenNI = len(inDict['ni'])
+    lenTI = len(inDict['ti'])
+
+    if (lenNI != lenTI) and (lenNI != 1 and lenTI != 1):
+        raise IOError('The lengths of "ni" and "ti" must either be the same, or one of them must have length 1.')
+
+    outList = [inDict['ne'][0], inDict['te'][0]]
+
+    if lenNI > lenTI:
+        NIs = inDict['ni']
+        TIs = inDict['ti'] * lenNI
+    elif lenNI < lenTI:
+        NIs = inDict['ni'] * lenTI
+        TIs = inDict['ti']
+    else:
+        NIs = inDict['ni']
+        TIs = inDict['ti']
+
+    for (NI, TI) in zip(NIs, TIs):
+        outList.append(NI)
+        outList.append(TI)
+
+    return outList
 
 def generatePreamble(radial_coordinate_ID=1):
 
@@ -649,7 +756,7 @@ def prettyDataLabel(inString):
 
         elif label == 'heatFlux':
             return r'Neoclassical heat flux' + directionStatement + heatFluxUnits
- 
+
         elif label == 'classicalHeatFlux':
             return r'Classical heat flux' + directionStatement + heatFluxUnits
         

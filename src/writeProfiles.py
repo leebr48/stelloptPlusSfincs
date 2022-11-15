@@ -10,8 +10,8 @@ def run(profilesInUse, saveLocUse):
     import numpy as np
     from os.path import join
     from matplotlib.pyplot import subplots
-    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractDataList, makeProfileNames, generatePreamble, generateDataText, writeFile, messagePrinter
-    from dataProc import findMinMax, scaleData, nonlinearInterp
+    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, sortProfileFunctions, generatePreamble, generateDataText, writeFile, messagePrinter
+    from dataProc import findMinMax, scaleInputData, nonlinearInterp
 
     # Get command line arguments
     args = getRunArgs()
@@ -23,25 +23,22 @@ def run(profilesInUse, saveLocUse):
     plotFile = join(outDir, plotName+'.pdf')
 
     # Clean input variable names and do some clerical checks
-    prefixesOfInterest = cleanStrings(args.vars)
+    prefixesOfInterest = cleanStrings(['NE', 'NI', 'TE', 'TI'])
 
     # Extract the data from the BEAMS3D input file
     listifiedInFile = listifyBEAMS3DFile(inFile)
 
     varsOfInterest = makeProfileNames(prefixesOfInterest)
-    dataOfInterest = extractDataList(listifiedInFile, varsOfInterest)
+    dataOfInterest = extractProfileData(listifiedInFile, varsOfInterest)
 
     radialBounds = findMinMax(dataOfInterest)
-
-    # Scale the data according to the reference variable values
-    scaledData = scaleData(dataOfInterest)
     
-    # Interpolate the data in case the radial lists do not all contain the same points
-    ders = {}
-    for key,val in scaledData.items():
-        ders[key] = 0
+    # Scale the data according to the reference variable values
+    scaledData = scaleInputData(dataOfInterest)
 
-    interpolatedData = nonlinearInterp(scaledData, ders)
+    # Interpolate the data in case the radial lists do not all contain the same points
+    interpolatedData = nonlinearInterp(scaledData)
+    sortedInterpolatedData = sortProfileFunctions(interpolatedData)
 
     # Gather the components of profiles file
     radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is S in STELLOPT and psiN in SFINCS
@@ -54,17 +51,20 @@ def run(profilesInUse, saveLocUse):
     generalEr_max = lambda x: args.maxEr[0]
 
     funcs = [NErs, generalEr_min, generalEr_max]
-
-    funcs.extend([interpolatedData[prefix] for prefix in prefixesOfInterest])
+    funcs.extend(sortedInterpolatedData)
 
     # Plot the fitted interpolation functions to ensure they represent the data well
     fig,ax = subplots()
 
     leg = []
     for key, data in scaledData.items():
-        ax.scatter(data['iv'], data['dv'])
-        ax.plot(radii, interpolatedData[key](radii))
-        leg.append(key)
+
+        for specInd, (IVvec, DVvec) in enumerate(zip(data['iv'], data['dv'])):
+            color = next(ax._get_lines.prop_cycler)['color']
+            ax.scatter(IVvec, DVvec, c=color)
+            ax.plot(radii, interpolatedData[key][specInd](radii), c=color)
+            keyUse = key + str(specInd+1)
+            leg.append(keyUse)
 
     ax.legend(leg, loc='best')
     ax.set_xlabel(r'SFINCS $\psi_{N}$ $\left(= \mathrm{STELLOPT}{\ }S\right)$')

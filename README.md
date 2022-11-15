@@ -1,10 +1,21 @@
 # stelloptPlusSfincs
-Scripts for making STELLOPT and SFINCS work nicely together.
+
+Python scripts for making certain aspects of [STELLOPT](https://github.com/PrincetonUniversity/STELLOPT) and [SFINCS](https://github.com/landreman/sfincs) work nicely together. The current focus is on running many SFINCS cases in a consistent and easy way.
 
 ## Installation
 
-Set the environment variable (preferably permanently, such as in your `.bashrc` file) `SFINCS_PATH=path/to/sfincs/repo`. If you want to receive job updates from Slurm, also set `SFINCS_BATCH_EMAIL=your_email@website.com` in the same way.
+In principle, the scripts in this repository can function given only the appropriate input files. In practice, it is highly recommended that you install STELLOPT (instructions [here](https://princetonuniversity.github.io/STELLOPT/STELLOPT%20Compilation)) and SFINCS (instructions in its repository) to make everything run smoothly. SFINCS is memory-intensive, so the use of a high-performance cluster will likely be required unless very small test problems are run.
+
+The Python 3.\* [standard library](https://docs.python.org/3/library/index.html) should be installed, as several of its packages are utilized. The [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), [h5py](https://www.h5py.org/), and [Matplotlib](https://matplotlib.org/) packages are also required.
+
+Set the environment variable (preferably permanently, such as in your `.bashrc` file) `SFINCS_PATH=/path/to/sfincs/repository`. If you want to receive job updates from Slurm, also set `SFINCS_BATCH_EMAIL=your_email@website.com` in the same way.
 
 ## Use
 
-See what this repo can do at the moment by running any of the scripts in the main directory with the `--help` flag.
+Currently, these scripts can take BEAMS3D input files and a number of command line arguments and use them to create the files needed for SFINCS to run. SFINCS can also be run automatically, and its outputs can be processed easily. You can see how to use this repository by running any of the scripts in the main directory with the `--help` flag.
+
+Note that the profiles input into these scripts are not checked for physical sensibility. They must satisfy quasineutrality, for instance, or the results may not be reliable. In general, the density, temperature, and radial gradients of these quantities must be specified for all species (electrons and ions) on every flux surface for which SFINCS will perform calculations. It is easiest to specify profiles thoughout the plasma volume and let the software calculate the necessary values from them. The masses and charges of all ions must also be provided in the standard BEAMS3D format.
+
+## Version Notes
+
+The scripts in this repository have been tested on the `master` branch of SFINCS. At the time of writing, this branch was last updated on 12 May 2022. The version of STELLOPT used is likely not critical since its basic calls and output structure (especially for VMEC) have not substantially changed for quite some time.
