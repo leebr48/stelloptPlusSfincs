@@ -29,7 +29,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     collisionOperator = 0 # (Default) Full linearized Fokker-Planck operator
     includeXDotTerm = '.true.' # (Default) Necessary to calculate full trajectories
     includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
-    magneticDriftScheme = 1 # Whether or not to include angular drifts, and if so, what model to use
+    magneticDriftScheme = 0 # Whether or not to include angular drifts, and if so, what model to use
     export_full_f = '.true.' # Save the full distribution function in the output file 
 
     # Sort out some variables prior to string creation
@@ -91,7 +91,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
     stringToWrite += '\n'
 
     stringToWrite += '&geometryParameters\n'
-    stringToWrite += '\tgeometryScheme = {} ! Read a VMEC wout file or an IPP *.bc file to specify the magnetic geometry\n'.format(geometryScheme)
+    stringToWrite += '\tgeometryScheme = {} ! Dictates how the magnetic geometry is specified\n'.format(geometryScheme)
     stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0], selectedRadialVar)
     if scanType == 1:
         stringToWrite += '\t{}_wish = {} ! Surface on which to perform the resolution scan\n'.format(selectedRadialVar, args.minRad[0])
@@ -99,7 +99,8 @@ def run(profilesInUse, saveLocUse, eqInUse):
     stringToWrite += '\tVMECRadialOption = {} ! Interpolate when the target surface does not exactly match a VMEC flux surface\n'.format(VMECRadialOption)
     stringToWrite += '\tequilibriumFile = "{}"\n'.format(eqFile)
     stringToWrite += '\tmin_Bmn_to_load = {} ! Only Fourier modes of at least this size will be loaded from the equilibriumFile\n'.format(args.minBmn[0])
-    #stringToWrite += '\tVMEC_Nyquist_option = {} ! If 2, include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays (where available)\n'.format(args.Nyquist[0]) #FIXME not relevant for .bc files
+    if geometryScheme == 5:
+        stringToWrite += '\tVMEC_Nyquist_option = {} ! If 2, include the larger poloidal and toroidal mode numbers in the xm_nyq and xn_nyq arrays (where available)\n'.format(args.Nyquist[0])
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
@@ -126,7 +127,7 @@ def run(profilesInUse, saveLocUse, eqInUse):
         stringToWrite += '\tdPhiHatd{} = {} ! Seed value of the radial electric field (proxy) for this flux surface\n'.format(selectedRadialGradientVar, args.seedEr[0])
     else:
         stringToWrite += '\tEr = {} ! Seed value of the radial electric field for this flux surface\n'.format(args.seedEr[0])
-    #stringToWrite += '\tmagneticDriftScheme = {} ! Whether or not to include angular drifts, and if so, what model to use\n'.format(magneticDriftScheme) #FIXME killed for neotransp comparison
+    stringToWrite += '\tmagneticDriftScheme = {} ! Whether or not to include angular drifts, and if so, what model to use\n'.format(magneticDriftScheme)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
