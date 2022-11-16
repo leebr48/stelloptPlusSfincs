@@ -95,6 +95,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
     # Cycle through each file, read its data, and put that data in the proper place
     radDirName = None
     loadedData = {}
+    appendedSuccessfulData = 0
     for j,file in enumerate(dataFiles): # Scans through radial directories, and Er directories if present
 
         subdir = file.replace(directory+'/','')
@@ -120,7 +121,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             didNotConvergeDir.append(file)
             convergenceState = 'FAIL'
 
-        convergenceStringList = [now() + '\n']
+        convergenceStringList = ['File written ' + now() + '\n']
         convergenceStringList.append('This run {}ED basic convergence tests.\n'.format(convergenceState))
         writeInfoFile(convergenceStringList, basename(dirOfFileName), dirOfFileName, 'convergence')
         
@@ -155,7 +156,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
         # Put the data in the appropriate place
         if radDirName != subdictNames[0]: # You are in a different radial directory from the last iteration over dataFiles
-            if j != 0: # We shouldn't try to append data on the first loop iteration (not all variables are instantiated correctly yet)
+            if appendedSuccessfulData != 0: # We shouldn't try to append data before we've loaded it (not all variables are instantiated correctly yet)
                 allData[radDirName] = radData # Notice that in every loop iteration, we append data from the previous iteration
 
             radDirName = subdictNames[0]
@@ -167,10 +168,11 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         elif dataDepth == 3:
             radData[subdictNames[1]] = loadedData # With Er directories, physical data is stored inside of them, and they are inside the radial directories
 
-        if j == len(dataFiles) - 1: # This is the last file, so we need to append the data before exiting the loop
+        if j == len(dataFiles) - 1: # This is the last file, so we need to append the data before exiting the loop #FIXME will this work properly when the last runs (second to last run especially) fail? Maybe just also check that radData is not empty?
             allData[radDirName] = radData
         
         loadedData = {} # This should be clean for each new file
+        appendedSuccessfulData += 1
     
     if not args.checkConv and len(didNotConvergeDir) != len(dataFiles):
     
@@ -196,8 +198,16 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             DVvec = []
             for DV in DVs: # Select the data you want to plot
 
-                if 'Flux' in DV and DV[0] not in ['c','t']: # If DV is a neoclassical flux
-                    DVnameForPlot = 'neoclassical' + DV[0].upper() + DV[1:]
+                DVlower = DV.lower()
+                if ('flux' in DVlower) and ('classical' not in DVlower) and ('total' not in DVlower): # If DV is a neoclassical flux
+                    
+                    nameEnd = DV[0].upper() + DV[1:]
+
+                    if 'extensive' in DVlower:
+                        DVnameForPlot = 'extensiveNeoclassical' + nameEnd.replace('Extensive','')
+                    else:
+                        DVnameForPlot = 'neoclassical' + nameEnd
+                
                 else:
                     DVnameForPlot = DV
                 
@@ -270,13 +280,13 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         
         if len(didNotConvergeDir) > 0: # Note that if every output in an input directory did not converge, this file will not be written
             formattedList = [item + '\n' for item in didNotConvergeDir]
-            formattedList.insert(0, now() + '\n')
+            formattedList.insert(0, 'File written ' + now() + '\n')
             writeInfoFile(formattedList, nameOfDir, outDir, 'didNotConverge')
 
         if len(ErChoices) > 0:
             uniqueChoices = list(set(ErChoices))
             uniqueChoices.sort()
-            uniqueChoices.insert(0, now() + '\n')
+            uniqueChoices.insert(0, 'File written ' + now() + '\n')
             writeInfoFile(uniqueChoices, nameOfDir, outDir, 'ErChoices')
         
         allData = {} # This should be clean for each new directory
