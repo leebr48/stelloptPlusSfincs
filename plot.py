@@ -1,4 +1,3 @@
-# FIXME YOU NEED TO REVALIDATE THIS SCRIPT'S ACCURACY!
 # This script generates plots, plot data, and informational *.txt files given SFINCS output (*.h5) files. It can also perform basic convergence checks on the output files.
 # Currently, this script cannot create 3D plots.
 
@@ -125,54 +124,59 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         convergenceStringList.append('This run {}ED basic convergence tests.\n'.format(convergenceState))
         writeInfoFile(convergenceStringList, basename(dirOfFileName), dirOfFileName, 'convergence')
         
-        if args.checkConv or convergenceState == 'FAIL':
+        if args.checkConv:
             continue
 
-        # Read the desired data from the file
-        for varName in defaults + IVs + nonCalcDVs + extras:
-            loadedData[varName] = f[varName][()]
+        if convergenceState == 'PASS':
+            # Read the desired data from the file
+            for varName in defaults + IVs + nonCalcDVs + extras:
+                loadedData[varName] = f[varName][()]
 
-        # Check that the default parameters are in order
-        if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1 or loadedData['nu_n'] != 0.00833:
-            raise IOError('It appears that the values of Delta, alpha, or nu_n were changed from their defaults. Please use the defaults to make unit conversions simpler.')
+            # Check that the default parameters are in order
+            if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1 or loadedData['nu_n'] != 0.00833:
+                raise IOError('It appears that the values of Delta, alpha, or nu_n were changed from their defaults. Please use the defaults to make unit conversions simpler.')
 
-        # Calculate other desired quantities
-        for radInd,(totalParticleFlux, totalHeatFlux) in enumerate(zip(totalParticleFluxes, totalHeatFluxes)):
-            loadedData[totalParticleFlux] = loadedData[neoclassicalParticleFluxes[radInd]] + loadedData[classicalParticleFluxes[radInd]]
-            loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[radInd]] + loadedData[classicalHeatFluxes[radInd]]
+            # Calculate other desired quantities
+            for radInd,(totalParticleFlux, totalHeatFlux) in enumerate(zip(totalParticleFluxes, totalHeatFluxes)):
+                loadedData[totalParticleFlux] = loadedData[neoclassicalParticleFluxes[radInd]] + loadedData[classicalParticleFluxes[radInd]]
+                loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[radInd]] + loadedData[classicalHeatFluxes[radInd]]
 
-        normalizedAreaFactor = loadedData['VPrimeHat'] * loadedData['psiAHat'] # = dVHat/dpsiHat * dpsiHat/dpsiN = dVHat/dpsiN
-        loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux_vm_psiN']
-        loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux_vm_psiN']
-        loadedData['extensiveMomentumFlux'] = normalizedAreaFactor * loadedData['momentumFlux_vm_psiN']
-        loadedData['extensiveClassicalParticleFlux'] = normalizedAreaFactor * loadedData['classicalParticleFlux_psiN']
-        loadedData['extensiveClassicalHeatFlux'] = normalizedAreaFactor * loadedData['classicalHeatFlux_psiN']
-        loadedData['extensiveTotalParticleFlux'] = loadedData['extensiveParticleFlux'] + loadedData['extensiveClassicalParticleFlux']
-        loadedData['extensiveTotalHeatFlux'] = loadedData['extensiveHeatFlux'] + loadedData['extensiveClassicalHeatFlux']
+            normalizedAreaFactor = loadedData['VPrimeHat'] * loadedData['psiAHat'] # = dVHat/dpsiHat * dpsiHat/dpsiN = dVHat/dpsiN
+            loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux_vm_psiN']
+            loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux_vm_psiN']
+            loadedData['extensiveMomentumFlux'] = normalizedAreaFactor * loadedData['momentumFlux_vm_psiN']
+            loadedData['extensiveClassicalParticleFlux'] = normalizedAreaFactor * loadedData['classicalParticleFlux_psiN']
+            loadedData['extensiveClassicalHeatFlux'] = normalizedAreaFactor * loadedData['classicalHeatFlux_psiN']
+            loadedData['extensiveTotalParticleFlux'] = loadedData['extensiveParticleFlux'] + loadedData['extensiveClassicalParticleFlux']
+            loadedData['extensiveTotalHeatFlux'] = loadedData['extensiveHeatFlux'] + loadedData['extensiveClassicalHeatFlux']
 
-        for radInd,radialCurrent in enumerate(radialCurrents):
-           loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[radInd]])
-        loadedData['extensiveRadialCurrent'] = normalizedAreaFactor * loadedData['radialCurrent_vm_psiN']
+            for radInd,radialCurrent in enumerate(radialCurrents):
+               loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[radInd]])
+            loadedData['extensiveRadialCurrent'] = normalizedAreaFactor * loadedData['radialCurrent_vm_psiN']
 
-        # Put the data in the appropriate place
-        if radDirName != subdictNames[0]: # You are in a different radial directory from the last iteration over dataFiles
-            if appendedSuccessfulData != 0: # We shouldn't try to append data before we've loaded it (not all variables are instantiated correctly yet)
-                allData[radDirName] = radData # Notice that in every loop iteration, we append data from the previous iteration
+            # Put the data in the appropriate place
+            if radDirName != subdictNames[0]: # You are in a different radial directory from the last iteration over dataFiles
+                if appendedSuccessfulData != 0: # We shouldn't try to append data before we've loaded it (not all variables are instantiated correctly yet)
+                    allData[radDirName] = radData # Notice that in every loop iteration, we append data from the previous iteration
 
-            radDirName = subdictNames[0]
-            radData = {}
-        
-        if dataDepth == 2:
-            radData = loadedData # With no Er directories, physical data is stored directly in the radial directories
-        
-        elif dataDepth == 3:
-            radData[subdictNames[1]] = loadedData # With Er directories, physical data is stored inside of them, and they are inside the radial directories
+                radDirName = subdictNames[0]
+                radData = {}
+            
+            if dataDepth == 2:
+                radData = loadedData # With no Er directories, physical data is stored directly in the radial directories
+            
+            elif dataDepth == 3:
+                radData[subdictNames[1]] = loadedData # With Er directories, physical data is stored inside of them, and they are inside the radial directories
+            
+            loadedData = {} # This should be clean for each new file
+            appendedSuccessfulData += 1
+            
+        try:
+            if j == len(dataFiles) - 1: # This is the last file, so we need to append the data before exiting the loop
+                allData[radDirName] = radData
 
-        if j == len(dataFiles) - 1: # This is the last file, so we need to append the data before exiting the loop #FIXME will this work properly when the last runs (second to last run especially) fail? Maybe just also check that radData is not empty?
-            allData[radDirName] = radData
-        
-        loadedData = {} # This should be clean for each new file
-        appendedSuccessfulData += 1
+        except NameError: # This will only be entered if all the runs in a directory failed
+            pass # The if statement directly below will handle this case
     
     if not args.checkConv and len(didNotConvergeDir) != len(dataFiles):
     
@@ -296,4 +300,4 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 # Notify the user of convergence issues if necessary
 if len(didNotConvergeAll) > 0:
     messagePrinter('It appears that the SFINCS run(s) which created the output file(s) in the list below did not complete/converge properly.')
-    print(didNotConvergeAll)
+    messagePrinter(str(didNotConvergeAll))

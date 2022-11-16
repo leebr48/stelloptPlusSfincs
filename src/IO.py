@@ -547,8 +547,8 @@ def findFiles(name, path):
         path: string with path of directory to search 
               (recursively) for name.
     Outputs:
-        List with absolute paths to files called name
-        within path.
+        Sorted list with absolute paths to files called
+        name within path.
     '''
     
     from os import walk
@@ -558,6 +558,7 @@ def findFiles(name, path):
     for root, dirs, files in walk(path):
         if name in files:
             result.append(join(root, name))
+    result.sort() # Not necessary, just makes outputs a bit easier to follow
     return result
 
 def adjustInputLengths(inListDict):
