@@ -59,10 +59,10 @@ for i in range(maxLen):
     # Call sfincsScan if requested
     if not args.noRun:
         execLoc = join(environ['SFINCS_PATH'],'fortran/version3/utils/sfincsScan')
-
+        cmd = [execLoc]
         if args.noConfirm:
-            run([execLoc, 'arbitraryCommandLineArg'], cwd=outDir)
-        else:
-            run([execLoc], cwd=outDir)
+            cmd.append('arbitraryCommandLineArg')
+
+        run(cmd, cwd=outDir)
 
     messagePrinter('Setup and/or run task(s) {} of {} completed in {}.'.format(i+1, maxLen, outDir))
