@@ -788,3 +788,41 @@ def messagePrinter(inString):
     '''
 
     print('***StelloptPlusSfincs: %s***'%inString)
+
+def now():
+    
+    '''
+    Inputs:
+        [None]
+    Outputs:
+        A string containing the current time.
+    '''
+
+    import datetime
+
+    t = lambda: str(datetime.datetime.now())
+    
+    return t()
+    
+def saveTimeStampFile(saveLoc, fileName, initialString):
+    
+    '''
+    Inputs:
+        saveLoc: The absolute directory in which a file should
+                 be written.
+        fileName: The name of the file to be written, excluding
+                  the ".txt" extension.
+        initialString: A string that will be included before
+                       the actual time stamp.
+
+    Outputs:
+        [Writing a file called "fileName.txt" in saveLoc that
+        contains initialString and then the timestamp.]
+    '''
+
+    from os.path import join
+
+    outFile = join(saveLoc, fileName + '.txt')
+    stringToWrite = initialString + now() + '\n'
+
+    writeFile(outFile, stringToWrite, silent=True)

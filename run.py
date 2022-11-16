@@ -9,7 +9,7 @@ from subprocess import run
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getRunArgs, adjustInputLengths, makeDir, messagePrinter
+from IO import getRunArgs, adjustInputLengths, makeDir, messagePrinter, saveTimeStampFile
 import writeProfiles
 import writeNamelist
 import writeBatch
@@ -42,6 +42,8 @@ for i in range(maxLen):
     eqInUse = IOlists['eqIn'][i]
     actualSaveLoc = dirname(saveDefaultTarget[i])
     bcSymUse = bcSym[i]
+    logString = 'The following automation tasks were carried out:\n'
+    appendor = ' file was written\n'
 
     # Make target directory if it does not exist
     outDir = makeDir(actualSaveLoc) # Note that this script has file overwrite powers!
@@ -49,20 +51,31 @@ for i in range(maxLen):
     # Write requested files
     if not args.noProfiles:
         writeProfiles.run(profilesInUse, outDir)
+        logString += '\tprofiles' + appendor
 
     if not args.noNamelist:
         writeNamelist.run(profilesInUse, outDir, eqInUse, bcSymUse)
+        logString += '\tinput.namelist' + appendor
 
     if not args.noBatch:
         writeBatch.run(profilesInUse, outDir)
-
+        logString += '\tjob.sfincsScan' + appendor
+    
     # Call sfincsScan if requested
     if not args.noRun:
         execLoc = join(environ['SFINCS_PATH'],'fortran/version3/utils/sfincsScan')
         cmd = [execLoc]
+        userConf = 'with'
         if args.noConfirm:
             cmd.append('arbitraryCommandLineArg')
+            userConf = 'without'
 
         run(cmd, cwd=outDir)
+        logString += '\tsfincsScan attempted to run {} user confirmation\n'.format(userConf)
+    
+    # Save a timestamp file if appropriate
+    logString += 'at this time:\n\t'
+    saveTimeStampFile(outDir, 'automatedSetupLog', logString)
 
+    # Alert the user that their specified tasks were completed
     messagePrinter('Setup and/or run task(s) {} of {} completed in {}.'.format(i+1, maxLen, outDir))

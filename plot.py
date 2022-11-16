@@ -5,14 +5,13 @@
 from os.path import dirname, abspath, join, basename
 from inspect import getfile, currentframe
 import sys
-import datetime
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, writeFile, prettyRadialVar, prettyDataLabel, messagePrinter
+from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, writeFile, prettyRadialVar, prettyDataLabel, messagePrinter, now, saveTimeStampFile
 from dataProc import fixOutputUnits
 
 # Get command line arguments and radial variables
@@ -35,7 +34,6 @@ else:
 # Specify some small functions that are useful only in this script
 makeNeoclassicalNames = lambda x: [x+'_vm_'+IV for IV in IVs]
 makeOtherNames = lambda x: [x+'_'+IV for IV in IVs]
-now = lambda: str(datetime.datetime.now())
 def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
     stringToWrite = ''.join(listOfStrings)
     fileToMake = join(outputDir, '{}-{}.txt'.format(inputDir, fileIDName))
@@ -295,7 +293,9 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         
         allData = {} # This should be clean for each new directory
         didNotConvergeDir = [] # This should be clean for each new directory
+        
         messagePrinter('Finished processing all available data in {}.'.format(directory))
+        saveTimeStampFile(outDir, 'automatedPostprocessingLog', 'Data was last automatically postprocessed at this time: ')
 
 # Notify the user of convergence issues if necessary
 if len(didNotConvergeAll) > 0:
