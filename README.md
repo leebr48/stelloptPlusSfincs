@@ -4,7 +4,7 @@ Python scripts for making certain aspects of [STELLOPT](https://github.com/Princ
 
 ## Installation
 
-In principle, the scripts in this repository can function given only the appropriate input files. In practice, it is highly recommended that you install STELLOPT (instructions [here](https://princetonuniversity.github.io/STELLOPT/STELLOPT%20Compilation)) and SFINCS (instructions in its repository) to make everything run smoothly. SFINCS is memory-intensive, so the use of a high-performance cluster will likely be required unless very small test problems are run.
+In principle, the scripts in this repository can perform their core functions given only the appropriate input files. In practice, it is nearly essential that you install SFINCS (instructions in its repository), and it is recommended that you install STELLOPT (instructions [here](https://princetonuniversity.github.io/STELLOPT/STELLOPT%20Compilation)) as well. This will make everything work smoothly. SFINCS is memory-intensive, so the use of a high-performance cluster will likely be required unless you only run very small test problems.
 
 The Python 3.\* [standard library](https://docs.python.org/3/library/index.html) should be installed, as several of its packages are utilized. The [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), [h5py](https://www.h5py.org/), and [Matplotlib](https://matplotlib.org/) packages are also required.
 
