@@ -40,7 +40,7 @@ def run(profilesInUse, saveLocUse):
     if args.nTasksPerNode[0] is not None:
         stringToWrite += '#SBATCH --ntasks-per-node={}\n'.format(args.nTasksPerNode[0])
     if args.nTasks[0] is not None:
-        stringToWrite += '#SBATCH --ntasks-per-node={}\n'.format(args.nTasks[0])
+        stringToWrite += '#SBATCH --ntasks={}\n'.format(args.nTasks[0])
     if args.mem[0] is not None:
         stringToWrite += '#SBATCH --mem={}\n'.format(args.mem[0])
     stringToWrite += '#\n'

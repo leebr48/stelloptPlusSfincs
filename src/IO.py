@@ -49,9 +49,9 @@ def getRunArgs():
     parser.add_argument('--solverTol', type=float, nargs=1, required=False, default=[1e-6], help='Tolerance used to define convergence of the iterative (Krylov) solver.')
     parser.add_argument('--solverTolScan', type=float, nargs=2, required=False, default=[0.1, 10.0], help='Two floats, which are (in order) the minimum and maximum multipliers on the value of solverTolerance that will be used if a resolution scan is run. Set both values to zero to not scan this parameter.')
     parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save written files - this will act as the main directory(ies) for a set of SFINCS runs. Defaults to either <profilesIn> or <eqIn> location(s) -- whichever input has more locations will be chosen as the default. If len(<profilesIn>) == len(<eqIn>), defaults to <profilesIn> location(s). If you input multiple files, order matters! Note that if you specify 1 <saveLoc> and multiple <profilesIn> or <eqIn>, the code will attempt to save all the generated files in the same directory. Due to the current (strict) naming conventions of SFINCS, this is probably not useful because the last-written files will overwrite their predecessors, but the feature is included for completeness.')
-    parser.add_argument('--nNodes', type=int, nargs=1, required=False, default=[None], help='Total number of nodes to use for each SFINCS run. You must specify at least one of <nNodes> and <nTasks>.')
+    parser.add_argument('--nNodes', type=int, nargs=1, required=False, default=[None], help='Total number of nodes to use for each SFINCS run. If you do not use <noRun>, you must specify at least one of <nNodes> and <nTasks>.')
     parser.add_argument('--nTasksPerNode', type=int, nargs=1, required=False, default=[None], help='Number of MPI tasks to use on each node for each SFINCS run. This parameter should only be used if <nNodes> is specified and should not be used with <nTasks>.')
-    parser.add_argument('--nTasks', type=int, nargs=1, required=False, default=[None], help='Total number of MPI tasks to use for each SFINCS run. You must specify at least one of <nNodes> and <nTasks>.')
+    parser.add_argument('--nTasks', type=int, nargs=1, required=False, default=[None], help='Total number of MPI tasks to use for each SFINCS run. If you do not use <noRun>, you must specify at least one of <nNodes> and <nTasks>.')
     parser.add_argument('--mem', type=int, nargs=1, required=False, default=[None], help='Total amount of memory (MB) allocated for each SFINCS run.')
     parser.add_argument('--time', type=str, nargs=1, required=False, default=['00-18:00:00'], help='Wall clock time limit for the batch runs. Format is DD-HH:MM:SS. Note that SFINCS typically has the most trouble converging near the magnetic axis (due to the lower collisionality there cause by peaked temperature profiles), so you may need to increase <time> for runs near the axis.')
     parser.add_argument('--noProfiles', action='store_true', default=False, help='Instruct higher-level wrapper scripts to not write a profiles file.')
@@ -104,14 +104,16 @@ def getRunArgs():
         if length != 1 and length != maxLen:
             raise IOError('Regarding <profilesIn>, <eqIn>, and <saveLoc>: any of these three inputs with length greater than 1 must have the same length as the other inputs with length greater than 1.')
 
-    if args.nNodes[0] is None and args.nTasks[0] is None:
-        raise IOError('You must specify at least one of <nNodes> and <nTasks>.')
+    if not args.noRun:
 
-    if args.nNodes[0] is None and args.nTasksPerNode[0] is not None:
-        raise IOError('You cannot specify <nTasksPerNode> without also specifying <nNodes>.')
+        if args.nNodes[0] is None and args.nTasks[0] is None:
+            raise IOError('You must specify at least one of <nNodes> and <nTasks>.')
 
-    if args.nTasks[0] is not None and args.nTasksPerNode[0] is not None:
-        raise IOError('You cannot specify both <nTasks> and <nTasksPerNode>.')
+        if args.nNodes[0] is None and args.nTasksPerNode[0] is not None:
+            raise IOError('You cannot specify <nTasksPerNode> without also specifying <nNodes>.')
+
+        if args.nTasks[0] is not None and args.nTasksPerNode[0] is not None:
+            raise IOError('You cannot specify both <nTasks> and <nTasksPerNode>.')
 
     strippedTime = args.time[0].strip()
     timeDaySplit = strippedTime.split('-')
