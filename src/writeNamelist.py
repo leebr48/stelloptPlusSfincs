@@ -19,7 +19,6 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
 
     # List out some hard-coded variables
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
-    ambipolarSolve = '.true.' # Determine the ambipolar Er
     ambipolarSolveOption = 2 # (Default) Use a Brent method
     VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
     Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
@@ -55,6 +54,11 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
         scanType = 4
     else:
         scanType = 5
+    
+    if not args.noAmbiSolve:
+        ambipolarSolve = '.true.' # Determine the ambipolar Er
+    else:
+        ambipolarSolve = '.false.' # Use the given seed value of Er
 
     if args.minSolverEr[0] is None: # We must algorithmically choose the Er bounds in this case
         ErDiff = args.maxSeedEr[0] - args.minSeedEr[0]
@@ -102,9 +106,10 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
 
     stringToWrite += '&general\n'
     stringToWrite += '\tambipolarSolve = {} ! Whether or not to determine the ambipolar Er\n'.format(ambipolarSolve)
-    stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
-    stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve. The solver will evaluate Jr at this Er first.\n'.format(Er_min)
-    stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve. The solver will evaluate Jr at this Er second.\n'.format(Er_max)
+    if not args.noAmbiSolve:
+        stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
+        stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve. The solver will evaluate Jr at this Er first.\n'.format(Er_min)
+        stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve. The solver will evaluate Jr at this Er second.\n'.format(Er_max)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
