@@ -90,17 +90,17 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     stringToWrite += '\n'
 
     stringToWrite += '!ss scanType = {}\n'.format(scanType)
-    stringToWrite += '!ss profilesScheme = {} ! The profile information is specified on many flux surfaces rather than using polynomials\n'.format(profilesScheme)
+    stringToWrite += '!ss profilesScheme = {} ! How the profile information is specified\n'.format(profilesScheme)
     stringToWrite += '!ss Nradius = {} ! Number of radial surfaces on which to perform full SFINCS calculations\n'.format(args.numCalcSurf[0])
     stringToWrite += '!ss {}_min = {} ! Lower bound for the radial scan\n'.format(radialVars[args.radialVar[0]], args.minRad[0])
     stringToWrite += '!ss {}_max = {} ! Upper bound for the radial scan\n'.format(radialVars[args.radialVar[0]], args.maxRad[0])
     stringToWrite += '\n'
 
     stringToWrite += '&general\n'
-    stringToWrite += '\tambipolarSolve = {} ! Determine the ambipolar Er\n'.format(ambipolarSolve)
+    stringToWrite += '\tambipolarSolve = {} ! Whether or not to determine the ambipolar Er\n'.format(ambipolarSolve)
     stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
-    stringToWrite += '\tEr_min = {} ! Minimum value of Er accessible to ambipolarSolve\n'.format(Er_min)
-    stringToWrite += '\tEr_max = {} ! Maximum value of Er accessible to ambipolarSolve\n'.format(Er_max)
+    stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve. The solver will evaluate Jr at this Er first.\n'.format(Er_min)
+    stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve. The solver will evaluate Jr at this Er second.\n'.format(Er_max)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
@@ -124,24 +124,23 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     if scanType == 1:
         stringToWrite += '\tnHats = {} ! Density of each species to use for the resolution scan\n'.format(nHats)
         stringToWrite += '\tTHats = {} ! Temperature of each species to use for the resolution scan\n'.format(THats)
-        stringToWrite += '\tdNHatd{}s = {} ! Derivative of density wrt psiN for each species to use for the resolution scan\n'.format(selectedRadialGradientVar, dNHatDer)
-        stringToWrite += '\tdTHatd{}s = {} ! Derivative of temperature wrt psiN for each species to use for the resolution scan\n'.format(selectedRadialGradientVar, dTHatDer)
+        stringToWrite += '\tdNHatd{}s = {} ! Radial derivative of density for each species to use for the resolution scan\n'.format(selectedRadialGradientVar, dNHatDer)
+        stringToWrite += '\tdTHatd{}s = {} ! Radial derivative of temperature for each species to use for the resolution scan\n'.format(selectedRadialGradientVar, dTHatDer)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
     stringToWrite += '&physicsParameters\n'
-    stringToWrite += '\tDelta = {} ! Default -> makes reference quantities sensible/easy\n'.format(Delta)
-    stringToWrite += '\talpha = {} ! Default -> makes reference quantities sensible/easy\n'.format(alpha)
-    stringToWrite += '\tnu_n = {} ! Default -> makes reference quantities sensible/easy\n'.format(nu_n)
-    stringToWrite += '\tcollisionOperator = {} ! (Default) Full linearized Fokker-Planck operator\n'.format(collisionOperator)
-    stringToWrite += '\tincludeXDotTerm = {} ! (Default) Necessary to calculate full trajectories\n'.format(includeXDotTerm)
-    stringToWrite += '\tincludeElectricFieldTermInXiDot = {} ! (Default) Necessary to calculate full trajectories\n'.format(includeElectricFieldTermInXiDot)
-    # Note that the physics parameters above this point are SFINCS defaults - they are included only for code self-documentation.
+    stringToWrite += '\tDelta = {} ! Sets reference units\n'.format(Delta)
+    stringToWrite += '\talpha = {} ! Sets reference units\n'.format(alpha)
+    stringToWrite += '\tnu_n = {} ! Sets reference units\n'.format(nu_n)
+    stringToWrite += '\tcollisionOperator = {} ! Specifies collision operator to use\n'.format(collisionOperator)
+    stringToWrite += '\tincludeXDotTerm = {} ! This term is necessary to calculate full trajectories\n'.format(includeXDotTerm)
+    stringToWrite += '\tincludeElectricFieldTermInXiDot = {} ! This term is necessary to calculate full trajectories\n'.format(includeElectricFieldTermInXiDot)
+    stringToWrite += '\tmagneticDriftScheme = {} ! Whether or not to include tangential drifts, and if so, which model to use\n'.format(magneticDriftScheme)
     if args.radialGradientVar[0] != 4:
         stringToWrite += '\tdPhiHatd{} = {} ! Seed value of the radial electric field (proxy) for this flux surface\n'.format(selectedRadialGradientVar, args.seedEr[0])
     else:
         stringToWrite += '\tEr = {} ! Seed value of the radial electric field for this flux surface\n'.format(args.seedEr[0])
-    stringToWrite += '\tmagneticDriftScheme = {} ! Whether or not to include angular drifts, and if so, what model to use\n'.format(magneticDriftScheme)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
