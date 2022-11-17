@@ -56,9 +56,13 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     else:
         scanType = 5
 
-    ErDiff = args.maxEr[0] - args.minEr[0]
-    Er_min = args.minEr[0] - 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
-    Er_max = args.maxEr[0] + 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
+    if args.minSolverEr[0] is None: # We must algorithmically choose the Er bounds in this case
+        ErDiff = args.maxSeedEr[0] - args.minSeedEr[0]
+        Er_min = args.minSeedEr[0] - 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
+        Er_max = args.maxSeedEr[0] + 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
+    else:
+        Er_min = args.minSolverEr[0]
+        Er_max = args.maxSolverEr[0]
     
     eqFileExt = eqFile.split('.')[-1]
     if eqFileExt == 'bc' and bcSymUse == 'sym':

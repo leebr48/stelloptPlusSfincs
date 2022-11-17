@@ -47,8 +47,8 @@ def run(profilesInUse, saveLocUse):
 
     # Note that NErs, generalEr_min, and generalEr_max are only used by SFINCS if scanType = 5.
     NErs = lambda x: args.numManErScan[0]
-    generalEr_min = lambda x: args.minEr[0]
-    generalEr_max = lambda x: args.maxEr[0]
+    generalEr_min = lambda x: args.minSeedEr[0]
+    generalEr_max = lambda x: args.maxSeedEr[0]
 
     funcs = [NErs, generalEr_min, generalEr_max]
     funcs.extend(sortedInterpolatedData)
