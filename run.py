@@ -1,4 +1,5 @@
-# This script sets up SFINCS runs and queues them using Slurm
+# This script sets up SFINCS runs and queues them using Slurm, if desired.
+# To see the capabilities of this script, run it with the --help flag.
 
 # Import necessary modules
 from os.path import dirname, abspath, join

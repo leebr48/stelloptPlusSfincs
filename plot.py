@@ -1,5 +1,6 @@
-# This script generates plots, plot data, and informational *.txt files given SFINCS output (*.h5) files. It can also perform basic convergence checks on the output files.
+# This script generates plots, plot data, and informational *.txt files when fed SFINCS run directories. It can also perform basic convergence checks on the output files.
 # Currently, this script cannot create 3D plots.
+# To see the capabilities of this script, run it with the --help flag.
 
 # Import necessary modules
 from os.path import dirname, abspath, join, basename
