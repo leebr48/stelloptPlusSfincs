@@ -99,7 +99,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
 
     stringToWrite += '!ss scanType = {}\n'.format(scanType)
     stringToWrite += '!ss profilesScheme = {} ! How the profile information is specified\n'.format(profilesScheme)
-    stringToWrite += '!ss Nradius = {} ! Number of radial surfaces on which to perform full SFINCS calculations\n'.format(args.numCalcSurf[0])
+    stringToWrite += '!ss Nradius = {} ! Number of flux surfaces on which to perform full SFINCS calculations if sfincsScan is called appropriately\n'.format(args.numCalcSurf[0])
     stringToWrite += '!ss {}_min = {} ! Lower bound for the radial scan\n'.format(radialVars[args.radialVar[0]], args.minRad[0])
     stringToWrite += '!ss {}_max = {} ! Upper bound for the radial scan\n'.format(radialVars[args.radialVar[0]], args.maxRad[0])
     stringToWrite += '\n'

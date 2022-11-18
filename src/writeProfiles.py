@@ -10,7 +10,7 @@ def run(profilesInUse, saveLocUse):
     import numpy as np
     from os.path import join
     from matplotlib.pyplot import subplots
-    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, sortProfileFunctions, generatePreamble, generateDataText, writeFile, messagePrinter
+    from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, sortProfileFunctions, generatePreamble, generateDataText, writeFile, messagePrinter, prettyRadialVar
     from dataProc import findMinMax, scaleInputData, nonlinearInterp
 
     # Get command line arguments
@@ -37,7 +37,7 @@ def run(profilesInUse, saveLocUse):
     scaledData = scaleInputData(dataOfInterest)
 
     # Interpolate the data in case the radial lists do not all contain the same points
-    interpolatedData = nonlinearInterp(scaledData)
+    interpolatedData = nonlinearInterp(scaledData, k=3)
     sortedInterpolatedData = sortProfileFunctions(interpolatedData)
 
     # Gather the components of profiles file
@@ -67,7 +67,7 @@ def run(profilesInUse, saveLocUse):
             leg.append(keyUse)
 
     ax.legend(leg, loc='best')
-    ax.set_xlabel(r'SFINCS $\psi_{N}$ $\left(= \mathrm{STELLOPT}{\ }S\right)$')
+    ax.set_xlabel(prettyRadialVar('psiN'))
     ax.set_ylabel('Normalized Value')
 
     fig.savefig(plotFile, bbox_inches='tight', dpi=400)
