@@ -226,3 +226,70 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
 
     else:
         raise IOError('Conversion factor has not yet been specified for the variable {}.'.format(inVar))
+
+def convertRadDer(inputDerID, inputDerVal, outputDerID, aHat, psiAHat, psiN, XisPhi=False):
+
+    '''
+    Inputs:
+        inputDerID: Integer specifying the radial variable with respect to which a derivative
+                    is being taken. These values are specified in <radialGradientVar>.
+        inputDerVal: Float specifying the value of the input derivative.
+        outputDerID: Integer specifying the desired radial variable with respect to which
+                     a derivative should be taken. These values are specified in
+                     <radialGradientVar>.
+        aHat: Float specifying the normalized effective minor radius at the last closed
+              flux surface.
+        psiAHat: Float specifying the normalized toroidal flux at the last closed flux
+                 surface divided by 2*pi.
+        psiN: Float specifying the toroidal flux normalized by its value at the last closed
+              flux surface; equivalent to STELLOPT "s".
+        XisPhi: Boolean specifying if the function that is being differentiated is the
+                electric potential (True) or not (False); this is relevant when
+                inputDerID or outputDerID are 4, because the radial electric field is used
+                directly in this case rather than a derivative of the potential (which
+                amounts to a change in the sign of the function output).
+    Outputs:
+        A float that is inputDerVal converted such that the derivative is taken
+        with respect to outputDerID.
+    '''
+
+    from math import sqrt
+
+    # These will save a bit of repetitive code below
+    conv1 = 1 / psiAHat
+    conv2Or4 = aHat / 2 / psiAHat / sqrt(psiN)
+    conv3 = 1 / 2 / psiAHat / sqrt(psiN)
+
+    # First convert input to dX/dpsiHat
+    if inputDerID == 0: # dX/dpsiHat
+        dXdpsiHat = inputDerVal
+    elif inputDerID == 1: # dX/dpsiN
+        dXdpsiHat = inputDerVal * conv1
+    elif inputDerID == 2: # dX/drHat
+        dXdpsiHat = inputDerVal * conv2Or4
+    elif inputDerID == 3: # dX/drN
+        dXpsiHat = inputDerVal * conv3
+    elif inputDerID == 4 and not XisPhi: #dX/drHat
+        dXdpsiHat = inputDerVal * conv2Or4
+    elif inputDerID == 4 and XisPhi: #dX/drHat, except Er = -dPhiHat/drHat is used instead of dPhiHat/drHat
+        dXdpsiHat = -1 * inputDerVal * conv2Or4
+    else:
+        raise IOError('An unknown inputDerID was passed to this function.')
+
+    # Now convert dX/dpsiHat to the desired output
+    if outputDerID == 0: # dX/dpsiHat
+        outputDerVal = dXdpsiHat
+    elif outputDerID == 1: # dX/dpsiN
+        outputDerVal = dXdpsiHat / conv1
+    elif outputDerID == 2: # dX/drHat
+        outputDerVal = dXdpsiHat / conv2Or4
+    elif outputDerID == 3: #dX/drN
+        outputDerVal = dXdpsiHat / conv3
+    elif outputDerID == 4 and not XisPhi: #dX/drHat
+        outputDerVal = dXdpsiHat / conv2Or4
+    elif outputDerID == 4 and XisPhi: #dX/drHat, except Er = -dPhiHat/drHat is used instead of dPhiHat/drHat
+        outputDerVal = -1 * dXdpsiHat / conv2Or4
+    else:
+        raise IOError('An unknown outputDerID was passed to this function.')
+
+    return outputDerVal
