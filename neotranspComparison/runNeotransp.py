@@ -18,7 +18,7 @@ ne_vec = [5E19] # m^-3
 te_vec = [1000] # eV
 conf_name='EIM'; equilID = 'w7x-sc1'
 a = 0.51092 # Effective minor radius of W7-X
-B00axis = 2.41 # Hack according to Hakan Smith... you could also do Baxis_phi0=2.52 to be more accurate
+B00axis = 2.41 # Hack according to Hakan Smith... you could also do Baxis_phi0=2.52
 
 # Were hard-coded into Matlab, probably shouldn't change
 ti_max = 1.6E3 # eV
@@ -39,7 +39,7 @@ f_ti = lambda s: np.where(f_te(s) <= ti_max, f_te(s), ti_max)
 # Profile derivatives
 dfds_ne = lambda s: -ne_max / B * (3 * s**2)
 dfds_te = lambda s: -0.5 * te_max * s**(-0.5)
-dfds_ti = lambda s: np.where(f_te(s) <= ti_max, dfds_te(s), 0) # FIXME this was a numerical derivative in Matlab
+dfds_ti = lambda s: np.where(f_te(s) <= ti_max, dfds_te(s), 0) # This was a numerical derivative in Matlab
 
 # Converting to derivative wrt r for Python version of Neotransp
 dsdr = lambda s: 2 * np.sqrt(s) / a
@@ -74,7 +74,7 @@ for (ne_max, te_max) in zip(ne_vec, te_vec):
     # Check derivatives just to be safe
     absthreshold = 1E-3
     gradCheck = Prof.validate_derivatives(dn_20m3dr_absthreshold=absthreshold, dT_keVdr_absthreshold=absthreshold)
-    profilesCheckFileName = 'profilesCheck.pdf'
+    profilesCheckFileName = 'profilesCheck.png'
     fig,ax = Prof.plot(withgradients='lin', withcollisionality=True, dk=dk, additional_prof='grad approx', savefile='./{}'.format(profilesCheckFileName))
 
     if gradCheck is False:
@@ -86,5 +86,16 @@ for (ne_max, te_max) in zip(ne_vec, te_vec):
     Transp = transp_data(Prof, dk=dk, B00=B00axis, roots='i/e')
     
     # Save outputs
-    transpOutputFile = 'transpResults.pdf'
-    Transp.plot(totalflux=True, xlabel='r/a', showsum_bootstrap=True, savefile=transpOutputFile)
+    transpOutputFileName = 'transpResults'
+    Transp.plot(totalflux=True, xlabel='r/a', showsum_bootstrap=True, savefile=transpOutputFileName+'.pdf')
+    Transp.makeSFINCSscan21runspec('runspec.dat')
+    
+    #Transp.save(transpOutputFileName+'.txt', quantities=['rho', 'Er', 'Jbs', 'Flux', 'EnergyFlux'], fluxmode='total', energyfluxmode='total')
+    toSave = np.c_[rho, Transp.get_ErkVm()]
+    np.savetxt('input.ErkVm_vs_rho', toSave)
+    toSave = np.c_[rho, Transp.get_Jbs_kAm2()]
+    np.savetxt('input.Bootstrapcurrdens_vs_rho', toSave)
+    toSave = np.c_[rho, Transp.get_NCflux('e', mode='total'), Transp.get_NCflux('H', mode='total')]
+    np.savetxt('input.ParticlefluxEI_vs_rho', toSave)
+    toSave = np.c_[rho, Transp.get_NCenergyflux('e', mode='total'), Transp.get_NCenergyflux('H', mode='total')]
+    np.savetxt('input.HeatfluxEI_vs_rho', toSave)
