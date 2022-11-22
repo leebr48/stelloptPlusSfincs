@@ -249,7 +249,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                     DVvec = DVvec.reshape(DVshape[:-1]) # Gets rid of those extra lists so floats behave like floats
 
                 combined = np.column_stack((IVvec,DVvec)) # The IV values will be the first column. The data comes in subsequent columns.
-                combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly ascending
+                combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly increasing
 
                 np.savetxt(fullDataPath, combined)
 
