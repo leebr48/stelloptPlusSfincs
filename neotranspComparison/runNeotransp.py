@@ -37,18 +37,18 @@ f_te = lambda s: te_max * (1 - s**0.5)
 f_ti = lambda s: np.where(f_te(s) <= ti_max, f_te(s), ti_max)
 
 # Profile derivatives
-dfds_te = lambda s: -0.5 * te_max * s**(-0.5)
 dfds_ne = lambda s: -ne_max / B * (3 * s**2)
-dfds_ti = lambda s: (f_ti(s+1E-6) - f_ti(s-1E-6)) / 2E-6
+dfds_te = lambda s: -0.5 * te_max * s**(-0.5)
+dfds_ti = lambda s: np.where(f_te(s) <= ti_max, dfds_te(s), 0) # FIXME this was a numerical derivative in Matlab
 
 # Converting to derivative wrt r for Python version of Neotransp
 dsdr = lambda s: 2 * np.sqrt(s) / a
-dfdr_te = lambda s: dfds_te(s) * dsdr(s)
 dfdr_ne = lambda s: dfds_ne(s) * dsdr(s)
+dfdr_te = lambda s: dfds_te(s) * dsdr(s)
 dfdr_ti = lambda s: dfds_ti(s) * dsdr(s)
 
 for (ne_max, te_max) in zip(ne_vec, te_vec):
-
+    
     # File name
     ext = 'W7X_' + conf_name + '_n' + '%2.2i'%(ne_max/1E19) + '_e' + '%2.2i'%(te_max/100) + '_i' + '%2.2i'%(f_ti(0)/100)
     if ldeuterium:
@@ -71,10 +71,20 @@ for (ne_max, te_max) in zip(ne_vec, te_vec):
     db = neoclass_database(lib_path+'/w7xOp1.2.nc') # Can change the .nc file to "w7x.nc" if desired... superset of current data, but very slow
     dk = db.extract(equilID)
 
+    # Check derivatives just to be safe
+    absthreshold = 1E-3
+    gradCheck = Prof.validate_derivatives(dn_20m3dr_absthreshold=absthreshold, dT_keVdr_absthreshold=absthreshold)
+    profilesCheckFileName = 'profilesCheck.pdf'
+    fig,ax = Prof.plot(withgradients='lin', withcollisionality=True, dk=dk, additional_prof='grad approx', savefile='./{}'.format(profilesCheckFileName))
+
+    if gradCheck is False:
+        stringToPrint = 'At least one of the input gradients does not agree with the numerical gradient derived from cubic spline interpolation (absolute difference > {}).'.format(absthreshold)
+        stringToPrint += 'This could be an error or a numerical artifact. Check {} to see.'.format(profilesCheckFileName)
+        print(stringToPrint)
+
     # Run Neotransp
-    Transp = transp_data(Prof, dk=dk, B00=B00axis)
-    # FIXME build in options from Matlab as well!
-
-
-    #fig,ax = Prof.plot(xlabel='rho', minorradius=a)
-    #fig.savefig('./test.pdf', bbox_inches='tight', dpi=400)
+    Transp = transp_data(Prof, dk=dk, B00=B00axis, roots='i/e')
+    
+    # Save outputs
+    transpOutputFile = 'transpResults.pdf'
+    Transp.plot(totalflux=True, xlabel='r/a', showsum_bootstrap=True, savefile=transpOutputFile)
