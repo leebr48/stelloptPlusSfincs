@@ -90,7 +90,6 @@ for (ne_max, te_max) in zip(ne_vec, te_vec):
     Transp.plot(totalflux=True, xlabel='r/a', showsum_bootstrap=True, savefile=transpOutputFileName+'.pdf')
     Transp.makeSFINCSscan21runspec('runspec.dat')
     
-    #Transp.save(transpOutputFileName+'.txt', quantities=['rho', 'Er', 'Jbs', 'Flux', 'EnergyFlux'], fluxmode='total', energyfluxmode='total')
     toSave = np.c_[rho, Transp.get_ErkVm()]
     np.savetxt('input.ErkVm_vs_rho', toSave)
     toSave = np.c_[rho, Transp.get_Jbs_kAm2()]
