@@ -151,7 +151,7 @@ def getPlotArgs():
     from os.path import isdir
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--sfincsDir', type=str, nargs='*', required=True, help='Top directory(ies) for SFINCS run(s), with path(s) if necessary. Such directories typically contain subdirectories which either contain SFINCS output files (*.h5) or more subdirectories for the electric field scan. In the latter case, those subsubdirectories contain SFINCS output files. If you input multiple directories, order matters!')
+    parser.add_argument('--sfincsDir', type=str, nargs='*', required=True, help='Top directory(ies) for SFINCS run(s), with path(s) if necessary. Such directories contain subdirectories which either contain SFINCS output files (*.h5) or more subdirectories for the electric field scan. In the latter case, those subsubdirectories contain SFINCS output files. If you input multiple directories, order matters!')
     parser.add_argument('--radialVar', type=int, nargs=1, required=False, default=[3], help='ID of the radial coordinate used in the input.namelist file to specify which surfaces should be scanned over. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, and 3 = rN (which is the STELLOPT rho)')
     parser.add_argument('--radialVarBounds', type=float, nargs=2, required=False, default=[-1, -1], help='Two floats, which are (in order) the minimum and maximum values of <radialVar> that will be plotted. If one of the inputs is negative, it will be ignored (so that the min or max is not limited).')
     parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save plots, plot data, and informational *.txt files. Defaults to <sfincsDir>/processed/. If you input multiple directories, order matters!')
@@ -159,10 +159,37 @@ def getPlotArgs():
     args = parser.parse_args()
 
     if not all([isdir(item) for item in args.sfincsDir]):
-        raise IOError('The inputs given in <sfincsDir> must be directories, not files.')
+        raise IOError('The inputs given in <sfincsDir> must be directories.')
 
     if args.radialVar[0] not in [0,1,2,3]:
         raise IOError('An invalid <radialVar> choice was specified. Valid inputs are the integers 0, 1, 2, and 3.')
+    
+    lens = [len(args.sfincsDir), len(args.saveLoc)]
+    maxLen = max(lens)
+    for length in lens:
+        if length != 1 and length != maxLen:
+            raise IOError('If both <sfincsDir> and <saveLoc> have length greater than 1, they must be the same length.')
+    
+    return args
+
+def getPhi1SetupArgs():
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for setting up SFINCS runs with Phi1 included.
+    '''
+    
+    import argparse
+    from os.path import isdir
+    
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--sfincsDir', type=str, nargs='*', required=True, help='Top directory(ies) for SFINCS run(s), with path(s) if necessary. Each must contain an "input.namelist" file that can be used to launch sfincsScan. SFINCS directories also contain subdirectories which either contain SFINCS output files (*.h5) or more subdirectories for the electric field scan. In the latter case, those subsubdirectories contain SFINCS output files. If you input multiple directories, order matters!')
+    parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save plots, plot data, and informational *.txt files. Defaults to <sfincsDir>+"_Phi1". If you input multiple directories, order matters!')
+    args = parser.parse_args()
+
+    if not all([isdir(item) for item in args.sfincsDir]):
+        raise IOError('The inputs given in <sfincsDir> must be directories.')
     
     lens = [len(args.sfincsDir), len(args.saveLoc)]
     maxLen = max(lens)
