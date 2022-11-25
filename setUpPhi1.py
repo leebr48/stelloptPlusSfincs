@@ -6,7 +6,7 @@ import sys
 thisFile = abspath(getfile(currentframe()))
 thisDir = dirname(thisFile)
 sys.path.append(join(thisDir, 'src/'))
-from IO import getPhi1SetupArgs, getFileInfo, adjustInputLengths
+from IO import getPhi1SetupArgs, getFileInfo, adjustInputLengths, makeDir, writeFile
 _, thisFileName, _, _, _ = getFileInfo(thisFile, 'arbitrary/path', 'arbitrary')
 
 # Get command line arguments
@@ -30,11 +30,16 @@ newRunParams = {'scanType': {'preFlag': '!ss ', 'val': '21'},
                 'includePhi1': {'preFlag': '\t', 'val': '.true.'}
                 } # If variable is for sfincsScan, set preFlag to '!ss ', otherwise set it to '\t'
 
+                # FIXME should perhaps note if any of these are not used when an input.namelist file is processed... could warn user, or try to place them? Maybe include a flag 'namelist' and just insert them directly after that? And for the sfincsScan ones, they would just be inserted at the very end
+
 # I/O flag
-logFlag = ' ! Set by {}'.format(thisFileName)
+logFlag = ' ! Set by {}\n'.format(thisFileName)
 
 # Loop through the files and process them
-for inDir in inDirs: 
+for (inDir, outDir) in zip(inDirs, outDirs): 
+    
+    # Make target directory if it does not exist
+    _ = makeDir(outDir) # Note that this script has file overwrite powers!
     
     # Load in input.namelist file from inDir
     try:
@@ -69,6 +74,12 @@ for inDir in inDirs:
 
         # Record the line so it can be written later
         newInputLines.append(newLine)
+
+    # Write new input.namelist file
+    stringToWrite = ''.join(newInputLines)
+    outFile = join(outDir, 'input.namelist')
+    writeFile(outFile, stringToWrite)
+
 
     # FIXME should probably load the h5 files and such in here, maybe even prior to the namelist... and maybe write the namelist after so you can make final touches using data
 
