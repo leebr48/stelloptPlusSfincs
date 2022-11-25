@@ -188,6 +188,14 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
         shouldHaveUnits = inVar.split('_')[0]
 
     # Convert to SI units 
+    # In the intensive radial fluxes, you will notice what appears to be an extra factor of m^-1.
+    # This is not an error. It comes about because the heat and particle flux vectors carry m^-2
+    # in their units, but they are always dotted with the gradient of a normalized radial
+    # coordinate. The gradient itself carries a m^-1 unit, and because the radial coordinates are
+    # normalized, they do not have any units. For presentations, it is suggested that you either
+    # use extensive units for fluxes or multiply the intensive values by RBar to recover the
+    # standard m^-2 units.
+    
     if shouldHaveUnits == 'Er':
         return phiBar / RBar * inFloat # V/m
     

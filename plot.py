@@ -132,26 +132,26 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 loadedData[varName] = f[varName][()]
 
             # Check that the default parameters are in order
-            if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1 or loadedData['nu_n'] != 0.00833:
-                raise IOError('It appears that the values of Delta, alpha, or nu_n were changed from their defaults. Please use the defaults to make unit conversions simpler.')
+            if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1.0:
+                raise IOError('It appears that the values of Delta or alpha were changed from their defaults. Please use the defaults to make unit conversions simpler.')
 
             # Calculate other desired quantities
             for radInd,(totalParticleFlux, totalHeatFlux) in enumerate(zip(totalParticleFluxes, totalHeatFluxes)):
                 loadedData[totalParticleFlux] = loadedData[neoclassicalParticleFluxes[radInd]] + loadedData[classicalParticleFluxes[radInd]]
                 loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[radInd]] + loadedData[classicalHeatFluxes[radInd]]
 
-            normalizedAreaFactor = loadedData['VPrimeHat'] * loadedData['psiAHat'] # = dVHat/dpsiHat * dpsiHat/dpsiN = dVHat/dpsiN
-            loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux_vm_psiN']
-            loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux_vm_psiN']
-            loadedData['extensiveMomentumFlux'] = normalizedAreaFactor * loadedData['momentumFlux_vm_psiN']
-            loadedData['extensiveClassicalParticleFlux'] = normalizedAreaFactor * loadedData['classicalParticleFlux_psiN']
-            loadedData['extensiveClassicalHeatFlux'] = normalizedAreaFactor * loadedData['classicalHeatFlux_psiN']
+            normalizedAreaFactor = loadedData['VPrimeHat'] # = dVHat/dpsiHat
+            loadedData['extensiveParticleFlux'] = loadedData['particleFlux_vm_psiHat'] * normalizedAreaFactor
+            loadedData['extensiveHeatFlux'] = loadedData['heatFlux_vm_psiHat'] * normalizedAreaFactor
+            loadedData['extensiveMomentumFlux'] = loadedData['momentumFlux_vm_psiHat'] * normalizedAreaFactor
+            loadedData['extensiveClassicalParticleFlux'] = loadedData['classicalParticleFlux_psiHat'] * normalizedAreaFactor
+            loadedData['extensiveClassicalHeatFlux'] = loadedData['classicalHeatFlux_psiHat'] * normalizedAreaFactor
             loadedData['extensiveTotalParticleFlux'] = loadedData['extensiveParticleFlux'] + loadedData['extensiveClassicalParticleFlux']
             loadedData['extensiveTotalHeatFlux'] = loadedData['extensiveHeatFlux'] + loadedData['extensiveClassicalHeatFlux']
 
             for radInd,radialCurrent in enumerate(radialCurrents):
                loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[radInd]])
-            loadedData['extensiveRadialCurrent'] = normalizedAreaFactor * loadedData['radialCurrent_vm_psiN']
+            loadedData['extensiveRadialCurrent'] = loadedData['radialCurrent_vm_psiHat'] * normalizedAreaFactor
 
             # Put the data in the appropriate place
             if radDirName != subdictNames[0]: # You are in a different radial directory from the last iteration over dataFiles
