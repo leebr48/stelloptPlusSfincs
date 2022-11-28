@@ -1,7 +1,7 @@
 # NOTE: the electron and ion ordering in all the loaded files must be the same for this script to work!!!
 
 # User inputs
-baseDirs = ['/u/lebra/src/stelloptPlusSfincs/neotranspComparison/HakanBenchmark/yours/noErScan']
+baseDirs = ['/u/lebra/src/stelloptPlusSfincs/neotranspComparison/HakanBenchmark/his/sfincs/Er0_43_115_125_7']
 plotTitles = False # Can be True, False, or a string
 
 # Imports
