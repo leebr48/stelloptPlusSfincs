@@ -132,8 +132,8 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 loadedData[varName] = f[varName][()]
 
             # Check that the default parameters are in order
-            if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1 or loadedData['nu_n'] != 0.00833:
-                raise IOError('It appears that the values of Delta, alpha, or nu_n were changed from their defaults. Please use the defaults to make unit conversions simpler.')
+            if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1.0:
+                raise IOError('It appears that the values of Delta or alpha were changed from their defaults. Please use the defaults to make unit conversions simpler.')
 
             # Calculate other desired quantities
             for radInd,(totalParticleFlux, totalHeatFlux) in enumerate(zip(totalParticleFluxes, totalHeatFluxes)):
@@ -231,12 +231,12 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                         dataToUse = radData
 
                     else: # Radial and Er directories are present
-                        convergedErAbsVals = dict([(ErKey, np.abs(ErData['Er'])) for ErKey, ErData in radData.items()])
-                        minErKey = min(convergedErAbsVals) # Returns key of Er subdirectory that has the smallest |Er| 
-                        # If there are multiple minima, only the key of the first minimum will be returned.
-                        # This should be fine - one would expect SFINCS runs with matching |Er| values to have converged to the same answer.
-                        dataToUse = radData[minErKey]
-                        ErChoices.append(join(radKey, minErKey) + '\n')
+                        convergedJrAbsVals = dict([(ErKey, np.abs(ErData['extensiveRadialCurrent'])[0]) for ErKey, ErData in radData.items() if ErData['extensiveRadialCurrent'] != 0.0])
+                        # FIXME once you know whatever this ^ is works, you might want to do the 0.0 check at the beginning! Can just validate what the script gives you before and after edit to check
+                        # The if statement above is necessary to reject runs in which no result was stored
+                        minJrKey = min(zip(convergedJrAbsVals.values(), convergedJrAbsVals.keys()))[1] # Returns key of Er subdirectory that has the smallest |Jr| 
+                        dataToUse = radData[minJrKey]
+                        ErChoices.append(join(radKey, minJrKey) + '\n')
                    
                     IVvec.append(dataToUse[IV])
                     DVvec.append(fixOutputUnits(DV, dataToUse[DV]))
