@@ -41,7 +41,7 @@ def run(profilesInUse, saveLocUse):
     sortedInterpolatedData = sortProfileFunctions(interpolatedData)
 
     # Gather the components of profiles file
-    radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is S in STELLOPT and psiN in SFINCS
+    radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is "s" in STELLOPT and "psiN" in SFINCS
 
     radii = list(np.linspace(start=radialBounds['min'], stop=radialBounds['max'], num=args.numInterpSurf[0], endpoint=True))
 
