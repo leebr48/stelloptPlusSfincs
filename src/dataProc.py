@@ -121,12 +121,18 @@ def scaleInputData(dataOfInterest, profiles=True, phiBar=1, nBar=1e20, TBar=1, m
 
     return dataOfInterest
 
-def nonlinearInterp(inputData, k=3, s=0):
+def nonlinearInterp(inputData, ders, k=3, s=0):
 
     '''
     Inputs:
         inputData: Dictionary, as from the scaleInputData
                    function.
+        ders: Dictionary with the same keys as inputData and
+              values describing how many derivatives should
+              be taken to determine the final interpolation
+              object. The entries are typically zero, but may
+              be 1 for calculating (say) derivatives of the 
+              electric potential.
         k: Degree of the spline.
         s: Smoothing parameter. For details, see the docs on
            scipy.interpolate.splrep. s=0 corresponds to no
@@ -145,7 +151,7 @@ def nonlinearInterp(inputData, k=3, s=0):
         interpObjs = []
         for ivVec,dvVec in zip(data['iv'], data['dv']):
             tck = splrep(ivVec, dvVec, k=k, s=s)
-            interpObj = lambda x, tck=tck: splev(x, tck, ext=2) # Will raise an error if extrapolation is requested
+            interpObj = lambda x, tck=tck, der=ders[key]: splev(x, tck, der=der, ext=2) # Will raise an error if extrapolation is requested
             interpObjs.append(interpObj)
         
         outputData[key] = interpObjs

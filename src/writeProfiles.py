@@ -23,7 +23,11 @@ def run(profilesInUse, saveLocUse):
     plotFile = join(outDir, plotName+'.pdf')
 
     # Clean input variable names and do some clerical checks
-    prefixesOfInterest = cleanStrings(['NE', 'NI', 'TE', 'TI'])
+    varsToFind = ['NE', 'NI', 'TE', 'TI']
+    if args.loadPot:
+        varsToFind.append('POT')
+    
+    prefixesOfInterest = cleanStrings(varsToFind)
 
     # Extract the data from the BEAMS3D input file
     listifiedInFile = listifyBEAMS3DFile(inFile)
@@ -37,8 +41,15 @@ def run(profilesInUse, saveLocUse):
     scaledData = scaleInputData(dataOfInterest)
 
     # Interpolate the data in case the radial lists do not all contain the same points
-    interpolatedData = nonlinearInterp(scaledData, k=3)
-    sortedInterpolatedData = sortProfileFunctions(interpolatedData)
+    ders = {}
+    for key,val in scaledData.items():
+        ders[key] = 0
+
+    if args.loadPot:
+        ders['pot'] = 1 # Only take a derivative when we'll need it for further calculations
+
+    interpolatedData = nonlinearInterp(scaledData, ders, k=3)
+    sortedInterpolatedData = sortProfileFunctions(interpolatedData) # Note that "pot" is not included in this output even if it is included in the input
 
     # Gather the components of profiles file
     radial_coordinate_ID = 1 # Corresponds to normalized toroidal flux, which is "s" in STELLOPT and "psiN" in SFINCS
@@ -47,14 +58,22 @@ def run(profilesInUse, saveLocUse):
 
     # Note that NErs, generalEr_min, and generalEr_max are only used by SFINCS if scanType = 5.
     NErs = lambda x: args.numErSubscan[0]
-    generalEr_min = lambda x: args.minSeedEr[0]
-    generalEr_max = lambda x: args.maxSeedEr[0]
+    
+    if args.loadPot:
+        generalEr_min = lambda x: interpolatedData['pot'][0](x) + args.minSeedEr[0]
+        generalEr_max = lambda x: interpolatedData['pot'][0](x) + args.maxSeedEr[0]
+    else:
+        generalEr_min = lambda x: args.minSeedEr[0]
+        generalEr_max = lambda x: args.maxSeedEr[0]
 
     funcs = [NErs, generalEr_min, generalEr_max]
     funcs.extend(sortedInterpolatedData)
 
     # Plot the fitted interpolation functions to ensure they represent the data well
     fig,ax = subplots()
+
+    if args.loadPot:
+        scaledData.pop('pot') # We don't have data for the *derivative* of Phi, so this graph looks out of place
 
     leg = []
     for key, data in scaledData.items():

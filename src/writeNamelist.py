@@ -61,6 +61,9 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     else:
         ambipolarSolve = '.false.' # Use the given seed value of Er
 
+    Er_min = args.minSolverEr[0]
+    Er_max = args.maxSolverEr[0]
+    
     eqFileExt = eqFile.split('.')[-1]
     if eqFileExt == 'bc' and bcSymUse == 'sym':
         geometryScheme = 11
@@ -101,6 +104,8 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     stringToWrite += '\tambipolarSolve = {} ! Whether or not to determine the ambipolar Er\n'.format(ambipolarSolve)
     if not args.noAmbiSolve:
         stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
+        stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_min)
+        stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_max)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
