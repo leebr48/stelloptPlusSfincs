@@ -355,7 +355,7 @@ def extractProfileData(dataList, nameList):
         of lists with the radial coordinate (normalized toroidal flux) for
         the given variable. The 'dv' entry is a lists of lists with values
         corresponding to those radial coordinates. If only a single species
-        is specified for a given prefix, the lists will look like
+        (or Phi) is specified for a given prefix, the lists will look like
         [[...values...]]. With multiple species, they will look like
         [[...values1...],[...values2...],...]. Note that the dimensions of
         the 'iv' and 'dv' arrays will always match. This means that some
