@@ -46,7 +46,7 @@ def run(profilesInUse, saveLocUse):
     radii = list(np.linspace(start=radialBounds['min'], stop=radialBounds['max'], num=args.numInterpSurf[0], endpoint=True))
 
     # Note that NErs, generalEr_min, and generalEr_max are only used by SFINCS if scanType = 5.
-    NErs = lambda x: args.numManErScan[0]
+    NErs = lambda x: args.numErSubscan[0]
     generalEr_min = lambda x: args.minSeedEr[0]
     generalEr_max = lambda x: args.maxSeedEr[0]
 

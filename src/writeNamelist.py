@@ -19,7 +19,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
 
     # List out some hard-coded variables
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
-    ambipolarSolveOption = 2 # (Default) Use a Brent method
+    ambipolarSolveOption = 3 # Use a Newton method
     VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
     Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
     alpha = str(1.0e+0).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
@@ -51,7 +51,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     # Sort out some variables set by command line inputs
     if args.resScan:
         scanType = 1
-    elif args.numManErScan[0] == 0:
+    elif args.numErSubscan[0] == 0:
         scanType = 4
     else:
         scanType = 5
@@ -61,14 +61,6 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     else:
         ambipolarSolve = '.false.' # Use the given seed value of Er
 
-    if args.minSolverEr[0] is None: # We must algorithmically choose the Er bounds in this case
-        ErDiff = args.maxSeedEr[0] - args.minSeedEr[0]
-        Er_min = args.minSeedEr[0] - 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
-        Er_max = args.maxSeedEr[0] + 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
-    else:
-        Er_min = args.minSolverEr[0]
-        Er_max = args.maxSolverEr[0]
-    
     eqFileExt = eqFile.split('.')[-1]
     if eqFileExt == 'bc' and bcSymUse == 'sym':
         geometryScheme = 11
@@ -109,8 +101,6 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     stringToWrite += '\tambipolarSolve = {} ! Whether or not to determine the ambipolar Er\n'.format(ambipolarSolve)
     if not args.noAmbiSolve:
         stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
-        stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve. The solver will evaluate Jr at this Er first.\n'.format(Er_min)
-        stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve. The solver will evaluate Jr at this Er second.\n'.format(Er_max)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 

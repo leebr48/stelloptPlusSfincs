@@ -24,12 +24,11 @@ def getRunArgs():
     parser.add_argument('--minRad', type=float, nargs=1, required=False, default=[0.15], help='Lower bound for the radial scan. If <resScan> is used, the flux surface specified by this parameter will be used for the convergence scan. Note that VMEC has resolution issues near the magnetic axis and SFINCS often converges much slower there due to the relatively low collisionality, so setting <minRad> to be very small may cause problems. If the innermost surface of a loaded equilibrium is outside <minRad>, SFINCS will give nonphysical (usually divergent) answers.')
     parser.add_argument('--maxRad', type=float, nargs=1, required=False, default=[0.95], help='Upper bound for the radial scan.')
     parser.add_argument('--noAmbiSolve', action='store_true', default=False, help='Disable ambipolarSolve. This means that the "seed" value of Er specified using any other commands will become *the* Er value used during the SFINCS run(s). This may create nonphysical results, so be careful if you use this option.')
-    parser.add_argument('--seedEr', type=float, nargs=1, required=False, default=[0], help="Input an initial guess for the radial electric field in units of <radialGradientVar>. You should consider that this seed value may influence whether SFINCS converges to the ion or electron root. This parameter will be overwritten if you trigger an electric field scan with <numManErScan>.")
-    parser.add_argument('--numManErScan', type=int, nargs=1, required=False, default=[0], help='Number of manual radial electric field scans to perform. This parameter generates equidistant radial electric field seed values between <minSeedEr> and <maxSeedEr> for the root-finding algorithm in SFINCS. This parameter will be overwritten if <resScan> is activated.')
-    parser.add_argument('--minSeedEr', type=float, nargs=1, required=False, default=[-5], help='Minimum seed value of the radial electric field in units of <radialGradientVar>. If <minSolverEr> and <maxSolverEr> are not specified, this parameter is also used to derive the minimum and maximum Er available to ambipolarSolve. Note that you may need to change this to get good results. It is suggested that you seed ambipolarSolve with values near Er=0 initially, otherwise the solver could fail or converge to a very large (and erroneous) value of Er.')
-    parser.add_argument('--maxSeedEr', type=float, nargs=1, required=False, default=[5], help='Maximum seed value of the radial electric field in units of <radialGradientVar>. If <minSolverEr> and <maxSolverEr> are not specified, this parameter is also used to derive the minimum and maximum Er available to ambipolarSolve. Note that you may need to change this to get good results. It is suggested that you seed ambipolarSolve with values near Er=0 initially, otherwise the solver could fail or converge to a very large (and erroneous) value of Er.')
-    parser.add_argument('--minSolverEr', type=float, nargs=1, required=False, default=[None], help='Explicitly set the minimum Er (=-dPhiHatdrHat, regardless of <radialGradientVar>) available to ambipolarSolve. This will override the value automatically assigned by <minSeedEr> and <maxSeedEr>. Note that you may need to change this to get good results. Keep in mind that the radial current at the smallest electric field available to ambipolarSolve must have the opposite sign of the radial current at the largest electric field available to ambipolarSolve. If you specify this option, you must also specify <maxSolverEr>.')
-    parser.add_argument('--maxSolverEr', type=float, nargs=1, required=False, default=[None], help='Explicitly set the max Er (=-dPhiHatdrHat, regardless of <radialGradientVar>) available to ambipolarSolve. This will override the value automatically assigned by <minSeedEr> and <maxSeedEr>. Note that you may need to change this to get good results. Keep in mind that the radial current at the smallest electric field available to ambipolarSolve must have the opposite sign of the radial current at the largest electric field available to ambipolarSolve. If you specify this option, you must also specify <minSolverEr>.')
+    parser.add_argument('--loadPot', action='store_true', default=False, help='Load a potential from <profilesIn>. This will overwrite <seedEr>. If you use this option, you must set <numErSubscan> >=1 and <radialGradientVar> = 1. The former requirement dictates whether or not you wish to use the given potential alone or a range around it, and the latter requirement is required because STELLOPT always specifies the potential profile in terms of "s".')
+    parser.add_argument('--seedEr', type=float, nargs=1, required=False, default=[0], help="Input an initial guess for the radial electric field in units of <radialGradientVar>. You should consider that this seed value may influence whether SFINCS converges to the ion or electron root. This parameter will be overwritten if you trigger an electric field scan with <numErSubscan>.")
+    parser.add_argument('--numErSubscan', type=int, nargs=1, required=False, default=[0], help='Number of radial electric field scans to perform within each radial directory. This parameter generates equidistant radial electric field seed values between <minSeedEr> and <maxSeedEr> for the root-finding algorithm in SFINCS. This parameter will be overwritten if <resScan> is activated.')
+    parser.add_argument('--minSeedEr', type=float, nargs=1, required=False, default=[-5], help='If <loadPot> is used, this value will be added to the values of the loaded potential to determine the minimum seed value of the radial electric field in units of <radialGradientVar>. (Note that for typicaly usage, this value should probably be negative.) If <loadPot> is not used, this parameter gives the mimimum seed value of the radial electric field in units of <radialGradientVar>. You may need to change this parameter to get good results.')
+    parser.add_argument('--maxSeedEr', type=float, nargs=1, required=False, default=[5], help='If <loadPot> is used, this value will be added to the values of the loaded potential to determine the maximum seed value of the radial electric field in units of <radialGradientVar>. (Note that for typicaly usage, this value should probably be positive.) If <loadPot> is not used, this parameter gives the maximum seed value of the radial electric field in units of <radialGradientVar>. You may need to change this parameter to get good results.')
     parser.add_argument('--resScan', action='store_true', default=False, help='Triggers a SFINCS resolution scan run.')
     parser.add_argument('--defaultDens', type=float, nargs=1, required=False, default=[1], help='If <resScan> is used, this sets the density of each species in units of 1e20 m^-3. The exact value is probably not important.')
     parser.add_argument('--defaultTemps', type=float, nargs=1, required=False, default=[1], help='If <resScan> is used, this sets the temperature of each species in keV. The exact value is probably not important.')
@@ -69,20 +68,14 @@ def getRunArgs():
     if len(args.bcSymmetry) not in [1, len(args.eqIn)]:
         raise IOError('The length of <bcSymmetry> must either be 1 or the same as <eqIn>.')
 
+    if args.loadPot:
+        if args.numErSubscan[0] < 1:
+            raise IOError('If you activate <loadPot>, you must have <numErSubscan> >= 1.')
+        if args.radialGradientVar[0] != 1:
+            raise IOError('If you activate <loadPot>, you must specify <radialGradientVar> = 1.')
+
     if args.minSeedEr >= args.maxSeedEr:
         raise IOError('<minSeedEr> must be less than <maxSeedEr>.')
-
-    if not ((args.minSolverEr[0] is None and args.maxSolverEr[0] is None) or (args.minSolverEr[0] is not None and args.maxSolverEr[0] is not None)):
-        raise IOError('If you specify one of <minSolverEr> and <maxSolverEr>, you must specify both.')
-
-    if (args.minSolverEr[0] is not None) and (args.minSolverEr[0] > args.minSeedEr[0] or args.maxSolverEr[0] < args.maxSeedEr[0]):
-        raise IOError('The Er range specified by the <*SolverEr> pair should be larger than that specified by the <*SeedEr> pair.')
-
-    if (args.minSolverEr[0] is None) and not (args.minSeedEr[0] <= args.seedEr[0] <= args.maxSeedEr[0]):
-        raise IOError('It appears that <seedEr> was set outside the range specified by <minSeedEr> and <maxSeedEr>. This is risky and should be avoided since the <*SolverEr> pair is not specified, so <seedEr> could lie outside the valid range.')
-
-    if (args.minSolverEr[0] is not None) and not (args.minSolverEr[0] <= args.seedEr[0] <= args.maxSolverEr[0]):
-        raise IOError('It appears that <seedEr> was set outside the range specified by the <*SolverEr> pair.')
 
     if args.Nyquist[0] not in [1,2]:
         raise IOError('An invalid <Nyquist> choice was specified. Valid inputs are the integers 1 and 2.')
