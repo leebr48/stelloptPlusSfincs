@@ -20,10 +20,11 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     # List out some hard-coded variables
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
     ambipolarSolveOption = 3 # Use a Newton method
+    Er_search_tolerance_f = str(1.0e-12).lower().replace('e','d') # Root-finding tolerance (radial current in SFINCS internal units) - lower than default to help ensure ambipolar fluxes
     VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
     Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
     alpha = str(1.0e+0).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
-    nu_n = str(8.330e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
+    nu_n = str(-1) # Not default... negative value initiates auto-calculation based on conditions of first species (assumed to be electrons)
     collisionOperator = 0 # (Default) Full linearized Fokker-Planck operator
     includeXDotTerm = '.true.' # (Default) Necessary to calculate full trajectories
     includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
@@ -104,6 +105,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     stringToWrite += '\tambipolarSolve = {} ! Whether or not to determine the ambipolar Er\n'.format(ambipolarSolve)
     if not args.noAmbiSolve:
         stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
+        stringToWrite += '\tEr_search_tolerance_f = {} ! Root-finding tolerance (radial current in SFINCS internal units)\n'.format(Er_search_tolerance_f)
         stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_min)
         stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_max)
     stringToWrite += '/\n'
