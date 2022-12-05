@@ -1,7 +1,7 @@
 # NOTE: the electron and ion ordering in all the loaded files must be the same for this script to work!!!
 
 # User inputs
-baseDirs = ['/u/lebra/src/stelloptPlusSfincs/neotranspComparison/HakanBenchmark/yours/ErScan_step2']
+baseDirs = ['/u/lebra/src/stelloptPlusSfincs/neotranspComparison/sfincs5']
 plotTitles = False # Can be True, False, or a string
 
 # Imports
@@ -76,10 +76,10 @@ for baseDir in baseDirs:
     makePlot(baseDir, 'Er', 'ErkVm', 1000, r'Radial electric field $\mathrm{\left(\frac{V}{m}\right)}$', 'Er', title=plotTitles)
 
     # Neoclassical particle flux
-    makePlot(baseDir, 'neoclassicalParticleFlux_vm_rHat', 'ParticlefluxEI', 1, r'Neoclassical particle flux $\mathrm{\left(\frac{1}{m^{2} s}\right)}$', 'NeoclassicalParticleFlux', title=plotTitles) # FIXME sfincs file was extensiveNeoclassicalParticleFlux
+    makePlot(baseDir, 'neoclassicalParticleFlux_vm_rHat', 'ParticlefluxEI', 1, r'Neoclassical particle flux $\mathrm{\left(\frac{1}{m^{2} s}\right)}$', 'NeoclassicalParticleFlux', title=plotTitles)
 
     # Neoclassical heat flux
-    makePlot(baseDir, 'neoclassicalHeatFlux_vm_rHat', 'HeatfluxEI', 10**6, r'Neoclassical heat flux $\mathrm{\left(\frac{W}{m^{2}}\right)}$', 'NeoclassicalHeatFlux', title=plotTitles) # FIXME sfincs file was extensiveNeoclassicalHeatFlux
+    makePlot(baseDir, 'neoclassicalHeatFlux_vm_rHat', 'HeatfluxEI', 10**6, r'Neoclassical heat flux $\mathrm{\left(\frac{W}{m^{2}}\right)}$', 'NeoclassicalHeatFlux', title=plotTitles)
 
     # Bootstrap current
-    makePlot(baseDir, 'FSABjHatOverB0', 'Bootstrapcurrdens', -1000, r'Bootstrap current (signs corrected) $\mathrm{\left(\frac{A}{m^{2}}\right)}$', 'BootstrapCurrent', title=plotTitles) # FIXME multiplier was 1!
+    makePlot(baseDir, 'FSABjHatOverB0', 'Bootstrapcurrdens', -1000, r'Bootstrap current (signs corrected) $\mathrm{\left(\frac{A}{m^{2}}\right)}$', 'BootstrapCurrent', title=plotTitles)

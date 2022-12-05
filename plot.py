@@ -300,5 +300,5 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
 # Notify the user of convergence issues if necessary
 if len(didNotConvergeAll) > 0:
-    messagePrinter('For your information: it appears that the SFINCS run(s) which created the output file(s) in the list below did not complete/converge properly.')
+    messagePrinter('For your information: it appears that the SFINCS run(s) which created the output file(s) in the list below did not complete/converge.')
     messagePrinter(str(didNotConvergeAll))

@@ -83,18 +83,20 @@ for (ne_max, te_max) in zip(ne_vec, te_vec):
         print(stringToPrint)
 
     # Run Neotransp
-    Transp = transp_data(Prof, dk=dk, B00=B00axis, roots='i/e')
+    #Transp = transp_data(Prof, dk=dk, B00=B00axis, roots='i/e')
+    #Transp = transp_data(Prof, dk=dk, B00=B00axis, roots='i/e', Ermin_kVm=-35.0, momcorraffectsradialflux=True) # This seems to give the best results
+    Transp = transp_data(Prof, dk=dk, B00=B00axis, roots='i/e', Ermin_kVm=-35.0, momcorr=False, momcorraffectsradialflux=False)
     
     # Save outputs
     transpOutputFileName = 'transpResults'
-    Transp.plot(totalflux=True, xlabel='r/a', showsum_bootstrap=True, savefile=transpOutputFileName+'.pdf')
+    Transp.plot(xlabel='r/a', showsum_bootstrap=True, savefile=transpOutputFileName+'.pdf')
     Transp.makeSFINCSscan21runspec('runspec.dat')
     
     toSave = np.c_[rho, Transp.get_ErkVm()]
     np.savetxt('input.ErkVm_vs_rho', toSave)
     toSave = np.c_[rho, Transp.get_Jbs_kAm2()]
     np.savetxt('input.Bootstrapcurrdens_vs_rho', toSave)
-    toSave = np.c_[rho, Transp.get_NCflux('e', mode='total'), Transp.get_NCflux('H', mode='total')]
+    toSave = np.c_[rho, Transp.get_NCflux('e', mode='density'), Transp.get_NCflux('H', mode='density')]
     np.savetxt('input.ParticlefluxEI_vs_rho', toSave)
-    toSave = np.c_[rho, Transp.get_NCenergyflux('e', mode='total'), Transp.get_NCenergyflux('H', mode='total')]
+    toSave = np.c_[rho, Transp.get_NCenergyflux('e', mode='density'), Transp.get_NCenergyflux('H', mode='density')]
     np.savetxt('input.HeatfluxEI_vs_rho', toSave)

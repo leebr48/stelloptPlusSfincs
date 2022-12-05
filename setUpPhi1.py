@@ -36,7 +36,9 @@ newRunParams = {'scanType': {'preFlag': '!ss ', 'val': '21'},
 logFlag = ' ! Set by {}\n'.format(thisFileName)
 
 # Loop through the files and process them
-for (inDir, outDir) in zip(inDirs, outDirs): 
+for (inDir, outDir) in zip(inDirs, outDirs):
+
+    # FIXME check for convergence file here, and skip directories that failed or did not have one? Should also note file choices, of course.
     
     # Make target directory if it does not exist
     _ = makeDir(outDir) # Note that this script has file overwrite powers!
