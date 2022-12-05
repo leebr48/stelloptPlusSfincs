@@ -30,7 +30,8 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
     magneticDriftScheme = 0 # Whether or not to include angular drifts, and if so, what model to use
     includePhi1 = '.false' # Whether or not to include variation of electric potential on the flux surface
-    export_full_f = '.false.' # Save the full distribution function in the output file 
+    export_full_f = '.false.' # Whether or not to save the full distribution function in the output file 
+    export_delta_f = '.false.' # Whether or not to save the departure from the Maxwellian distribution function in the output file
 
     # Load necessary variables from profilesFile
     varsOfInterest = cleanStrings(['NI_AUX_M', 'NI_AUX_Z']) # STELLOPT has the mass and charge of electrons built in, so only the ions need to be specified
@@ -188,6 +189,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
 
     stringToWrite += '&export_f\n'
     stringToWrite += '\texport_full_f = {} ! Whether or not to save the full distribution function in the output file\n'.format(export_full_f)
+    stringToWrite += '\texport_delta_f = {} ! Whether or not to save the departure from the Maxwellian distribution function in the output file\n'.format(export_delta_f)
     stringToWrite += '/\n'
 
     # Write input.namelist file

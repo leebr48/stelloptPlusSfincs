@@ -112,6 +112,8 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             shouldBePresent = f['FSABFlow'][()]
             if any(np.isnan(shouldBePresent)):
                 raise ValueError
+            if np.all(f['particleFlux_vm_rN'][()] == 0.0): # Indicates result was not stored
+                raise ValueError
             convergenceState = 'PASS'
         
         except (IOError, KeyError, ValueError):
@@ -231,9 +233,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                         dataToUse = radData
 
                     else: # Radial and Er directories are present
-                        convergedJrAbsVals = dict([(ErKey, np.abs(ErData['extensiveRadialCurrent'])[0]) for ErKey, ErData in radData.items() if ErData['extensiveRadialCurrent'] != 0.0])
-                        # FIXME once you know whatever this ^ is works, you might want to do the 0.0 check at the beginning! Can just validate what the script gives you before and after edit to check
-                        # The if statement above is necessary to reject runs in which no result was stored
+                        convergedJrAbsVals = dict([(ErKey, np.abs(ErData['extensiveRadialCurrent'])[0]) for ErKey, ErData in radData.items()])
                         minJrKey = min(zip(convergedJrAbsVals.values(), convergedJrAbsVals.keys()))[1] # Returns key of Er subdirectory that has the smallest |Jr| 
                         dataToUse = radData[minJrKey]
                         ErChoices.append(join(radKey, minJrKey) + '\n')

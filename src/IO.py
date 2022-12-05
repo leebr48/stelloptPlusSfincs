@@ -12,7 +12,7 @@ def getRunArgs():
     import argparse
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--profilesIn', type=str, nargs='*', required=True, help='File(s) with relevant profiles written as in STELLOPT, with path(s) if necessary. This script currently reads the BEAMS3D section of STELLOPT namelist files. If you input multiple files, order matters!')
+    parser.add_argument('--profilesIn', type=str, nargs='*', required=True, help='File(s) with relevant profiles written as in STELLOPT, with path(s) if necessary. This script currently reads the BEAMS3D section of STELLOPT namelist files. Note that you must specify densities rather than Zeff. If you input multiple files, order matters!')
     parser.add_argument('--eqIn', type=str, nargs='*', required=True, help='File(s) from which to load the magnetic equilibrium(ia). Can be VMEC wout file(s) in netCDF or ASCII format, or IPP .bc file(s). If you input multiple files, order matters!')
     parser.add_argument('--bcSymmetry', type=str, nargs='*', required=False, default=['sym'], help='If one or more *.bc files are input via <eqIn>, this setting will control whether SFINCS assumes them to be stellarator-symmetric ("sym") or stellarator-asymmetric ("asym"). If one argument is specified, it will be used for all the <eqIn> files. Note that the length of this argument must be either 1 or equivalent to the length of <eqIn>, even if <eqIn> contains a mix of *.bc and VMEC wout files.')
     parser.add_argument('--minBmn', type=float, nargs=1, required=False, default=[0.0], help='Only Fourier modes of at least this size will be loaded from the <eqIn> file(s).')
@@ -55,7 +55,7 @@ def getRunArgs():
     parser.add_argument('--nTasksPerNode', type=int, nargs=1, required=False, default=[None], help='Number of MPI tasks to use on each node for each SFINCS run. This parameter should only be used if <nNodes> is specified and should not be used with <nTasks>.')
     parser.add_argument('--nTasks', type=int, nargs=1, required=False, default=[None], help='Total number of MPI tasks to use for each SFINCS run. If you do not use <noRun>, you must specify at least one of <nNodes> and <nTasks>.')
     parser.add_argument('--mem', type=int, nargs=1, required=False, default=[None], help='Total amount of memory (MB) allocated for each SFINCS run.')
-    parser.add_argument('--time', type=str, nargs=1, required=False, default=['00-18:00:00'], help='Wall clock time limit for the batch runs. Format is DD-HH:MM:SS. Note that SFINCS typically has the most trouble converging near the magnetic axis (due to the lower collisionality there cause by peaked temperature profiles), so you may need to increase <time> for runs near the axis.')
+    parser.add_argument('--time', type=str, nargs=1, required=False, default=['00-06:00:00'], help='Wall clock time limit for the batch runs. Format is DD-HH:MM:SS. Note that SFINCS typically has the most trouble converging near the magnetic axis (due to the lower collisionality there cause by peaked temperature profiles), so you may need to increase <time> for runs near the axis.')
     parser.add_argument('--noProfiles', action='store_true', default=False, help='Do not write a profiles file.')
     parser.add_argument('--noNamelist', action='store_true', default=False, help='Do not write an input.namelist file.')
     parser.add_argument('--noBatch', action='store_true', default=False, help='Do not write a job.sfincsScan file.')
