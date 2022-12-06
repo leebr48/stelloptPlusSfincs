@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
 from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, writeFile, prettyRadialVar, prettyDataLabel, messagePrinter, now, saveTimeStampFile
-from dataProc import fixOutputUnits
+from dataProc import checkConvergence, fixOutputUnits
 
 # Get command line arguments and radial variables
 args = getPlotArgs()
@@ -85,10 +85,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
     outDir = makeDir(saveDefaultTarget[i]) # Note that this script has file overwrite powers!
     
     # Retrieve the data
-    dataFiles = findFiles('sfincsOutput.h5', directory) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
-
-    if len(dataFiles) == 0:
-        raise IOError('No SFINCS output (*.h5) file could be found in the input directory {}.'.format(directory))
+    dataFiles = findFiles('sfincsOutput.h5', directory, raiseError=True) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
 
     # Cycle through each file, read its data, and put that data in the proper place
     radDirName = None
@@ -107,13 +104,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         dirOfFileName = dirname(file)
 
         try:
-            f = h5py.File(file, 'r')
-            _ = f['finished'][()]
-            shouldBePresent = f['FSABFlow'][()]
-            if any(np.isnan(shouldBePresent)):
-                raise ValueError
-            if np.all(f['particleFlux_vm_rN'][()] == 0.0): # Indicates result was not stored
-                raise ValueError
+            f = checkConvergence(file)
             convergenceState = 'PASS'
         
         except (IOError, KeyError, ValueError):

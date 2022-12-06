@@ -299,3 +299,31 @@ def convertRadDer(inputDerID, inputDerVal, outputDerID, aHat, psiAHat, psiN, Xis
         raise IOError('An unknown outputDerID was passed to this function.')
 
     return outputDerVal
+
+def checkConvergence(file):
+
+    '''
+    Inputs:
+       Absolute path to a SFINCS output (*.h5) file
+       whose convergence needs to be checked.
+    Outputs:
+        If the file passes some basic (not 100% 
+        conclusive) convergence checks, it will be 
+        returned in h5py format. If it fails, the
+        function will raise a IOError, KeyError,
+        or ValueError that can be caught and handled
+        elsewhere.
+    '''
+
+    import h5py
+    import numpy as np
+
+    f = h5py.File(file, 'r')
+    _ = f['finished'][()]
+    shouldBePresent = f['FSABFlow'][()]
+    if any(np.isnan(shouldBePresent)):
+        raise ValueError
+    if np.all(f['particleFlux_vm_rN'][()] == 0.0): # Indicates result was not stored
+        raise ValueError
+
+    return f

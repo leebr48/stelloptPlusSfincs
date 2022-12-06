@@ -592,7 +592,7 @@ def writeFile(outFile, stringToWrite, silent=False):
     if not silent:
         messagePrinter('{} file written.'.format(outFileName))
 
-def findFiles(name, path):
+def findFiles(name, path, raiseError=False):
 
     '''
     Inputs:
@@ -601,6 +601,8 @@ def findFiles(name, path):
               no name matching).
         path: string with path of directory to search 
               (recursively) for name.
+        raiseError: if True, raise an IOError when no files
+                    called name are found in path
     Outputs:
         Sorted list with absolute paths to files called
         name within path.
@@ -613,7 +615,12 @@ def findFiles(name, path):
     for root, dirs, files in walk(path):
         if name in files:
             result.append(join(root, name))
+    
     result.sort() # Not necessary, just makes outputs a bit easier to follow
+    
+    if raiseError and len(result) == 0:
+        raise IOError('No files called {} could be found in {}.'.format(name, path))
+    
     return result
 
 def adjustInputLengths(inListDict):
