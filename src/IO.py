@@ -193,13 +193,11 @@ def getPhi1SetupArgs():
     
     import argparse
     from os.path import isdir
-    # FIXME at the end
-    # FIXME this should have a noRun option!
-    # FIXME should probably note that you're just copying a bunch of files and tweaking them a bit
+
     # FIXME should you be able to change computing time or resources in the job.sfincsScan file?
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--sfincsDir', type=str, nargs='*', required=True, help='Top directory(ies) for SFINCS run(s), with path(s) if necessary. Each must contain an "input.namelist" file that can be used to launch sfincsScan. SFINCS directories also contain subdirectories which either contain SFINCS output files (*.h5) or more subdirectories for the electric field scan. In the latter case, those subsubdirectories contain SFINCS output files. If you input multiple directories, order matters!')
-    parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save plots, plot data, and informational *.txt files. Defaults to <sfincsDir>+"_Phi1". If you input multiple directories, order matters!')
+    parser.add_argument('--sfincsDir', type=str, nargs='*', required=True, help='Top directory(ies) for SFINCS run(s), with path(s) if necessary. Each directory must contain radial (or radial and electric field) subdirectories, each with an "input.namelist" file, "job.sfincsScan" file, and "sfincsOutput.h5" file. These files will simply be copied and modified as necessary to include Phi1 calculations. If you input multiple directories, order matters!')
+    parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Top-level directory(ies) in which to save modified files and informational *.txt files. The directory structure will be copied from <sfincsDir>. Defaults to <sfincsDir>+"_Phi1". If you input multiple directories, order matters!')
     parser.add_argument('--noRun', action='store_true', default=False, help='Copy/write files, but do not launch SFINCS.')
     args = parser.parse_args()
 
