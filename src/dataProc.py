@@ -263,8 +263,8 @@ def convertRadDer(inputDerID, inputDerVal, outputDerID, aHat, psiAHat, psiN, Xis
 
     # These will save a bit of repetitive code below
     conv1 = 1 / psiAHat
-    conv2Or4 = aHat / 2 / psiAHat / sqrt(psiN)
-    conv3 = 1 / 2 / psiAHat / sqrt(psiN)
+    conv3 = conv1 / 2 / sqrt(psiN)
+    conv2Or4 = conv3 * aHat
 
     # First convert input to dX/dpsiHat
     if inputDerID == 0: # dX/dpsiHat

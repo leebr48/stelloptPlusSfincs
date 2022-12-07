@@ -1,17 +1,19 @@
-# FIXME This script is used to copy input.namelist files and convert them to running with Phi1.
-# FIXME Maybe mention that this script will pick the best Er run (if applicable) and only copy that one?
-# FIXME if you don't copy over equilibrium and such, note that it/they cannot move!
+# This script is used to copy input.namelist files from radial or electric field subdirectories and convert them to running with Phi1.
+# job.sfincsScan files are also copied.
+# If multiple electric field subdirectories are available, this script will pick the one with the lowest |Jr| and only copy those files.
 # FIXME should you check that the loaded runs don't already have Phi1?
 
 from os.path import dirname, abspath, join
 from inspect import getfile, currentframe
+from shutil import copy
+from subprocess import run
 import sys
 import numpy as np
 thisFile = abspath(getfile(currentframe()))
 thisDir = dirname(thisFile)
 sys.path.append(join(thisDir, 'src/'))
-from IO import getPhi1SetupArgs, getFileInfo, adjustInputLengths, makeDir, findFiles, writeFile
-from dataProc import checkConvergence
+from IO import getPhi1SetupArgs, getFileInfo, adjustInputLengths, makeDir, findFiles, radialVarDict, writeFile, messagePrinter
+from dataProc import checkConvergence, convertRadDer
 _, thisFileName, _, _, _ = getFileInfo(thisFile, 'arbitrary/path', 'arbitrary')
 
 # Get command line arguments
@@ -29,10 +31,13 @@ if all([item == None for item in IOlists['saveLoc']]):
 else:
     outDirs = IOlists['saveLoc'] 
 
-# Set variables that need to be changed in input.namelist
-newRunParams = {'ambipolarSolve': {'val': '.false.', 'paramList': 'general', 'used':False},
-                'includePhi1': {'val': '.true.', 'paramList': 'physicsParameters', 'used':False}
+# Collect some variables for later
+newRunParams = {'ambipolarSolve': {'val': '.false.', 'paramList': 'general', 'used': False},
+                'includePhi1': {'val': '.true.', 'paramList': 'physicsParameters', 'used': False}
                 }
+
+radialVars = radialVarDict()
+jobFileName = 'job.sfincsScan'
 
 # I/O flag
 logFlag = ' ! Set by {}\n'.format(thisFileName)
@@ -52,9 +57,24 @@ def convCheck(dataFile, kill=True):
         else:
             return None
 
+def splitLine(line):
+    splitLine = line.split('=')
+    var = splitLine[0].strip().split('!ss')[-1].strip()
+    if len(splitLine) > 1:
+        val = splitLine[1].strip().split('!')[0].strip()
+    else:
+        val = None
+    return var, val
+
 def makeNewLine(var):
     newLine = '\t' + var + ' = ' + newRunParams[var]['val'] + logFlag
     return newLine
+
+def ErDefs():
+    l = ['dPhiHatd{}'.format(var) for var in list(radialVars.values())[0:-1]]
+    l = ['dPhiHatd{}'.format(radialVars[i]) for i in range(4)]
+    l.append('Er')
+    return l
 
 # Loop through the files and process them
 for (inDir, outDir) in zip(inDirs, outDirs):
@@ -110,14 +130,16 @@ for (inDir, outDir) in zip(inDirs, outDirs):
             raise IOError('The structure of the directory {} seems to be irregular.'.format(inDir))
         
     # Now actually copy over files and edit them as needed
+    outSubDirs = []
     for copyTuple in needToCopy:
         
         copyDir = copyTuple[0]
         sfincsData = copyTuple[1]
         outSubDir = copyDir.replace(inDir, outDir)
+        outSubDirs.append(outSubDir)
         
         # Make target directory if it does not exist
-        _ = makeDir(outSubDir) # Note that this script has file overwrite powers!
+        _ = makeDir(outSubDir) # Note that this script has file overwrite powers! #FIXME make directory toward the end, rather than the beginning?
 
         # Load in input.namelist file from inDir
         try:
@@ -131,18 +153,15 @@ for (inDir, outDir) in zip(inDirs, outDirs):
         for line in originalInputLines:
             
             # Identify relevant pieces of text from the line
-            splitLine = line.split('=')
-            var = splitLine[0].strip().split('!ss')[-1].strip()
-            if len(splitLine) > 1:
-                val = splitLine[1].strip().split('!')[0].strip()
-            else:
-                val = None
+            var, val = splitLine(line)
             
-            # We'll need the radial coordinate choices for createing a runspec.dat file # FIXME I think you'll still need this for setting Er properly
-            if var == 'inputRadialCoordinate':
-                inputRadialCoordinate = val
-            elif var == 'inputRadialCoordinateForGradients':
-                inputRadialCoordinateForGradients = val
+            # We'll need the radial coordinate choices for setting Er properly
+            if var == 'inputRadialCoordinateForGradients':
+                inputRadialCoordinateForGradients = int(val)
+            
+            # If the electric field is set in the input file, remove that and add it back later
+            if var in ErDefs():
+                continue
 
             # Fix the line if necessary
             if var in newRunParams.keys():
@@ -154,10 +173,19 @@ for (inDir, outDir) in zip(inDirs, outDirs):
             # Record the line so it can be written later
             newInputLines.append(newLine)
 
+        # Set the electric field appropriately
+        Er = sfincsData['Er'][()] # Note that if ambipolarSolve was used in the previous run, only Er will have the value determined by the root-finding algorithm.
+        # The dPhiHatd* variables will only have their seed values.
+        ErID = ErDefs().index('Er')
+        aHat = sfincsData['aHat'][()]
+        psiAHat = sfincsData['psiAHat'][()]
+        psiN = sfincsData['psiN'][()]
+        generalizedErVal = convertRadDer(ErID, Er, inputRadialCoordinateForGradients, aHat, psiAHat, psiN, XisPhi=True)
+        newRunParams[ErDefs()[inputRadialCoordinateForGradients]] = {'val': str(generalizedErVal), 'paramList': 'physicsParameters', 'used': False}
+
         # Check if any new settings need to be added
         for key,val in newRunParams.items():
             if val['used'] == False:
-                print('FOUND FALSE', key)
                 newLine = makeNewLine(key)
                 ind = newInputLines.index('&' + val['paramList'] + '\n') + 1
                 newInputLines.insert(ind, newLine)
@@ -166,9 +194,18 @@ for (inDir, outDir) in zip(inDirs, outDirs):
         # Write new input.namelist file
         stringToWrite = ''.join(newInputLines)
         outFile = join(outSubDir, 'input.namelist')
-        writeFile(outFile, stringToWrite)
+        writeFile(outFile, stringToWrite, silent=True)
 
-    # FIXME you need to copy over jobs files too!
-    # FIXME perhaps make a 'queue' of files to send to slurm and only do it once all the convergence checks have been passed?
+        # Copy the job.sfincsScan file to the new directory
+        copy(join(copyDir, jobFileName), outSubDir)
 
-# FIXME don't forget to add in any other options that were missed in the original file!
+    messagePrinter('All relevant files have been copied from {} to {}.'.format(inDir, outDir))
+
+    # Now that all the files have been written, send them to Slurm if necessary
+    if not args.noRun:
+
+        cmd = ['sbatch', jobFileName]
+        for outSubDir in outSubDirs:
+            run(cmd, cwd=outSubDir)
+    
+        messagePrinter('All runs have been submitted for {}.'.format(outDir))
