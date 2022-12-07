@@ -1,7 +1,6 @@
-# This script is used to copy input.namelist files from radial or electric field subdirectories and convert them to running with Phi1.
+# This script is used to copy input.namelist files from radial or electric field subdirectories for calculations that did not include Phi1 and convert them to running with Phi1.
 # job.sfincsScan files are also copied.
 # If multiple electric field subdirectories are available, this script will pick the one with the lowest |Jr| and only copy those files.
-# FIXME should you check that the loaded runs don't already have Phi1?
 
 from os.path import dirname, abspath, join
 from inspect import getfile, currentframe
@@ -12,7 +11,7 @@ import numpy as np
 thisFile = abspath(getfile(currentframe()))
 thisDir = dirname(thisFile)
 sys.path.append(join(thisDir, 'src/'))
-from IO import getPhi1SetupArgs, getFileInfo, adjustInputLengths, makeDir, findFiles, radialVarDict, writeFile, messagePrinter
+from IO import getPhi1SetupArgs, getFileInfo, adjustInputLengths, makeDir, findFiles, radialVarDict, writeFile, messagePrinter, saveTimeStampFile
 from dataProc import checkConvergence, convertRadDer
 _, thisFileName, _, _, _ = getFileInfo(thisFile, 'arbitrary/path', 'arbitrary')
 
@@ -39,8 +38,8 @@ newRunParams = {'ambipolarSolve': {'val': '.false.', 'paramList': 'general', 'us
 radialVars = radialVarDict()
 jobFileName = 'job.sfincsScan'
 
-# I/O flag
 logFlag = ' ! Set by {}\n'.format(thisFileName)
+logFileString = 'The following automation tasks were carried out:\n'
 
 # Small functions that are only useful here
 def convCheck(dataFile, kill=True):
@@ -128,6 +127,12 @@ for (inDir, outDir) in zip(inDirs, outDirs):
 
         else:
             raise IOError('The structure of the directory {} seems to be irregular.'.format(inDir))
+
+        # Ensure that the loaded run didn't already include a Phi1 run
+        trueInt = f['integerToRepresentTrue'][()]
+        wasPhi1Used = f['includePhi1'][()]
+        if wasPhi1Used == trueInt:
+            raise IOError('The run that created {} already included Phi1!'.format(dataFile))
         
     # Now actually copy over files and edit them as needed
     outSubDirs = []
@@ -138,15 +143,15 @@ for (inDir, outDir) in zip(inDirs, outDirs):
         outSubDir = copyDir.replace(inDir, outDir)
         outSubDirs.append(outSubDir)
         
-        # Make target directory if it does not exist
-        _ = makeDir(outSubDir) # Note that this script has file overwrite powers! #FIXME make directory toward the end, rather than the beginning?
-
         # Load in input.namelist file from inDir
         try:
             with open(join(copyDir, 'input.namelist'),'r') as f:
                 originalInputLines = f.readlines()
         except FileNotFoundError:
             raise IOError('<sfincsDir> directory(ies) must always contain subdirectory(ies) with "input.namelist" files that were used as SFINCS inputs.')
+        
+        # Make target directory if it does not exist
+        _ = makeDir(outSubDir) # Note that this script has file overwrite powers!
         
         # Sort out the new entries for input.namelist
         newInputLines = []
@@ -200,6 +205,7 @@ for (inDir, outDir) in zip(inDirs, outDirs):
         copy(join(copyDir, jobFileName), outSubDir)
 
     messagePrinter('All relevant files have been copied from {} to {}.'.format(inDir, outDir))
+    logFileString += '\tinput.namelist file(s) were pulled from {}, converted to include Phi1, and written\n'.format(inDir)
 
     # Now that all the files have been written, send them to Slurm if necessary
     if not args.noRun:
@@ -209,3 +215,8 @@ for (inDir, outDir) in zip(inDirs, outDirs):
             run(cmd, cwd=outSubDir)
     
         messagePrinter('All runs have been submitted for {}.'.format(outDir))
+        logFileString += '\tjob(s) were submitted to be run\n'
+
+    # Write a log file
+    logFileString += 'at this time:\n\t'
+    saveTimeStampFile(outDir, 'automatedSetupLog', logFileString)
