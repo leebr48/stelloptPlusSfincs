@@ -21,6 +21,7 @@ radialVars = radialVarDict()
 radialVar = radialVars[args.radialVar[0]]
 minBound = args.radialVarBounds[0]
 maxBound = args.radialVarBounds[1]
+IVs = list(radialVars.values())[:-1] # The last value is repeated (electric field definition)
 
 # Organize the directories that we will work in
 inLists = {'sfincsDir':args.sfincsDir, 'saveLoc':args.saveLoc}
@@ -33,7 +34,7 @@ else:
     saveDefaultTarget = IOlists['saveLoc'] 
 
 # Specify some small functions that are useful only in this script
-makeNeoclassicalNames = lambda x: [x+'_vm_'+IV for IV in IVs]
+makeNeoclassicalNames = lambda x: [x+distFunc+IV for IV in IVs]
 makeOtherNames = lambda x: [x+'_'+IV for IV in IVs]
 def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
     stringToWrite = ''.join(listOfStrings)
@@ -47,30 +48,6 @@ def findRadialInfo(radialDict, radialVar):
         radialVal = radialDict[list(radialDict.keys())[0]][radialVar] # Note that the same flux surface is used in each Er subdirectory
         dataDepth = 3
     return radialVal, dataDepth
-
-# Name some important variables
-defaults = ['Delta', 'alpha', 'nu_n']
-
-IVs = list(radialVars.values())
-notRadialFluxes = ['Er', 'FSABFlow', 'FSABjHat', 'FSABjHatOverRootFSAB2', 'FSABjHatOverB0']
-
-[neoclassicalParticleFluxes, neoclassicalHeatFluxes, neoclassicalMomentumFluxes] = [makeNeoclassicalNames(item) for item in ['particleFlux', 'heatFlux', 'momentumFlux']]
-
-[classicalParticleFluxes, classicalParticleFluxesNoPhi1, classicalHeatFluxes, classicalHeatFluxesNoPhi1] = [makeOtherNames(item) for item in ['classicalParticleFlux', 'classicalParticleFluxNoPhi1', 'classicalHeatFlux', 'classicalHeatFluxNoPhi1']]
-
-nonCalcDVs = notRadialFluxes + neoclassicalParticleFluxes + neoclassicalHeatFluxes + neoclassicalMomentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
-
-extras = ['Zs', 'VPrimeHat', 'psiAHat']
-
-# Name some other variables to be calculated later
-[totalParticleFluxes, totalHeatFluxes] = [makeOtherNames(item) for item in ['totalParticleFlux', 'totalHeatFlux']]
-
-extensiveFluxes = ['extensiveParticleFlux', 'extensiveHeatFlux', 'extensiveMomentumFlux', 'extensiveClassicalParticleFlux', 'extensiveClassicalHeatFlux', 'extensiveTotalParticleFlux', 'extensiveTotalHeatFlux']
-
-radialCurrents = makeNeoclassicalNames('radialCurrent')
-extensiveRadialCurrent = ['extensiveRadialCurrent']
-
-DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + extensiveFluxes + radialCurrents + extensiveRadialCurrent
 
 # Loop through each directory
 allData = {}
@@ -120,6 +97,38 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             continue
 
         if convergenceState == 'PASS':
+            # Check if we are in 'Phi1 mode' or not
+            try:
+                _ = f['Phi1Hat'][()]
+                # Phi1 was included in the run
+                distFunc = '_vd_'
+            except KeyError:
+                # Phi1 was not included in the run
+                distFunc = '_vm_'
+
+            # Name some important variables - doing this inside the loop is not particularly efficient, but it allows us to incorporate Phi1 effects automatically
+            defaults = ['Delta', 'alpha', 'nu_n']
+
+            notRadialFluxes = ['Er', 'FSABFlow', 'FSABjHat', 'FSABjHatOverRootFSAB2', 'FSABjHatOverB0']
+
+            [neoclassicalParticleFluxes, neoclassicalHeatFluxes, neoclassicalMomentumFluxes] = [makeNeoclassicalNames(item) for item in ['particleFlux', 'heatFlux', 'momentumFlux']]
+
+            [classicalParticleFluxes, classicalParticleFluxesNoPhi1, classicalHeatFluxes, classicalHeatFluxesNoPhi1] = [makeOtherNames(item) for item in ['classicalParticleFlux', 'classicalParticleFluxNoPhi1', 'classicalHeatFlux', 'classicalHeatFluxNoPhi1']]
+
+            nonCalcDVs = notRadialFluxes + neoclassicalParticleFluxes + neoclassicalHeatFluxes + neoclassicalMomentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
+
+            extras = ['Zs', 'VPrimeHat', 'psiAHat']
+
+            # Name some other variables to be calculated later
+            [totalParticleFluxes, totalHeatFluxes] = [makeOtherNames(item) for item in ['totalParticleFlux', 'totalHeatFlux']]
+
+            extensiveFluxes = ['extensiveParticleFlux', 'extensiveHeatFlux', 'extensiveMomentumFlux', 'extensiveClassicalParticleFlux', 'extensiveClassicalHeatFlux', 'extensiveTotalParticleFlux', 'extensiveTotalHeatFlux']
+
+            radialCurrents = makeNeoclassicalNames('radialCurrent')
+            extensiveRadialCurrent = ['extensiveRadialCurrent']
+
+            DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + extensiveFluxes + radialCurrents + extensiveRadialCurrent
+            
             # Read the desired data from the file
             for varName in defaults + IVs + nonCalcDVs + extras:
                 loadedData[varName] = f[varName][()]
@@ -134,9 +143,9 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[radInd]] + loadedData[classicalHeatFluxes[radInd]]
 
             normalizedAreaFactor = loadedData['VPrimeHat'] * loadedData['psiAHat'] # = dVHat/dpsiHat * dpsiHat/dpsiN = dVHat/dpsiN
-            loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux_vm_psiN']
-            loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux_vm_psiN']
-            loadedData['extensiveMomentumFlux'] = normalizedAreaFactor * loadedData['momentumFlux_vm_psiN']
+            loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux'+distFunc+'psiN']
+            loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux'+distFunc+'psiN']
+            loadedData['extensiveMomentumFlux'] = normalizedAreaFactor * loadedData['momentumFlux'+distFunc+'psiN']
             loadedData['extensiveClassicalParticleFlux'] = normalizedAreaFactor * loadedData['classicalParticleFlux_psiN']
             loadedData['extensiveClassicalHeatFlux'] = normalizedAreaFactor * loadedData['classicalHeatFlux_psiN']
             loadedData['extensiveTotalParticleFlux'] = loadedData['extensiveParticleFlux'] + loadedData['extensiveClassicalParticleFlux']
@@ -144,7 +153,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
             for radInd,radialCurrent in enumerate(radialCurrents):
                loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[radInd]])
-            loadedData['extensiveRadialCurrent'] = normalizedAreaFactor * loadedData['radialCurrent_vm_psiN']
+            loadedData['extensiveRadialCurrent'] = normalizedAreaFactor * loadedData['radialCurrent'+distFunc+'psiN']
 
             # Put the data in the appropriate place
             if radDirName != subdictNames[0]: # You are in a different radial directory from the last iteration over dataFiles
@@ -155,7 +164,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 radData = {}
             
             if dataDepth == 2:
-                radData = loadedData # With no Er directories, physical data is stored directly in the radial directories
+                radData = loadedData # With no Er directories, physical data is stored in the radial directories
             
             elif dataDepth == 3:
                 radData[subdictNames[1]] = loadedData # With Er directories, physical data is stored inside of them, and they are inside the radial directories
@@ -263,7 +272,11 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
                     plt.legend(leg, loc='best')
 
-                plt.xlim(xmin=0)
+                if np.all(combined[:,0] > 0): # necessary because psiHat can be negative
+                    plt.xlim(xmin=0)
+                elif np.all(combined[:,0] < 0):
+                    plt.xlim(xmax=0)
+                
                 plt.margins(0.01)
                 
                 plt.savefig(fullPlotPath, bbox_inches='tight', dpi=400)
