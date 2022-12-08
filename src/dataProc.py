@@ -321,9 +321,9 @@ def checkConvergence(file):
     f = h5py.File(file, 'r')
     _ = f['finished'][()]
     shouldBePresent = f['FSABFlow'][()]
-    if any(np.isnan(shouldBePresent)):
-        raise ValueError
+    if np.any(np.isnan(shouldBePresent)):
+        raise IOError
     if np.all(f['particleFlux_vm_rN'][()] == 0.0): # Indicates result was not stored
-        raise ValueError
+        raise IOError
 
     return f

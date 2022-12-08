@@ -792,7 +792,7 @@ def prettyDataLabel(inString):
         if len(parts) not in [2, 3]:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
 
-        if len(parts) == 3 and parts[1] != 'vm': # With 'vm', the full distribution function is taken into account rather than only the leading-order contribution
+        if len(parts) == 3 and parts[1] != 'vm' and parts[1] != 'vd':
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
         
         label = parts[0]
