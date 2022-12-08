@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
 from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, writeFile, prettyRadialVar, prettyDataLabel, messagePrinter, now, saveTimeStampFile
-from dataProc import fixOutputUnits
+from dataProc import checkConvergence, fixOutputUnits
 
 # Get command line arguments and radial variables
 args = getPlotArgs()
@@ -21,6 +21,7 @@ radialVars = radialVarDict()
 radialVar = radialVars[args.radialVar[0]]
 minBound = args.radialVarBounds[0]
 maxBound = args.radialVarBounds[1]
+IVs = list(radialVars.values())[:-1] # The last value is repeated (electric field definition)
 
 # Organize the directories that we will work in
 inLists = {'sfincsDir':args.sfincsDir, 'saveLoc':args.saveLoc}
@@ -33,7 +34,7 @@ else:
     saveDefaultTarget = IOlists['saveLoc'] 
 
 # Specify some small functions that are useful only in this script
-makeNeoclassicalNames = lambda x: [x+'_vm_'+IV for IV in IVs]
+makeNeoclassicalNames = lambda x: [x+distFunc+IV for IV in IVs]
 makeOtherNames = lambda x: [x+'_'+IV for IV in IVs]
 def writeInfoFile(listOfStrings, inputDir, outputDir, fileIDName):
     stringToWrite = ''.join(listOfStrings)
@@ -48,30 +49,6 @@ def findRadialInfo(radialDict, radialVar):
         dataDepth = 3
     return radialVal, dataDepth
 
-# Name some important variables
-defaults = ['Delta', 'alpha', 'nu_n']
-
-IVs = list(radialVars.values())
-notRadialFluxes = ['Er', 'FSABFlow', 'FSABjHat', 'FSABjHatOverRootFSAB2', 'FSABjHatOverB0']
-
-[neoclassicalParticleFluxes, neoclassicalHeatFluxes, neoclassicalMomentumFluxes] = [makeNeoclassicalNames(item) for item in ['particleFlux', 'heatFlux', 'momentumFlux']]
-
-[classicalParticleFluxes, classicalParticleFluxesNoPhi1, classicalHeatFluxes, classicalHeatFluxesNoPhi1] = [makeOtherNames(item) for item in ['classicalParticleFlux', 'classicalParticleFluxNoPhi1', 'classicalHeatFlux', 'classicalHeatFluxNoPhi1']]
-
-nonCalcDVs = notRadialFluxes + neoclassicalParticleFluxes + neoclassicalHeatFluxes + neoclassicalMomentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
-
-extras = ['Zs', 'VPrimeHat', 'psiAHat']
-
-# Name some other variables to be calculated later
-[totalParticleFluxes, totalHeatFluxes] = [makeOtherNames(item) for item in ['totalParticleFlux', 'totalHeatFlux']]
-
-extensiveFluxes = ['extensiveParticleFlux', 'extensiveHeatFlux', 'extensiveMomentumFlux', 'extensiveClassicalParticleFlux', 'extensiveClassicalHeatFlux', 'extensiveTotalParticleFlux', 'extensiveTotalHeatFlux']
-
-radialCurrents = makeNeoclassicalNames('radialCurrent')
-extensiveRadialCurrent = ['extensiveRadialCurrent']
-
-DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + extensiveFluxes + radialCurrents + extensiveRadialCurrent
-
 # Loop through each directory
 allData = {}
 didNotConvergeAll = []
@@ -85,10 +62,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
     outDir = makeDir(saveDefaultTarget[i]) # Note that this script has file overwrite powers!
     
     # Retrieve the data
-    dataFiles = findFiles('sfincsOutput.h5', directory) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
-
-    if len(dataFiles) == 0:
-        raise IOError('No SFINCS output (*.h5) file could be found in the input directory {}.'.format(directory))
+    dataFiles = findFiles('sfincsOutput.h5', directory, raiseError=True) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
 
     # Cycle through each file, read its data, and put that data in the proper place
     radDirName = None
@@ -107,14 +81,10 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         dirOfFileName = dirname(file)
 
         try:
-            f = h5py.File(file, 'r')
-            _ = f['finished'][()]
-            shouldBePresent = f['FSABFlow'][()]
-            if any(np.isnan(shouldBePresent)):
-                raise ValueError
+            f = checkConvergence(file)
             convergenceState = 'PASS'
         
-        except (IOError, KeyError, ValueError):
+        except (IOError, KeyError):
             didNotConvergeAll.append(file)
             didNotConvergeDir.append(file)
             convergenceState = 'FAIL'
@@ -127,9 +97,48 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
             continue
 
         if convergenceState == 'PASS':
+            # Check if we are in 'Phi1 mode' or not
+            try:
+                _ = f['Phi1Hat'][()]
+                # Phi1 was included in the run
+                distFunc = '_vd_'
+            except KeyError:
+                # Phi1 was not included in the run
+                distFunc = '_vm_'
+
+            # Name some important variables - doing this inside the loop is not particularly efficient, but it allows us to incorporate Phi1 effects automatically
+            defaults = ['Delta', 'alpha', 'nu_n']
+
+            notRadialFluxes = ['Er', 'FSABFlow', 'FSABjHat', 'FSABjHatOverRootFSAB2', 'FSABjHatOverB0']
+
+            [neoclassicalParticleFluxes, neoclassicalHeatFluxes, neoclassicalMomentumFluxes] = [makeNeoclassicalNames(item) for item in ['particleFlux', 'heatFlux', 'momentumFlux']]
+
+            [classicalParticleFluxes, classicalParticleFluxesNoPhi1, classicalHeatFluxes, classicalHeatFluxesNoPhi1] = [makeOtherNames(item) for item in ['classicalParticleFlux', 'classicalParticleFluxNoPhi1', 'classicalHeatFlux', 'classicalHeatFluxNoPhi1']]
+
+            nonCalcDVs = notRadialFluxes + neoclassicalParticleFluxes + neoclassicalHeatFluxes + neoclassicalMomentumFluxes + classicalParticleFluxes + classicalParticleFluxesNoPhi1 + classicalHeatFluxes + classicalHeatFluxesNoPhi1
+
+            extras = ['Zs', 'VPrimeHat']
+
+            # Name some other variables to be calculated later
+            [totalParticleFluxes, totalHeatFluxes] = [makeOtherNames(item) for item in ['totalParticleFlux', 'totalHeatFlux']]
+
+            extensiveFluxes = ['extensiveParticleFlux', 'extensiveHeatFlux', 'extensiveMomentumFlux', 'extensiveClassicalParticleFlux', 'extensiveClassicalHeatFlux', 'extensiveTotalParticleFlux', 'extensiveTotalHeatFlux']
+
+            radialCurrents = makeNeoclassicalNames('radialCurrent')
+            extensiveRadialCurrent = ['extensiveRadialCurrent']
+
+            DVs = nonCalcDVs + totalParticleFluxes + totalHeatFluxes + extensiveFluxes + radialCurrents + extensiveRadialCurrent
+            
             # Read the desired data from the file
-            for varName in defaults + IVs + nonCalcDVs + extras:
-                loadedData[varName] = f[varName][()]
+            for varName in defaults + IVs + extras: # These are all stored as scalars or 1D arrays that we want to keep as-is
+                loadedData[varName] = f[varName][()] # The [()] converts the hdf5 object to a NumPy array
+
+            for varName in nonCalcDVs:
+                temp = f[varName][()]
+                if varName == 'Er': # This is stored as a scalar
+                    loadedData[varName] = temp
+                else: # These are stored as 1D or 2D arrays
+                    loadedData[varName] = temp[..., -1]
 
             # Check that the default parameters are in order
             if loadedData['Delta'] != 0.0045694 or loadedData['alpha'] != 1.0:
@@ -141,17 +150,17 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[radInd]] + loadedData[classicalHeatFluxes[radInd]]
 
             normalizedAreaFactor = loadedData['VPrimeHat'] # = dVHat/dpsiHat
-            loadedData['extensiveParticleFlux'] = loadedData['particleFlux_vm_psiHat'] * normalizedAreaFactor
-            loadedData['extensiveHeatFlux'] = loadedData['heatFlux_vm_psiHat'] * normalizedAreaFactor
-            loadedData['extensiveMomentumFlux'] = loadedData['momentumFlux_vm_psiHat'] * normalizedAreaFactor
-            loadedData['extensiveClassicalParticleFlux'] = loadedData['classicalParticleFlux_psiHat'] * normalizedAreaFactor
-            loadedData['extensiveClassicalHeatFlux'] = loadedData['classicalHeatFlux_psiHat'] * normalizedAreaFactor
+            loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux'+distFunc+'psiHat']
+            loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux'+distFunc+'psiHat']
+            loadedData['extensiveMomentumFlux'] = normalizedAreaFactor * loadedData['momentumFlux'+distFunc+'psiHat']
+            loadedData['extensiveClassicalParticleFlux'] = normalizedAreaFactor * loadedData['classicalParticleFlux_psiHat']
+            loadedData['extensiveClassicalHeatFlux'] = normalizedAreaFactor * loadedData['classicalHeatFlux_psiHat']
             loadedData['extensiveTotalParticleFlux'] = loadedData['extensiveParticleFlux'] + loadedData['extensiveClassicalParticleFlux']
             loadedData['extensiveTotalHeatFlux'] = loadedData['extensiveHeatFlux'] + loadedData['extensiveClassicalHeatFlux']
 
             for radInd,radialCurrent in enumerate(radialCurrents):
-               loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[radInd]])
-            loadedData['extensiveRadialCurrent'] = loadedData['radialCurrent_vm_psiHat'] * normalizedAreaFactor
+                loadedData[radialCurrent] = np.dot(loadedData['Zs'], loadedData[neoclassicalParticleFluxes[radInd]])
+            loadedData['extensiveRadialCurrent'] = normalizedAreaFactor * loadedData['radialCurrent'+distFunc+'psiHat']
 
             # Put the data in the appropriate place
             if radDirName != subdictNames[0]: # You are in a different radial directory from the last iteration over dataFiles
@@ -162,7 +171,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 radData = {}
             
             if dataDepth == 2:
-                radData = loadedData # With no Er directories, physical data is stored directly in the radial directories
+                radData = loadedData # With no Er directories, physical data is stored in the radial directories
             
             elif dataDepth == 3:
                 radData[subdictNames[1]] = loadedData # With Er directories, physical data is stored inside of them, and they are inside the radial directories
@@ -231,25 +240,19 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                         dataToUse = radData
 
                     else: # Radial and Er directories are present
-                        convergedErAbsVals = dict([(ErKey, np.abs(ErData['Er'])) for ErKey, ErData in radData.items()])
-                        minErKey = min(convergedErAbsVals) # Returns key of Er subdirectory that has the smallest |Er| 
-                        # If there are multiple minima, only the key of the first minimum will be returned.
-                        # This should be fine - one would expect SFINCS runs with matching |Er| values to have converged to the same answer.
-                        dataToUse = radData[minErKey]
-                        ErChoices.append(join(radKey, minErKey) + '\n')
+                        convergedJrAbsVals = dict([(ErKey, np.abs(ErData['extensiveRadialCurrent'])[0]) for ErKey, ErData in radData.items()])
+                        minJrKey = min(zip(convergedJrAbsVals.values(), convergedJrAbsVals.keys()))[1] # Returns key of Er subdirectory that has the smallest |Jr| 
+                        dataToUse = radData[minJrKey]
+                        ErChoices.append(join(radKey, minJrKey) + '\n')
                    
                     IVvec.append(dataToUse[IV])
                     DVvec.append(fixOutputUnits(DV, dataToUse[DV]))
 
                 IVvec = np.array(IVvec)
                 DVvec = np.array(DVvec)
-                
-                DVshape = DVvec.shape
-                if DVshape[-1] == 1: # Indicates that floats are being stores as single-element lists
-                    DVvec = DVvec.reshape(DVshape[:-1]) # Gets rid of those extra lists so floats behave like floats
 
                 combined = np.column_stack((IVvec,DVvec)) # The IV values will be the first column. The data comes in subsequent columns.
-                combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly ascending
+                combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly increasing
 
                 np.savetxt(fullDataPath, combined)
 
@@ -272,7 +275,11 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
                     plt.legend(leg, loc='best')
 
-                plt.xlim(xmin=0)
+                if np.all(combined[:,0] > 0): # necessary because psiHat can be negative
+                    plt.xlim(xmin=0)
+                elif np.all(combined[:,0] < 0):
+                    plt.xlim(xmax=0)
+                
                 plt.margins(0.01)
                 
                 plt.savefig(fullPlotPath, bbox_inches='tight', dpi=400)
@@ -300,5 +307,5 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
 
 # Notify the user of convergence issues if necessary
 if len(didNotConvergeAll) > 0:
-    messagePrinter('It appears that the SFINCS run(s) which created the output file(s) in the list below did not complete/converge properly.')
+    messagePrinter('For your information: it appears that the SFINCS run(s) which created the output file(s) in the list below did not complete/converge.')
     messagePrinter(str(didNotConvergeAll))

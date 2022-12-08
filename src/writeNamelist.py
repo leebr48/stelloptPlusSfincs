@@ -19,16 +19,19 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
 
     # List out some hard-coded variables
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
-    ambipolarSolveOption = 2 # (Default) Use a Brent method
+    ambipolarSolveOption = 3 # Use a Newton method
+    Er_search_tolerance_f = str(1.0e-12).lower().replace('e','d') # Root-finding tolerance (radial current in SFINCS internal units) - lower than default to help ensure ambipolar fluxes
     VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
     Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
     alpha = str(1.0e+0).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
-    nu_n = str(8.330e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
+    nu_n = str(-1) # Not default... negative value initiates auto-calculation based on conditions of first species (assumed to be electrons)
     collisionOperator = 0 # (Default) Full linearized Fokker-Planck operator
     includeXDotTerm = '.true.' # (Default) Necessary to calculate full trajectories
     includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
     magneticDriftScheme = 0 # Whether or not to include angular drifts, and if so, what model to use
-    export_full_f = '.true.' # Save the full distribution function in the output file 
+    includePhi1 = '.false' # Whether or not to include variation of electric potential on the flux surface
+    export_full_f = '.false.' # Whether or not to save the full distribution function in the output file 
+    export_delta_f = '.false.' # Whether or not to save the departure from the Maxwellian distribution function in the output file
 
     # Load necessary variables from profilesFile
     varsOfInterest = cleanStrings(['NI_AUX_M', 'NI_AUX_Z']) # STELLOPT has the mass and charge of electrons built in, so only the ions need to be specified
@@ -50,7 +53,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     # Sort out some variables set by command line inputs
     if args.resScan:
         scanType = 1
-    elif args.numManErScan[0] == 0:
+    elif args.numErSubscan[0] == 0:
         scanType = 4
     else:
         scanType = 5
@@ -60,13 +63,8 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     else:
         ambipolarSolve = '.false.' # Use the given seed value of Er
 
-    if args.minSolverEr[0] is None: # We must algorithmically choose the Er bounds in this case
-        ErDiff = args.maxSeedEr[0] - args.minSeedEr[0]
-        Er_min = args.minSeedEr[0] - 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
-        Er_max = args.maxSeedEr[0] + 0.5 * ErDiff # To ensure SFINCS has an appropriate Er bound if scanning Er
-    else:
-        Er_min = args.minSolverEr[0]
-        Er_max = args.maxSolverEr[0]
+    Er_min = args.minSolverEr[0]
+    Er_max = args.maxSolverEr[0]
     
     eqFileExt = eqFile.split('.')[-1]
     if eqFileExt == 'bc' and bcSymUse == 'sym':
@@ -108,16 +106,16 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     stringToWrite += '\tambipolarSolve = {} ! Whether or not to determine the ambipolar Er\n'.format(ambipolarSolve)
     if not args.noAmbiSolve:
         stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
-        stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve. The solver will evaluate Jr at this Er first.\n'.format(Er_min)
-        stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve. The solver will evaluate Jr at this Er second.\n'.format(Er_max)
+        stringToWrite += '\tEr_search_tolerance_f = {} ! Root-finding tolerance (radial current in SFINCS internal units)\n'.format(Er_search_tolerance_f)
+        stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_min)
+        stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_max)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
     stringToWrite += '&geometryParameters\n'
     stringToWrite += '\tgeometryScheme = {} ! Set how the magnetic geometry is specified\n'.format(geometryScheme)
     stringToWrite += '\tinputRadialCoordinate = {} ! {}\n'.format(args.radialVar[0], selectedRadialVar)
-    if scanType == 1:
-        stringToWrite += '\t{}_wish = {} ! Surface on which to perform the resolution scan\n'.format(selectedRadialVar, args.minRad[0])
+    stringToWrite += '\t{}_wish = {} ! Surface on which to perform the resolution scan (will be overwritten for other applications)\n'.format(selectedRadialVar, args.minRad[0])
     stringToWrite += '\tinputRadialCoordinateForGradients = {} ! {}\n'.format(args.radialGradientVar[0], selectedRadialGradientVar)
     stringToWrite += '\tVMECRadialOption = {} ! Interpolate when the target surface does not exactly match a VMEC flux surface\n'.format(VMECRadialOption)
     stringToWrite += '\tequilibriumFile = "{}"\n'.format(eqFile)
@@ -130,11 +128,10 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     stringToWrite += '&speciesParameters\n'
     stringToWrite += '\tZs = {} ! Charge of each species in units of the proton charge\n'.format(Zs)
     stringToWrite += '\tmHats = {} ! Mass of each species in units of the proton mass\n'.format(mHats)
-    if scanType == 1:
-        stringToWrite += '\tnHats = {} ! Density of each species to use for the resolution scan\n'.format(nHats)
-        stringToWrite += '\tTHats = {} ! Temperature of each species to use for the resolution scan\n'.format(THats)
-        stringToWrite += '\tdNHatd{}s = {} ! Radial derivative of density for each species to use for the resolution scan\n'.format(selectedRadialGradientVar, dNHatDer)
-        stringToWrite += '\tdTHatd{}s = {} ! Radial derivative of temperature for each species to use for the resolution scan\n'.format(selectedRadialGradientVar, dTHatDer)
+    stringToWrite += '\tnHats = {} ! Density of each species to use for the resolution scan (may be ignored for other applications)\n'.format(nHats)
+    stringToWrite += '\tTHats = {} ! Temperature of each species to use for the resolution scan (may be ignored for other applications)\n'.format(THats)
+    stringToWrite += '\tdNHatd{}s = {} ! Radial derivative of density for each species to use for the resolution scan (may be ignored for other applications)\n'.format(selectedRadialGradientVar, dNHatDer)
+    stringToWrite += '\tdTHatd{}s = {} ! Radial derivative of temperature for each species to use for the resolution scan (may be ignored for other applications)\n'.format(selectedRadialGradientVar, dTHatDer)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
@@ -146,10 +143,11 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     stringToWrite += '\tincludeXDotTerm = {} ! This term is necessary to calculate full trajectories\n'.format(includeXDotTerm)
     stringToWrite += '\tincludeElectricFieldTermInXiDot = {} ! This term is necessary to calculate full trajectories\n'.format(includeElectricFieldTermInXiDot)
     stringToWrite += '\tmagneticDriftScheme = {} ! Whether or not to include tangential drifts, and if so, which model to use\n'.format(magneticDriftScheme)
+    stringToWrite += '\tincludePhi1 = {} ! Whether or not to include variation of electric potential on the flux surface\n'.format(includePhi1)
     if args.radialGradientVar[0] != 4:
-        stringToWrite += '\tdPhiHatd{} = {} ! Seed value of the radial electric field (proxy) for this flux surface\n'.format(selectedRadialGradientVar, args.seedEr[0])
+        stringToWrite += '\tdPhiHatd{} = {} ! Seed value of the radial electric field (proxy) for this flux surface (may be ignored)\n'.format(selectedRadialGradientVar, args.seedEr[0])
     else:
-        stringToWrite += '\tEr = {} ! Seed value of the radial electric field for this flux surface\n'.format(args.seedEr[0])
+        stringToWrite += '\tEr = {} ! Seed value of the radial electric field for this flux surface (may be ignored)\n'.format(args.seedEr[0])
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
@@ -191,6 +189,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
 
     stringToWrite += '&export_f\n'
     stringToWrite += '\texport_full_f = {} ! Whether or not to save the full distribution function in the output file\n'.format(export_full_f)
+    stringToWrite += '\texport_delta_f = {} ! Whether or not to save the departure from the Maxwellian distribution function in the output file\n'.format(export_delta_f)
     stringToWrite += '/\n'
 
     # Write input.namelist file
