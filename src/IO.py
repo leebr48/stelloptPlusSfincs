@@ -767,13 +767,13 @@ def prettyDataLabel(inString):
             return r'Total particle flux' + extensiveParticleFluxUnits
         
         elif inString == 'extensiveHeatFlux':
-            return r'Neoclassical heat flux' + extensiveHeatFluxUnits
+            return r'Neoclassical energy flux' + extensiveHeatFluxUnits
         
         elif inString == 'extensiveClassicalHeatFlux':
-            return r'Classical heat flux' + extensiveHeatFluxUnits
+            return r'Classical energy flux' + extensiveHeatFluxUnits
         
         elif inString == 'extensiveTotalHeatFlux':
-            return r'Total heat flux' + extensiveHeatFluxUnits
+            return r'Total energy flux' + extensiveHeatFluxUnits
         
         elif inString == 'extensiveMomentumFlux':
             return r'Neoclassical momentum flux' + extensiveMomentumFluxUnits
@@ -819,16 +819,16 @@ def prettyDataLabel(inString):
             return r'Total particle flux' + directionStatement + particleFluxUnits
 
         elif label == 'heatFlux':
-            return r'Neoclassical heat flux' + directionStatement + heatFluxUnits
+            return r'Neoclassical energy flux' + directionStatement + heatFluxUnits
 
         elif label == 'classicalHeatFlux':
-            return r'Classical heat flux' + directionStatement + heatFluxUnits
+            return r'Classical energy flux' + directionStatement + heatFluxUnits
         
         elif label == 'classicalHeatFluxNoPhi1':
-            return r'Classical heat flux (neglecting $\Phi_{1}$)' + directionStatement + heatFluxUnits
+            return r'Classical energy flux (neglecting $\Phi_{1}$)' + directionStatement + heatFluxUnits
 
         elif label == 'totalHeatFlux':
-            return r'Total heat flux' + directionStatement + heatFluxUnits
+            return r'Total energy flux' + directionStatement + heatFluxUnits
 
         elif label == 'momentumFlux':
             return r'Neoclassical momentum flux' + directionStatement + momentumFluxUnits
