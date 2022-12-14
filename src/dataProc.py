@@ -335,3 +335,58 @@ def checkConvergence(file):
         raise IOError
 
     return f
+
+def getBoozerInformation(wout, surface_inds, booz_toroidal_harmonics=51, booz_poloidal_harmonics=51):
+
+    '''
+    Inputs:
+        wout: Absolute address to a VMEC wout file.
+        surface_inds: List of surface indices on which to
+                      perform BOOZ_XFORM calculations.
+        booz_toroidal_harmonics: Integer; resolution in the
+                                 toroidal direction.
+        booz_poloidal_harmonics: Integer; resolution in the
+                                 poloidal direction.
+    Outputs:
+        A dictionary whose keys are each of the surface_inds
+        and whose values are subdictionaries with the Boozer
+        G and I, iota, and B00 on each surface for which
+        calculations were requested. This output is helpful
+        for converting between the input parameters for
+        DKES and monoenergetic SFINCS calculations.
+    ''' #FIXME look over that^ at the end, might need tweaking
+    # FIXME surface_inds needs to coordinate with other codes
+    # FIXME what resolutions do you actually need?
+    # FIXME maybe implement a switch (or auto-detect?) to use read_boozmn(boozmn_*.nc) if desired
+    # FIXME maybe also implement a file writing switch?
+    # FIXME maybe also implement a switch about printing to screen? Might be good to announce that your package is using an external code.
+    # FIXME if the configuration is not stellarator-symmetric, this will break (due to ignoring bmns_b)
+    # FIXME this all needs to be checked against the SFINCS data
+    from booz_xform import Booz_xform
+
+    # Initialize the class
+    b = Booz_xform()
+
+    # Load the equilibrium and set the resolution parameters
+    b.read_wout(wout)
+    b.nboz = booz_toroidal_harmonics
+    b.mboz = booz_poloidal_harmonics
+
+    # Set the surfaces (by their indices) on which we'd like to do calculations
+    b.compute_surfs = surface_inds
+
+    # Do the calculations
+    b.run()
+
+    # Extract the information we need
+    B00s = b.bmnc_b[0,:]
+    Gs = b.Boozer_G
+    Is = b.Boozer_I
+    iotas = [b.iota[ind] for ind in b.compute_surfs]
+
+    # Save the information in an orderly way
+    outDic = {}
+    for surface_ind, B00, G, I, iota in zip(surface_inds, B00s, Gs, Is, iotas):
+        outDic[surface_ind] = {'B00':B00, 'G':G, 'I':I, 'iota':iota}
+
+    return outDic
