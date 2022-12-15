@@ -435,10 +435,10 @@ def chandraG(x):
         raise IOError('x must be >= 0.')
 
     elif x == 0 or x == inf:
-        G = lambda x: 0
+        G = lambda t: 0
 
     else:
-        erfPrime = lambda x: 2 / sqrt(pi) * (e ** (-x**2))
-        G = lambda x: (erf(x) - x * erfPrime(x)) / 2 / (x ** 2)
+        erfPrime = lambda t: 2 / sqrt(pi) * (e ** (-t**2))
+        G = lambda t: (erf(t) - t * erfPrime(t)) / 2 / (t ** 2)
 
     return G(x)
