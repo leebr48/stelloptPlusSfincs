@@ -336,57 +336,82 @@ def checkConvergence(file):
 
     return f
 
-def getBoozerInformation(wout, surface_inds, booz_toroidal_harmonics=51, booz_poloidal_harmonics=51):
+def getBoozerInformation(inFile, desired_s_vals, write_output=None, booz_toroidal_harmonics=51, booz_poloidal_harmonics=51, verbosity=1, stellSym=True):
 
     '''
     Inputs:
-        wout: Absolute address to a VMEC wout file.
-        surface_inds: List of surface indices on which to
-                      perform BOOZ_XFORM calculations.
-        booz_toroidal_harmonics: Integer; resolution in the
-                                 toroidal direction.
-        booz_poloidal_harmonics: Integer; resolution in the
-                                 poloidal direction.
+        inFile: Absolute address of a VMEC wout file.
+        desired_s_vals: List of values of the normalized toroidal
+                        flux ("s" in STELLOPT, "psiN" in SFINCS)
+                        defining flux surfaces for which Boozer
+                        information should be calculated. The
+                        flux surfaces from the input file nearest
+                        to the desired ones will be used.
+        write_output: If an absolute address instead of None, a 
+                      traditional boozmn_*.nc file will be written.
+                      Following the traditional naming convention
+                      for the file is recommended.
+        booz_toroidal_harmonics: Integer; max toroidal mode number.
+        booz_poloidal_harmonics: Integer; max poloidal mode number.
+        verbosity: 0 -> minimum stdout output, 1 -> moderate stdout
+                   output, 2 -> lots of stdout output.
+        stellSym: If the input has stellarator symmetry, set to True.
+                  Otherwise, set to False. Note that only calculations
+                  for stellSym=True are implemented at this time.
     Outputs:
-        A dictionary whose keys are each of the surface_inds
-        and whose values are subdictionaries with the Boozer
-        G and I, iota, and B00 on each surface for which
-        calculations were requested. This output is helpful
-        for converting between the input parameters for
-        DKES and monoenergetic SFINCS calculations.
-    ''' #FIXME look over that^ at the end, might need tweaking
-    # FIXME surface_inds needs to coordinate with other codes
-    # FIXME what resolutions do you actually need?
-    # FIXME maybe implement a switch (or auto-detect?) to use read_boozmn(boozmn_*.nc) if desired
-    # FIXME maybe also implement a file writing switch?
-    # FIXME maybe also implement a switch about printing to screen? Might be good to announce that your package is using an external code.
-    # FIXME if the configuration is not stellarator-symmetric, this will break (due to ignoring bmns_b)
-    # FIXME this all needs to be checked against the SFINCS data
+        A dictionary whose keys are each of the desired_s_vals
+        and whose values are subdictionaries with Boozer
+        information on each flux surface for which calculations
+        were requested. This output is helpful for converting
+        between the input parameters for DKES and monoenergetic
+        SFINCS calculations.
+    ''' 
+    
+    if stellSym is not True:
+        raise IOError('Calculations are currently only implemented for stellSym==True.')
+
+    # Load prerequisites
     from booz_xform import Booz_xform
+    import numpy as np
+    from IO import messagePrinter
+
+    messagePrinter('The external code booz_xform is now being called.')
 
     # Initialize the class
     b = Booz_xform()
+    b.verbose = verbosity
 
-    # Load the equilibrium and set the resolution parameters
-    b.read_wout(wout)
+    # Load data and set input parameters
+    b.read_wout(inFile)
     b.nboz = booz_toroidal_harmonics
     b.mboz = booz_poloidal_harmonics
+    
+    # Work out which surfaces we need to perform computations on
+    inputNormalizedToroidalFluxes = b.s_in
+    
+    desired_s_vals = list(set(desired_s_vals)) # Removes duplicates
+    closest_s_ids = [(np.abs(np.asarray(inputNormalizedToroidalFluxes) - desired_s_val)).argmin() for desired_s_val in desired_s_vals]
+    closest_ss = inputNormalizedToroidalFluxes[closest_s_ids]
 
-    # Set the surfaces (by their indices) on which we'd like to do calculations
-    b.compute_surfs = surface_inds
-
-    # Do the calculations
+    # Do the calculations if necessary
+    b.compute_surfs = closest_s_ids
     b.run()
+
+    # Write output if desired
+    if write_output is not None:
+        b.write_boozmn(write_output)
 
     # Extract the information we need
     B00s = b.bmnc_b[0,:]
     Gs = b.Boozer_G
     Is = b.Boozer_I
-    iotas = [b.iota[ind] for ind in b.compute_surfs]
+    iotas = [b.iota[ind] for ind in closest_s_ids]
+
+    messagePrinter('The booz_xform calculations are complete.')
 
     # Save the information in an orderly way
     outDic = {}
-    for surface_ind, B00, G, I, iota in zip(surface_inds, B00s, Gs, Is, iotas):
-        outDic[surface_ind] = {'B00':B00, 'G':G, 'I':I, 'iota':iota}
+    for desired_s_val, closest_s, closest_s_id, B00, G, I, iota in zip(desired_s_vals, closest_ss, closest_s_ids, B00s, Gs, Is, iotas):
+        outDic[desired_s_val] = {'actual_s':closest_s, 'actual_s_id':closest_s_id, 'B00':B00, 'G':G, 'I':I, 'iota':iota}
 
     return outDic
