@@ -415,3 +415,30 @@ def getBoozerInformation(inFile, desired_s_vals, write_output=None, booz_toroida
         outDic[desired_s_val] = {'actual_s':closest_s, 'actual_s_id':closest_s_id, 'B00':B00, 'G':G, 'I':I, 'iota':iota}
 
     return outDic
+
+def chandraG(x):
+    
+    '''
+    Inputs:
+        A real number >= 0.
+    Outputs:
+        A real number; the output of the "Chandrasekhar function" G.
+        See Helander and Sigmar, "Collisional Transport in Magnetized
+        Plasmas," for more details.
+    '''
+
+    from math import sqrt, pi, e
+    from scipy.special import erf
+    from numpy import inf
+
+    if x < 0:
+        raise IOError('x must be >= 0.')
+
+    elif x == 0 or x == inf:
+        G = lambda x: 0
+
+    else:
+        erfPrime = lambda x: 2 / sqrt(pi) * (e ** (-x**2))
+        G = lambda x: (erf(x) - x * erfPrime(x)) / 2 / (x ** 2)
+
+    return G(x)
