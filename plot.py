@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
 from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, writeFile, prettyRadialVar, prettyDataLabel, messagePrinter, now, saveTimeStampFile
-from dataProc import checkConvergence, fixOutputUnits
+from calc import checkConvergence, fixOutputUnits
 
 # Get command line arguments and radial variables
 args = getPlotArgs()

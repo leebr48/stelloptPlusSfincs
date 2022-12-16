@@ -12,7 +12,7 @@ thisFile = abspath(getfile(currentframe()))
 thisDir = dirname(thisFile)
 sys.path.append(join(thisDir, 'src/'))
 from IO import getPhi1SetupArgs, getFileInfo, adjustInputLengths, makeDir, findFiles, radialVarDict, writeFile, messagePrinter, saveTimeStampFile
-from dataProc import checkConvergence, convertRadDer
+from calc import checkConvergence, convertRadDer
 _, thisFileName, _, _, _ = getFileInfo(thisFile, 'arbitrary/path', 'arbitrary')
 
 # Get command line arguments

@@ -11,7 +11,7 @@ def run(profilesInUse, saveLocUse):
     from os.path import join
     from matplotlib.pyplot import subplots
     from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, sortProfileFunctions, generatePreamble, generateDataText, writeFile, messagePrinter, prettyRadialVar
-    from dataProc import findMinMax, scaleInputData, nonlinearInterp
+    from calc import findMinMax, scaleInputData, nonlinearInterp
 
     # Get command line arguments
     args = getRunArgs()

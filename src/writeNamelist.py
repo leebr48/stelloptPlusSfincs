@@ -8,7 +8,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
 
     # Import necessary modules
     from IO import getRunArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, extractScalarData, radialVarDict, writeFile
-    from dataProc import scaleInputData, findNumCalcs
+    from calc import scaleInputData, findNumCalcs
 
     # Get command line arguments
     args = getRunArgs()
