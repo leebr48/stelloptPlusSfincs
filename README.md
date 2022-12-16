@@ -4,9 +4,9 @@ Python scripts for making certain aspects of [STELLOPT](https://github.com/Princ
 
 ## Installation
 
-In principle, the scripts in this repository can perform their core functions given only the appropriate input files. In practice, it is nearly essential that you install SFINCS (instructions in its repository), and it is recommended that you install STELLOPT (instructions [here](https://princetonuniversity.github.io/STELLOPT/STELLOPT%20Compilation)) as well. This will make everything work smoothly. SFINCS is memory-intensive, so the use of a high-performance cluster will likely be required unless you only run very small test problems.
-FIXME you have other package dependencies now!
-The Python 3 [standard library](https://docs.python.org/3/library/index.html) should be installed, as several of its packages are utilized. The [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), [h5py](https://www.h5py.org/), and [Matplotlib](https://matplotlib.org/) packages are also required.
+You must install SFINCS (instructions in its repository) and STELLOPT (instructions [here](https://princetonuniversity.github.io/STELLOPT/STELLOPT%20Compilation)) to fully utilize this repository. SFINCS is memory-intensive, so the use of a high-performance cluster will likely be required unless you only run very small test problems.
+
+The Python 3 [standard library](https://docs.python.org/3/library/index.html) should be installed, as several of its packages are utilized. The [NumPy](https://numpy.org/), [SciPy](https://scipy.org/), [h5py](https://www.h5py.org/), and [Matplotlib](https://matplotlib.org/) packages are also required. [BOOZ_XFORM](https://github.com/hiddenSymmetries/booz_xform) is needed for optimizations.
 
 Set the environment variable (preferably permanently, such as in your `.bashrc` file) `SFINCS_PATH=/path/to/sfincs/repository`. If you want to receive job updates from Slurm, also set `SFINCS_BATCH_EMAIL=your_email@website.com` in the same way.
 
@@ -19,3 +19,5 @@ Note that the profiles input into these scripts are not checked for physical sen
 ## Version Notes
 
 The scripts in this repository have been tested on the `master` branch of SFINCS. At the time of writing, this branch was last updated on 12 May 2022. The version of STELLOPT used is likely not critical since its basic calls and output structure (especially for VMEC) have not substantially changed for quite some time.
+
+FIXME - this doc will require updates once optimization is fully implemented
