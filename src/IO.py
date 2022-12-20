@@ -184,6 +184,7 @@ def getPlotArgs():
     return args
 
 def getPhi1SetupArgs():
+    
     '''
     Inputs:
         [No direct inputs. See below for command line inputs.]
@@ -209,6 +210,24 @@ def getPhi1SetupArgs():
         if length != 1 and length != maxLen:
             raise IOError('If both <sfincsDir> and <saveLoc> have length greater than 1, they must be the same length.')
     
+    return args
+
+def getPyStelArgs():
+    
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for interfacing with PyStel.
+    '''
+    
+    import argparse
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--stelloptOut', type=str, nargs=1, required=True, help='A stellopt.* file to be read.')
+    parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=[None], help='Where to save any plots created. Defaults to <stelloptOut>/plots.')
+    args = parser.parse_args()
+
     return args
 
 def getFileInfo(inFile, saveLoc, outFileName):
