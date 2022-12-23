@@ -240,7 +240,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                         dataToUse = radData
 
                     else: # Radial and Er directories are present
-                        convergedJrAbsVals = dict([(ErKey, np.abs(ErData['extensiveRadialCurrent'])[0]) for ErKey, ErData in radData.items()])
+                        convergedJrAbsVals = dict([(ErKey, np.abs(ErData['extensiveRadialCurrent'])) for ErKey, ErData in radData.items()])
                         minJrKey = min(zip(convergedJrAbsVals.values(), convergedJrAbsVals.keys()))[1] # Returns key of Er subdirectory that has the smallest |Jr| 
                         dataToUse = radData[minJrKey]
                         ErChoices.append(join(radKey, minJrKey) + '\n')
