@@ -1,18 +1,18 @@
 # This is a one-off script that pulls the axis parameters from a VMEC wout file and prints them in such a way that they can be easily copy-pasted into a VMEC input file.
 
 # Load packages
+from os.path import dirname, abspath, join
+from inspect import getfile, currentframe
+import sys
 from scipy.io import netcdf
-import argparse
-from os.path import isdir
 import numpy as np
 
-# Load argument
-parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--wout', type=str, nargs=1, required=True, help='wout file from which to pull axis information. Note that stellarator symmetry is assumed!')
-args = parser.parse_args()
+thisDir = dirname(abspath(getfile(currentframe())))
+sys.path.append(join(thisDir, 'src/'))
+from IO import getAxisParamsArgs 
 
-if isdir(args.wout[0]):
-    raise IOError('The input given in <wout> must be a file.')
+# Load argument
+args = getAxisParamsArgs()
 
 # Read wout file
 f = netcdf.netcdf_file(args.wout[0], mode='r', mmap=False)

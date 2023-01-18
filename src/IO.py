@@ -211,6 +211,26 @@ def getPhi1SetupArgs():
     
     return args
 
+def getAxisParamsArgs():
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for getting axis parameters from VMEC wout files.
+    '''
+
+    import argparse
+    from os.path import isdir
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--wout', type=str, nargs=1, required=True, help='wout file from which to pull axis information. Note that stellarator symmetry is assumed!')
+    args = parser.parse_args()
+
+    if isdir(args.wout[0]):
+        raise IOError('The input given in <wout> must be a file.')
+
+    return args
+
 def getFileInfo(inFile, saveLoc, outFileName):
 
     '''
