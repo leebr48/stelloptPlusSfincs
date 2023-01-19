@@ -231,6 +231,50 @@ def getAxisParamsArgs():
 
     return args
 
+def getCompoundPlotArgs():
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for creating compound plots.
+    '''
+    
+    import argparse
+    from os.path import isdir
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--data', nargs='+', required=True, help='*.dat files to be plotted, with addresses if necessary. The first column of each file must be horizontal coordinate values, while the remaining columns must be corresponding vertical coordinate (data) values. The file plot.py produces properly-structured data files automatically. Note that you should choose *.dat files with the same horizontal coordinate. Each column (except the first) in the first file passed to this argument will become a curve in the output plot, then each column (except the first) in the second file, and so on -- this is how one can specify the order of the <legend> and <colors> arguments, for example.')
+    parser.add_argument('--plotType', type=str, nargs=1, required=False, default=['linear'], help='Type of vertical axis. Options are "linear" and "semilogy".')
+    parser.add_argument('--xlabel', type=str, nargs=1, required=False, default=[''], help='Label for horizontal axis. Be sure to write in quotes!')
+    parser.add_argument('--ylabel', type=str, nargs=1, required=False, default=[''], help='Label for vertical axis. Be sure to write in quotes!')
+    parser.add_argument('--xtick', type=float, nargs=1, required=False, default=[1], help='Sets spacing of the horizontal ticks.')
+    parser.add_argument('--xmin', type=float, nargs=1, required=False, default=[None], help='Sets minimum value on the horizontal axis.')
+    parser.add_argument('--legend', nargs='+', required=False, default=[''], help='Legend entries. Can accept one or more arguments. Be sure to write each argument in quotes!')
+    parser.add_argument('--saveLoc', type=str, required=False, default='.', help='Location in which to save the produced plot. Defaults to the current working directory.')
+    parser.add_argument('--fileName', type=str, required=False, default='compositePlot', help='Name of the produced plot without a file extension.')
+    parser.add_argument('--fileType', type=str, required=False, default='pdf', help='Type of file you wish to save. Options are "pdf" and "png".')
+    parser.add_argument('--fontSize', type=float, required=False, default=18, help='Font size for plots.')
+    parser.add_argument('--ymargin', type=float, required=False, default=None, help='Set vertical axis autoscaling margin. Must be between 0 and 1.')
+    parser.add_argument('--colors', nargs='+', required=False, default=[''], help='Curve colors. For possible options, see the matplotlib documentation. Note that the default matplotlib colors are from the Tableau palette -- for instance, the default blue is "tab:blue", the default orange is "tab:orange", and so forth. Can accept one or more arguments. Be sure to write each argument in quotes! If one argument is input, all curves will have the same color. If multiple arguments are input, this must be the same as the number of lines that are to be plotted.')
+    parser.add_argument('--lineStyles', nargs='+', required=False, default=[''], help='Curve line styles. For possible options, see the matplotlib documentation. It is suggested that you use the spelled-out forms for the line styles rather than their abbreviations (e.g. use "solid", "dashed", etc.). Can accept one or more arguments. Be sure to write each argument in quotes! If one argument is input, all curves will have the same line style. If multiple arguments are input, this must be the same as the number of lines that are to be plotted.')
+    parser.add_argument('--markers', nargs='+', required=False, default=[''], help='Curve marker styles. For possible options, see the matplotlib documentation. Can accept one or more arguments. Be sure to write each argument in quotes! If one argument is input, all curves will have the same marker style. If multiple arguments are input, this must be the same as the number of lines that are to be plotted.')
+    args = parser.parse_args()
+    
+    for item in args.data:
+        if isdir(item):
+            raise IOError('The input(s) given in <data> must be files.')
+
+    if args.plotType[0] not in ['linear', 'semilogy']:
+        raise IOError('<plotType> must be either "linear" or "semilogy"')
+
+    if args.fileType not in ['pdf', 'png']:
+        raise IOError('<fileType> must be either "pdf" or "png"')
+
+    if args.ymargin is not None and not (0 <= args.ymargin <= 1):
+        raise IOError('<ymargin> must be between 0 and 1.')
+
+    return args
+    
 def getFileInfo(inFile, saveLoc, outFileName):
 
     '''
