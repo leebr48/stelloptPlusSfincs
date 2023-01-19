@@ -247,7 +247,7 @@ def getCompoundPlotArgs():
     parser.add_argument('--plotType', type=str, nargs=1, required=False, default=['linear'], help='Type of vertical axis. Options are "linear" and "semilogy".')
     parser.add_argument('--xlabel', type=str, nargs=1, required=False, default=[''], help='Label for horizontal axis. Be sure to write in quotes!')
     parser.add_argument('--ylabel', type=str, nargs=1, required=False, default=[''], help='Label for vertical axis. Be sure to write in quotes!')
-    parser.add_argument('--xtick', type=float, nargs=1, required=False, default=[1], help='Sets spacing of the horizontal ticks.')
+    parser.add_argument('--xtick', type=float, nargs=1, required=False, default=[0.1], help='Sets spacing of the horizontal ticks.')
     parser.add_argument('--xmin', type=float, nargs=1, required=False, default=[None], help='Sets minimum value on the horizontal axis.')
     parser.add_argument('--legend', nargs='+', required=False, default=[''], help='Legend entries. Can accept one or more arguments. Be sure to write each argument in quotes!')
     parser.add_argument('--saveLoc', type=str, required=False, default='.', help='Location in which to save the produced plot. Defaults to the current working directory.')
