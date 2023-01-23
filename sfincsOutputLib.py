@@ -3,6 +3,8 @@
 # This file was taken from https://github.com/landreman/sfincsProjectsAndTools/blob/master/tools/Hakan/pythonversion3scans/sfincsOutputLib.py on 23 January 2023.
 # It was last updated on 03 June 2021.
 # The primary function of interest was Ersearch.
+# Much of the functions in this library essentially duplicate the functions in this file. You may choose to use one or the other at your discretion.
+
 import numpy as np 
 import os, sys, inspect, math, h5py, copy
 import subprocess
@@ -788,8 +790,3 @@ class sfincsRadialAndErScan:
         
         
     return newErQ
-      
-
-    
-
-    
