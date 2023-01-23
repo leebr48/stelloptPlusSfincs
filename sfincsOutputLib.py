@@ -2,8 +2,8 @@
 
 # This file was taken from https://github.com/landreman/sfincsProjectsAndTools/blob/master/tools/Hakan/pythonversion3scans/sfincsOutputLib.py on 23 January 2023.
 # It was last updated on 03 June 2021.
-# The primary function of interest was Ersearch.
-# Much of the functions in this library essentially duplicate the functions in this file. You may choose to use one or the other at your discretion.
+# The primary function of interest was Ersearch. This file was modified to function better in this library.
+# Many of the functions in this library essentially duplicate the functions in this file. You may choose to use one or the other at your discretion.
 
 import numpy as np 
 import os, sys, inspect, math, h5py, copy
@@ -86,6 +86,7 @@ class sfincsScan:
       self.dPhiHatdpsiN  = np.zeros((Nruns))
       self.dPhiHatdrN    = np.zeros((Nruns))
       self.dPhiHatdrHat  = np.zeros((Nruns))
+      self.Er            = np.zeros((Nruns))
       self.EParallelHat  = np.zeros((Nruns))
       self.adiabaticNHat = np.nan*np.zeros((Nruns))
       self.adiabaticTHat = np.nan*np.zeros((Nruns))
@@ -303,6 +304,7 @@ class sfincsScan:
         self.dPhiHatdpsiN[ind] = file['dPhiHatdpsiN'][()]
         self.dPhiHatdrN[ind]   = file['dPhiHatdrN'][()]
         self.dPhiHatdrHat[ind] = file['dPhiHatdrHat'][()]
+        self.Er[ind] = file['Er'][()]
         self.EParallelHat[ind] = file['EParallelHat'][()]
         if withAdiabatic:
           self.adiabaticNHat[ind] = file['adiabaticNHat'][()]
@@ -419,7 +421,7 @@ class sfincsScan:
 
   def choose_Erscan_run_with_best_Er(self,ErQuantity='dPhiHatdrN'):
     # returns the index of the run with the lowest radial current
-    if not(self.sortafter=='dPhiHatdrN' or self.sortafter=='dPhiHatdrHat' or self.sortafter=='dPhiHatdpsiN'):
+    if not(self.sortafter=='dPhiHatdrN' or self.sortafter=='dPhiHatdrHat' or self.sortafter=='dPhiHatdpsiN' or self.sortafter=='Er'):
       sys.exit("Error using Ersearch: The sfincsScan data was not sorted after radial electric field. "+
                "Please use the option sortafter='dPhiHatdrN' in the initialisation.")
     Er=getattr(self,ErQuantity)
@@ -437,7 +439,7 @@ class sfincsScan:
   def Ersearch(self,ErQuantity='dPhiHatdrN',verbose=0,launch='no',launchCommand='sbatch',interptype='quad',
                jobfilefrom='nearest'):
     #launch can be 'yes', 'no' or 'ask'
-    if not(self.sortafter=='dPhiHatdrN' or self.sortafter=='dPhiHatdrHat' or self.sortafter=='dPhiHatdpsiN'):
+    if not(self.sortafter=='dPhiHatdrN' or self.sortafter=='dPhiHatdrHat' or self.sortafter=='dPhiHatdpsiN' or self.sortafter=='Er'):
       sys.exit("Error using Ersearch: The sfincsScan data was not sorted after radial electric field. "+
                "Please use the option sortafter='dPhiHatdrN' in the initialisation.")
     if self.Nruns<2:
