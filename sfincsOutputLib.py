@@ -450,93 +450,93 @@ class sfincsScan:
       particleFlux=self.particleFlux_vd_rHat
     else:
       particleFlux=self.particleFlux_vm_rHat
-    Jr=np.sum(particleFlux*self.Zs,axis=1)
+    self.Jr=np.sum(particleFlux*self.Zs,axis=1)
     if verbose>0 or launch=='ask': 
       #print '---------'
       #print particleFlux
       #print np.abs(particleFlux*self.Zs)
-      #print Jr
+      #print self.Jr
       #print np.max(np.abs(particleFlux*self.Zs),axis=1)
-      rel_error=np.abs(Jr)/np.max(np.abs(particleFlux*self.Zs),axis=1)
-      #rel_error_min=np.minimum(np.abs(Jr/np.max(np.abs(particleFlux*self.Zs),axis=0)))
-      print(ErQuantity+',   Jr (a.u),   relative error')
+      rel_error=np.abs(self.Jr)/np.max(np.abs(particleFlux*self.Zs),axis=1)
+      #rel_error_min=np.minimum(np.abs(self.Jr/np.max(np.abs(particleFlux*self.Zs),axis=0)))
+      print(ErQuantity+',   self.Jr (a.u),   relative error')
       for ind in range(self.Nruns):
-        if Jr[ind]!=0.0:
-          print('{:10.8e} {: 8.6e} {:8.6e}'.format(Er[ind],Jr[ind],rel_error[ind]))
+        if self.Jr[ind]!=0.0:
+          print('{:10.8e} {: 8.6e} {:8.6e}'.format(Er[ind],self.Jr[ind],rel_error[ind]))
         else:
           print('{:10.8e}        nan       nan'.format(Er[ind]))
 
-    if np.any(Jr==0.0) or np.any(np.isnan(Jr)):
+    if np.any(self.Jr==0.0) or np.any(np.isnan(self.Jr)):
       #print('removing nans')
       # Unbeliavable that the current is zero to machine precision! This is instead beacuse there was no result stored!
-      goodindxs=np.where(np.logical_and(Jr!=0.0,np.logical_not(np.isnan(Jr))))[0]
+      goodindxs=np.where(np.logical_and(self.Jr!=0.0,np.logical_not(np.isnan(self.Jr))))[0]
       #print(goodindxs)
       Er = Er[goodindxs]
-      Jr = Jr[goodindxs]
+      self.Jr = self.Jr[goodindxs]
       rel_error = rel_error[goodindxs]
     
-    #print 'Jr='+str(Jr)
-    #print np.sign(Jr)
-    #print np.diff(np.sign(Jr))==0.0
+    #print 'self.Jr='+str(self.Jr)
+    #print np.sign(self.Jr)
+    #print np.diff(np.sign(self.Jr))==0.0
     
-    if len(Jr)<2:
+    if len(self.Jr)<2:
       print('Less than two (finished) runs. Skipping this radius.')
     else:
       extrapNeeded='No'
-      if np.all(np.diff(np.sign(Jr))==0.0):
+      if np.all(np.diff(np.sign(self.Jr))==0.0):
         extrapNeeded='Right'
-        if abs(Jr[0])<abs(Jr[-1]):
+        if abs(self.Jr[0])<abs(self.Jr[-1]):
           extrapNeeded='Left'
 
       if np.any(np.diff(Er)==0.0):
         sys.exit('Error using Ersearch: The radial electric fields in this scan '+self.mainDir+' are not unique! Perhaps not an Er scan.')
       if self.Nruns==2 or extrapNeeded=='Left':
-        newEr = Er[0]+(Er[1]-Er[0])/(Jr[1]-Jr[0])*(0.0-Jr[0])
+        newEr = Er[0]+(Er[1]-Er[0])/(self.Jr[1]-self.Jr[0])*(0.0-self.Jr[0])
       elif extrapNeeded=='Right':
-        newEr = Er[-1]+(Er[-2]-Er[-1])/(Jr[-2]-Jr[-1])*(0.0-Jr[-1])
-      elif interptype=='lin' or len(Jr)==2:
-        Lind=np.where(np.diff(np.sign(Jr))!=0)[0][0]
-        newEr=Er[Lind]+(Er[Lind+1]-Er[Lind])/(Jr[Lind+1]-Jr[Lind])*(0.0-Jr[Lind])
+        newEr = Er[-1]+(Er[-2]-Er[-1])/(self.Jr[-2]-self.Jr[-1])*(0.0-self.Jr[-1])
+      elif interptype=='lin' or len(self.Jr)==2:
+        Lind=np.where(np.diff(np.sign(self.Jr))!=0)[0][0]
+        newEr=Er[Lind]+(Er[Lind+1]-Er[Lind])/(self.Jr[Lind+1]-self.Jr[Lind])*(0.0-self.Jr[Lind])
       else:
-        Lind=np.where(np.diff(np.sign(Jr))!=0)[0][0]
+        Lind=np.where(np.diff(np.sign(self.Jr))!=0)[0][0]
         Hind=Lind+1
         if self.Nruns==3 or Lind==0:
-          #define c by Er=Er[base]+c[0]*(Jr-Jr[base])+c[1]*(Jr-Jr[base])^2
+          #define c by Er=Er[base]+c[0]*(self.Jr-self.Jr[base])+c[1]*(self.Jr-self.Jr[base])^2
           base=0
-          DJ1=Jr[base+1]-Jr[base]
-          DJ2=Jr[base+2]-Jr[base]
+          DJ1=self.Jr[base+1]-self.Jr[base]
+          DJ2=self.Jr[base+2]-self.Jr[base]
           A=np.array([[DJ2**2,-DJ1**2],[-DJ2,DJ1]])
           c=1/(DJ1*DJ2*(DJ2-DJ1))*np.matmul(A,Er[base+1:base+3]-Er[base])
-          newEr = Er[base]+c[0]*(0.0-Jr[base])+c[1]*(0.0-Jr[base])**2
-        elif Lind==len(Jr)-2:
-          base=len(Jr)-3
-          DJ1=Jr[base+1]-Jr[base]
-          DJ2=Jr[base+2]-Jr[base]
+          newEr = Er[base]+c[0]*(0.0-self.Jr[base])+c[1]*(0.0-self.Jr[base])**2
+        elif Lind==len(self.Jr)-2:
+          base=len(self.Jr)-3
+          DJ1=self.Jr[base+1]-self.Jr[base]
+          DJ2=self.Jr[base+2]-self.Jr[base]
           A=np.array([[DJ2**2,-DJ1**2],[-DJ2,DJ1]])
           c=1/(DJ1*DJ2*(DJ2-DJ1))*np.matmul(A,Er[base+1:base+3]-Er[base])
-          newEr = Er[base]+c[0]*(0.0-Jr[base])+c[1]*(0.0-Jr[base])**2
+          newEr = Er[base]+c[0]*(0.0-self.Jr[base])+c[1]*(0.0-self.Jr[base])**2
         else:
           #Make two quadratic approximations
           bas1=Lind-1
           bas2=Lind
 
-          DJ1=Jr[bas1+1]-Jr[bas1]
-          DJ2=Jr[bas1+2]-Jr[bas1]
+          DJ1=self.Jr[bas1+1]-self.Jr[bas1]
+          DJ2=self.Jr[bas1+2]-self.Jr[bas1]
           A=np.array([[DJ2**2,-DJ1**2],[-DJ2,DJ1]])
           c=1/(DJ1*DJ2*(DJ2-DJ1))*np.matmul(A,Er[bas1+1:bas1+3]-Er[bas1])
-          Er1=Er[bas1]+c[0]*(0.0-Jr[bas1])+c[1]*(0.0-Jr[bas1])**2
+          Er1=Er[bas1]+c[0]*(0.0-self.Jr[bas1])+c[1]*(0.0-self.Jr[bas1])**2
 
-          DJ1=Jr[bas2+1]-Jr[bas2]
-          DJ2=Jr[bas2+2]-Jr[bas2]
+          DJ1=self.Jr[bas2+1]-self.Jr[bas2]
+          DJ2=self.Jr[bas2+2]-self.Jr[bas2]
           A=np.array([[DJ2**2,-DJ1**2],[-DJ2,DJ1]])
           c=1/(DJ1*DJ2*(DJ2-DJ1))*np.matmul(A,Er[bas2+1:bas2+3]-Er[bas2])
-          Er2=Er[bas2]+c[0]*(0.0-Jr[bas2])+c[1]*(0.0-Jr[bas2])**2
+          Er2=Er[bas2]+c[0]*(0.0-self.Jr[bas2])+c[1]*(0.0-self.Jr[bas2])**2
           
-          x=(0.0-Jr[Lind])/(Jr[Hind]-Jr[Lind])
+          x=(0.0-self.Jr[Lind])/(self.Jr[Hind]-self.Jr[Lind])
           newEr = Er1*(1-x)+Er2*x
         #end if self.Nruns==3 or Lind==0
         if (newEr-Er[Lind])*(newEr-Er[Lind+1])>0: #newEr is not in the interval => use linear approximation
-          newEr=Er[Lind]+(Er[Lind+1]-Er[Lind])/(Jr[Lind+1]-Jr[Lind])*(0.0-Jr[Lind])
+          newEr=Er[Lind]+(Er[Lind+1]-Er[Lind])/(self.Jr[Lind+1]-self.Jr[Lind])*(0.0-self.Jr[Lind])
       #end if self.Nruns==2
       closestind=np.argmin(np.abs(newEr-Er))
 
