@@ -459,7 +459,7 @@ class sfincsScan:
       #print np.max(np.abs(particleFlux*self.Zs),axis=1)
       rel_error=np.abs(self.Jr)/np.max(np.abs(particleFlux*self.Zs),axis=1)
       #rel_error_min=np.minimum(np.abs(self.Jr/np.max(np.abs(particleFlux*self.Zs),axis=0)))
-      print(ErQuantity+',   self.Jr (a.u),   relative error')
+      print(ErQuantity+',   Jr (a.u),   relative error')
       for ind in range(self.Nruns):
         if self.Jr[ind]!=0.0:
           print('{:10.8e} {: 8.6e} {:8.6e}'.format(Er[ind],self.Jr[ind],rel_error[ind]))
@@ -474,10 +474,6 @@ class sfincsScan:
       Er = Er[goodindxs]
       self.Jr = self.Jr[goodindxs]
       rel_error = rel_error[goodindxs]
-    
-    #print 'self.Jr='+str(self.Jr)
-    #print np.sign(self.Jr)
-    #print np.diff(np.sign(self.Jr))==0.0
     
     if len(self.Jr)<2:
       print('Less than two (finished) runs. Skipping this radius.')
@@ -789,6 +785,5 @@ class sfincsRadialAndErScan:
       else:
         newErQ[ind]=self.Erscans[ind].Ersearch(ErQuantity=ErQuantity,verbose=1,launch=launch,
                                                interptype=interptype,jobfilefrom=jobfilefrom)
-        
         
     return newErQ

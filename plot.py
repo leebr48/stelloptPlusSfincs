@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
 from IO import getPlotArgs, radialVarDict, adjustInputLengths, getFileInfo, makeDir, findFiles, writeFile, prettyRadialVar, prettyDataLabel, messagePrinter, now, saveTimeStampFile
-from dataProc import checkConvergence, fixOutputUnits
+from dataProc import checkConvergence, fixOutputUnits, combineAndSort
 
 # Get command line arguments and radial variables
 args = getPlotArgs()
@@ -248,11 +248,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                     IVvec.append(dataToUse[IV])
                     DVvec.append(fixOutputUnits(DV, dataToUse[DV]))
 
-                IVvec = np.array(IVvec)
-                DVvec = np.array(DVvec)
-
-                combined = np.column_stack((IVvec,DVvec)) # The IV values will be the first column. The data comes in subsequent columns.
-                combined = combined[combined[:, 0].argsort()] # This sorts the data so that radVar values are strictly increasing
+                combined = combineAndSort(IVvec, DVvec)
 
                 np.savetxt(fullDataPath, combined)
 
