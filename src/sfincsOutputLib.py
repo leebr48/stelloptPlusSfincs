@@ -542,52 +542,55 @@ class sfincsScan:
           launch='yes'
 
       if launch=='yes':
-        newDataDir=self.mainDir + '/' + ErQuantity + '{:8.6f}'.format(newEr)
-        print(newDataDir)
-        launchindeed=False
-        if not(os.path.isdir(newDataDir)):
-          os.mkdir(newDataDir) 
-          launchindeed=True
-        else:
-          print('The directory already exists. It might contain a failed calculation.')
-          answer=inp('Launch the calculation again? (ret=yes,n=no):')        
-          if len(answer)==0:
-            launchindeed=True
-        if launchindeed:
-          #copy jobfile
-          print('jobfilefrom='+jobfilefrom)
-          print('maindir='+self.mainDir)
-          print('closest datadir='+self.DataDirs[closestind])
-          if jobfilefrom=='nearest':
-             jobfilesource=self.mainDir + '/' + self.DataDirs[closestind]+'/job.sfincsScan'
-          else:
-             jobfilesource=jobfilefrom
-          with open(jobfilesource) as f:
-            oldjob_file=f.readlines()
-          newjob_fid=open(newDataDir+'/job.sfincsScan','w')
-          for line in oldjob_file:
-            newjob_fid.write(line)
-          newjob_fid.close()
-
-          #copy input.namelist
-          with open(self.mainDir + '/' + self.DataDirs[closestind]+'/input.namelist') as f:
-            oldnamelist_file=f.readlines()
-          newnamelist_fid=open(newDataDir+'/input.namelist','w')
-          for line in oldnamelist_file:
-            startind=line.find(ErQuantity)
-            if startind<0:
-              newnamelist_fid.write(line)
-            else:
-              newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
-          newnamelist_fid.close()
-
-          env = dict(os.environ)
-          stat=subprocess.call([launchCommand,'job.sfincsScan'],cwd=newDataDir,env=env)
-          if stat > 0:
-            print('Error submitting the file '+newDataDir+'/job.sfincsScan with '+launchCommand+' !')
-            sys.exit(stat)
+        self.launchRun(ErQuantity, newEr, jobfilefrom, closestind, launchCommand=launchCommand)
 
     return newEr
+  
+  def launchRun(self, ErQuantity, newEr, jobfilefrom, closestind, launchCommand='sbatch'):
+    newDataDir=self.mainDir + '/' + ErQuantity + '{:8.6f}'.format(newEr)
+    print(newDataDir)
+    launchindeed=False
+    if not(os.path.isdir(newDataDir)):
+      os.mkdir(newDataDir) 
+      launchindeed=True
+    else:
+      print('The directory already exists. It might contain a failed calculation.')
+      answer=inp('Launch the calculation again? (ret=yes,n=no):')        
+      if len(answer)==0:
+        launchindeed=True
+    if launchindeed:
+      #copy jobfile
+      print('jobfilefrom='+jobfilefrom)
+      print('maindir='+self.mainDir)
+      print('closest datadir='+self.DataDirs[closestind])
+      if jobfilefrom=='nearest':
+         jobfilesource=self.mainDir + '/' + self.DataDirs[closestind]+'/job.sfincsScan'
+      else:
+         jobfilesource=jobfilefrom
+      with open(jobfilesource) as f:
+        oldjob_file=f.readlines()
+      newjob_fid=open(newDataDir+'/job.sfincsScan','w')
+      for line in oldjob_file:
+        newjob_fid.write(line)
+      newjob_fid.close()
+
+      #copy input.namelist
+      with open(self.mainDir + '/' + self.DataDirs[closestind]+'/input.namelist') as f:
+        oldnamelist_file=f.readlines()
+      newnamelist_fid=open(newDataDir+'/input.namelist','w')
+      for line in oldnamelist_file:
+        startind=line.find(ErQuantity)
+        if startind<0:
+          newnamelist_fid.write(line)
+        else:
+          newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
+      newnamelist_fid.close()
+
+      env = dict(os.environ)
+      stat=subprocess.call([launchCommand,'job.sfincsScan'],cwd=newDataDir,env=env)
+      if stat > 0:
+        print('Error submitting the file '+newDataDir+'/job.sfincsScan with '+launchCommand+' !')
+        sys.exit(stat)
 
   def plot(self,xvarName,yvarNames):
     print(xvarName)
