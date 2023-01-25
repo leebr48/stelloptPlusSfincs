@@ -67,8 +67,8 @@ for radInd in range(ds.Nradii):
         estRoots, ErScan, JrScan = getAllRootInfo(combined)
         for root in estRoots:
             closestInd = np.argmin(np.abs(root - ErVals))
-            ds.Erscans[radInd].launchRun('Er', root, 'nearest', closestInd, launchCommand='sbatch') #FIXME generalize 'Er' and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind)
-            # FIXME you need to set ambipolarSolve=True!!!!!!!
+            ds.Erscans[radInd].launchRun('Er', root, 'nearest', closestInd, ambipolarSolve=True, launchCommand='sbatch') #FIXME generalize 'Er' and 'ambipolarSolve' and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind) #FIXME also note that the ambipolarSolve option just forces the option to be true if set to True, but does NOTHING if set to False
+
     elif numRoots == 1:
         pass
         #FIXME fit splines and calculate roots. Check if any guesses are unique. If they are, send those to Sfincs with ambipolarSolve. If not, take the one root as being the only one.
@@ -78,6 +78,7 @@ for radInd in range(ds.Nradii):
     elif numRoots > 3:
         pass
         #FIXME this is an artifact of using polynomials. Pull out the three roots nearest Er=0, then use Turkin et al.
+        #FIXME or maybe... you could just run at all the guesses without ambipolarSolve to refine the dataset?
 
 
 quit()

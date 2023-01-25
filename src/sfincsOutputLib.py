@@ -546,7 +546,7 @@ class sfincsScan:
 
     return newEr
   
-  def launchRun(self, ErQuantity, newEr, jobfilefrom, closestind, launchCommand='sbatch'):
+  def launchRun(self, ErQuantity, newEr, jobfilefrom, closestind, ambipolarSolve=False, launchCommand='sbatch'):
     newDataDir=self.mainDir + '/' + ErQuantity + '{:8.6f}'.format(newEr)
     print(newDataDir)
     launchindeed=False
@@ -580,10 +580,19 @@ class sfincsScan:
       newnamelist_fid=open(newDataDir+'/input.namelist','w')
       for line in oldnamelist_file:
         startind=line.find(ErQuantity)
-        if startind<0:
-          newnamelist_fid.write(line)
+        ambiSolveInd = line.find('ambipolarSolve')
+        if not ambipolarSolve:
+            if startind<0:
+              newnamelist_fid.write(line)
+            else:
+              newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
         else:
-          newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
+            if startind == -1 and ambiSolveInd == -1:
+                newnamelist_fid.write(line)
+            elif ambiSolveInd != -1:
+                newnamelist_fid.write(line[:ambiSolveInd]+'ambipolarSolve = .true.\n')
+            elif startind != -1:
+                newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
       newnamelist_fid.close()
 
       env = dict(os.environ)
