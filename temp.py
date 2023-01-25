@@ -13,7 +13,7 @@ from sfincsOutputLib import sfincsRadialAndErScan
 
 # Defaults
 outdir = '/u/lebra/src/stelloptPlusSfincs/outsideTest/' # FIXME generalize
-ErSearchTol = 1.0e-12 # Maximum Jr - this is also used in writeNamelist.py
+ErSearchTol = 1.0e-8 # Maximum Jr - this is also used in writeNamelist.py #FIXME should be 1.0e-12
 
 # Locally useful function
 def findRoots(dataMat, numRootEst, xScan):
@@ -39,9 +39,42 @@ def getErJrData(dataMat, negative=True):
 
     return EstRoots, ErScan, JrEst
 
+def getAllRootInfo(dataMat):
+    negEstRoots, negErScan, negJrEst = getErJrData(dataMat, negative=True)
+    posEstRoots, posErScan, posJrEst = getErJrData(dataMat, negative=False)
+    
+    estRoots = np.append(negEstRoots, posEstRoots)
+    ErScan = np.append(negErScan, posErScan)
+    JrScan = np.append(negJrScan, posJrScan)
+
+    return estRoots, ErScan, JrScan
+
 # Load tools from external library
 ds = sfincsRadialAndErScan('/u/lebra/src/stelloptPlusSfincs/outsideTest/sixthObj', verbose=0) #FIXME generalize address
 ErQ = ds.Ersearch(ErQuantity='Er', verbose=0, launch='no') # This has the estimates for the field zeros... note that you only seem to get one per radial directory! #FIXME use proper electric field quantitiy
+
+#FIXME note that if only one root is present, you don't need to do the integral and such - that root is the only answer. But you should still run ambipolarSolve for it!
+# Determine where the satisfactory roots are # FIXME all this is busted
+for radInd in range(ds.Nradii):
+    ErVals = ds.Erscans[radInd].Er
+    JrVals = ds.Erscans[radInd].Jr
+    rootInds = np.where(np.abs(np.array(JrVals)) <= ErSearchTol)
+    rootErs = np.array(ErVals)[rootInds]
+    numRoots = len(rootErs)
+    combined = combineAndSort(ErVals, JrVals)
+    if numRoots == 0:
+        estRoots, ErScan, JrScan = getAllRootInfo(combined)
+        #FIXME fit splines and launch runs at estimated root(s)
+        #FIXME using external library launch bits may be easiest...
+    elif numRoots == 1:
+        #FIXME fit splines and calculate roots. Check if any guesses are unique. If they are, send those to Sfincs with ambipolarSolve. If not, take the one root as being the only one.
+    elif numRoots in (2,3):
+        #FIXME use Turkin et al to determine which root is correct. Note that you will need to reject the center (unstable) root if it exists. Should also probably check the sign of the roots to be sure you actually have electron and ion roots and not just some artifacts.
+    elif numRoots > 3:
+        #FIXME this is an artifact of using polynomials. Pull out the three roots nearest Er=0, then use Turkin et al.
+
+
+quit()
 
 # FIXME that outside library is quite the pain... maybe just fit a polynomial to the data and use it to estimate your zeros? If you do this, might ditch the outside library (if not too arduous).
 # Plot radial current and estimate zeros
@@ -70,22 +103,3 @@ for radInd in range(ds.Nradii):
     plt.xlabel('$\mathrm{E_r}$')
     plt.ylabel('$\mathrm{J_r}$')
     plt.savefig(outdir+str(radInd)+'.pdf', bbox_inches='tight', dpi=400) #FIXME generalize address
-
-quit()
-
-#FIXME note that if only one root is present, you don't need to do the integral and such - that root is the only answer. But you should still run ambipolarSolve for it!
-# Determine where the satisfactory roots are # FIXME all this is busted
-ionRootErs = []
-unstableRootErs = []
-electronRootErs = []
-for radInd in range(ds.Nradii):
-    ErVals = Ers[radInd]
-    JrVals = Jrs[radInd]
-    rootInds = np.where(np.abs(np.array(JrVals)) <= ErSearchTol)
-    rootErs = np.array(ErVals)[rootInds]
-    if len(rootErs) == 3:
-       ionRootErs.append(rootErs[0])
-       unstableRootErs.append(rootErs[1])
-       electronRootErs.append(rootErs[2])
-    else:
-       print('Only {} root(s) have been identified for rN = {}.'.format(len(rootErs), ds.Erscans[radInd].rN[0])) 
