@@ -67,7 +67,7 @@ for radInd in range(ds.Nradii):
         estRoots, ErScan, JrScan = getAllRootInfo(combined)
         for root in estRoots:
             closestInd = np.argmin(np.abs(root - ErVals))
-            ds.Erscans[radInd].launchRun('Er', root, 'nearest', closestInd, ambipolarSolve=True, launchCommand='sbatch') #FIXME generalize 'Er' and 'ambipolarSolve' and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind) #FIXME also note that the ambipolarSolve option just forces the option to be true if set to True, but does NOTHING if set to False
+            ds.Erscans[radInd].launchRun('Er', root, 'nearest', closestInd, ambipolarSolve=False, launchCommand='sbatch') #FIXME generalize 'Er' and 'ambipolarSolve' and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind)
 
     elif numRoots == 1:
         pass

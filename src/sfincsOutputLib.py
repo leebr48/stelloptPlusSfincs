@@ -581,18 +581,15 @@ class sfincsScan:
       for line in oldnamelist_file:
         startind=line.find(ErQuantity)
         ambiSolveInd = line.find('ambipolarSolve')
-        if not ambipolarSolve:
-            if startind<0:
-              newnamelist_fid.write(line)
-            else:
-              newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
-        else:
-            if startind == -1 and ambiSolveInd == -1:
-                newnamelist_fid.write(line)
-            elif ambiSolveInd != -1:
+        if startind == -1 and ambiSolveInd == -1:
+            newnamelist_fid.write(line)
+        elif ambiSolveInd != -1:
+            if ambipolarSolve is True:
                 newnamelist_fid.write(line[:ambiSolveInd]+'ambipolarSolve = .true.\n')
-            elif startind != -1:
-                newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
+            else:
+                newnamelist_fid.write(line[:ambiSolveInd]+'ambipolarSolve = .false.\n')
+        elif startind != -1:
+            newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
       newnamelist_fid.close()
 
       env = dict(os.environ)
