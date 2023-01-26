@@ -548,21 +548,17 @@ class sfincsScan:
   
   def launchRun(self, ErQuantity, newEr, jobfilefrom, closestind, ambipolarSolve=False, launchCommand='sbatch'):
     newDataDir=self.mainDir + '/' + ErQuantity + '{:8.6f}'.format(newEr)
-    print(newDataDir)
     launchindeed=False
     if not(os.path.isdir(newDataDir)):
       os.mkdir(newDataDir) 
       launchindeed=True
     else:
-      print('The directory already exists. It might contain a failed calculation.')
+      print('The directory {} already exists. It might contain a failed calculation.'.format(newDataDir))
       answer=inp('Launch the calculation again? (ret=yes,n=no):')        
       if len(answer)==0:
         launchindeed=True
     if launchindeed:
       #copy jobfile
-      print('jobfilefrom='+jobfilefrom)
-      print('maindir='+self.mainDir)
-      print('closest datadir='+self.DataDirs[closestind])
       if jobfilefrom=='nearest':
          jobfilesource=self.mainDir + '/' + self.DataDirs[closestind]+'/job.sfincsScan'
       else:
@@ -591,12 +587,13 @@ class sfincsScan:
         elif startind != -1:
             newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
       newnamelist_fid.close()
-
+      ''' # FIXME uncomment!
       env = dict(os.environ)
       stat=subprocess.call([launchCommand,'job.sfincsScan'],cwd=newDataDir,env=env)
       if stat > 0:
         print('Error submitting the file '+newDataDir+'/job.sfincsScan with '+launchCommand+' !')
         sys.exit(stat)
+      '''
 
   def plot(self,xvarName,yvarNames):
     print(xvarName)
@@ -783,9 +780,6 @@ class sfincsRadialAndErScan:
     #launch can be 'yes', 'no' or 'ask'
     newErQ=np.nan*np.zeros((self.Nradii))
     for ind in range(self.Nradii):
-      print('------------------')
-      print('radius index '+str(ind))
-      print('------------------')
       if jobfilefrom=='parentdir':
          jobfilefrom=self.headDir+'/job.sfincsScan'
       if launch=='no':
