@@ -15,9 +15,9 @@ from sfincsOutputLib import sfincsRadialAndErScan
 
 # Defaults
 outdir = '/u/lebra/src/stelloptPlusSfincs/outsideTest/' # FIXME generalize
-ErSearchTol = 1.0e-12 # Maximum Jr - this is also used in writeNamelist.py
+ErSearchTol = 1.0e-12 # Maximum Jr - this is also used in writeNamelist.py #FIXME might make this an option. Keep in mind you should make it an option for writeNamelist too, and you will perhaps need to pass it to ambipolarSolve in this script so that Sfincs actually performs root finding when you ask it to.
 
-# Locally useful function
+# Locally useful functions
 def findRoots(dataMat, numRootEst, xScan):
     tck = splrep(dataMat[:,0], dataMat[:,1], k=3, s=0)
     estRoots = sproot(tck, mest=numRootEst)
@@ -51,6 +51,12 @@ def getAllRootInfo(dataMat):
 
     return estRoots, ErScan, JrScan
 
+def findUniqueRoots(actualRoots, estRoots):
+    uniqueInds = np.isin(estRoots, actualRoots, invert=True)
+    uniqueGuesses = estRoots[uniqueInds]
+
+    return uniqueGuesses
+
 # Load tools from external library
 ds = sfincsRadialAndErScan('/u/lebra/src/stelloptPlusSfincs/outsideTest/sixthObj', verbose=0) #FIXME generalize address
 ErQ = ds.Ersearch(ErQuantity='Er', verbose=0, launch='no') # This has the estimates for the field zeros... note that you only seem to get one per radial directory! #FIXME use proper electric field quantitiy
@@ -67,18 +73,22 @@ for radInd in range(ds.Nradii):
         estRoots, ErScan, JrScan = getAllRootInfo(combined)
         for root in estRoots:
             closestInd = np.argmin(np.abs(root - ErVals))
-            ds.Erscans[radInd].launchRun('Er', root, 'nearest', closestInd, ambipolarSolve=False, launchCommand='sbatch') #FIXME generalize 'Er' and 'ambipolarSolve' and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind)
+            ds.Erscans[radInd].launchRun('Er', root, 'nearest', closestInd, ambipolarSolve=True, launchCommand='sbatch') #FIXME generalize 'Er' and 'ambipolarSolve' and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind)
 
     elif numRoots == 1:
         pass
+        estRoots, ErScan, JrScan = getAllRootInfo(combined)
+        uniqueRootGuesses = findUniqueRoots(rootErs, estRoots)
         #FIXME fit splines and calculate roots. Check if any guesses are unique. If they are, send those to Sfincs with ambipolarSolve. If not, take the one root as being the only one.
+        #FIXME can perhaps merge this with numRoots==0 case?
+    
     elif numRoots in (2,3):
         pass
+        # FIXME determine if you have a stable or unstable root! If stable, you're good. If unstable, find the third one.
         #FIXME use Turkin et al to determine which root is correct. Note that you will need to reject the center (unstable) root if it exists. Should also probably check the sign of the roots to be sure you actually have electron and ion roots and not just some artifacts.
+    
     elif numRoots > 3:
-        pass
-        #FIXME this is an artifact of using polynomials. Pull out the three roots nearest Er=0, then use Turkin et al.
-        #FIXME or maybe... you could just run at all the guesses without ambipolarSolve to refine the dataset?
+        raise IOError('More than three roots were detected, which should not be possible. The search tolerance used to determine whether or not a root exists may need to be smaller.') #FIXME mention an input name if you end up making this an input.
 
 
 quit()
