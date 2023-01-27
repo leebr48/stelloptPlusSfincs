@@ -15,6 +15,8 @@ from dataProc import combineAndSort
 from IO import messagePrinter
 from sfincsOutputLib import sfincsRadialAndErScan
 
+#FIXME consider raising warnings for a given subdirectory rather than errors
+
 # Defaults
 outdir = '/u/lebra/src/stelloptPlusSfincs/outsideTest/' # FIXME generalize
 ErSearchTol = 1.0e-12 # Maximum Jr - this is also used in writeNamelist.py #FIXME might make this an option. Keep in mind you should make it an option for writeNamelist too, and you will perhaps need to pass it to ambipolarSolve in this script so that Sfincs actually performs root finding when you ask it to.
@@ -37,13 +39,13 @@ def getErJrData(dataMat, negative=True):
     if negative:
         ErsData = combined[np.where(combined[:,0] < 0)]
         ErScan = np.linspace(extendedErRange[0], 0, num=100)
-        numRoots = 1
+        numActualRoots = 1
     else:
         ErsData = combined[np.where(combined[:,0] > 0)]
         ErScan = np.linspace(0, extendedErRange[1], num=100)
-        numRoots = 2
+        numActualRoots = 2
 
-    EstRoots, JrEst = findRoots(ErsData, numRoots, ErScan)
+    EstRoots, JrEst = findRoots(ErsData, numActualRoots, ErScan)
 
     return EstRoots, ErScan, JrEst
 
@@ -83,34 +85,47 @@ for radInd in range(ds.Nradii):
     JrVals = ds.Erscans[radInd].Jr
     rootInds = np.where(np.abs(np.array(JrVals)) <= ErSearchTol)
     rootErs = np.array(ErVals)[rootInds]
-    numRoots = len(rootErs)
+    numActualRoots = len(rootErs)
     combined = combineAndSort(ErVals, JrVals)
     
-    if numRoots in (0,1): #FIXME this needs a lot of testing...
+    if numActualRoots in (0,1): #FIXME this needs a lot of testing...
         estRoots, ErScan, JrScan = getAllRootInfo(combined)
         uniqueRootGuesses = findUniqueRoots(rootErs, estRoots)
         numUniqueRootGuesses = len(uniqueRootGuesses)
-        if numUniqueRootGuesses == 0 and numRoots == 0:
+        if numUniqueRootGuesses == 0 and numActualRoots == 0:
             errMsg = 'No root could be identified for rN={}. This likely means not enough data was available.'.format(ds.Erscans[radInd].rN)
             errMsg += ' Please generate data for more electric field values and run this script again.'
             messagePrinter(errMsg)
             continue
-        elif numUniqueRootGuesses == 0 and numRoots == 1: # The identified root is probably the only one
+        elif numUniqueRootGuesses == 0 and numActualRoots == 1: # The identified root is probably the only one
             rootsToUse.append(rootErs[0])
         else:
             for root in uniqueRootGuesses:
                 closestInd = np.argmin(np.abs(root - ErVals))
-                ds.Erscans[radInd].launchRun('Er', root, 'nearest', closestInd, ambipolarSolve=True, launchCommand='sbatch') #FIXME generalize 'Er' and 'ambipolarSolve' and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind)
+                ds.Erscans[radInd].launchRun('Er', root, 'nearest', closestInd, ambipolarSolve=True, launchCommand='sbatch') #FIXME generalize 'Er' and 'ambipolarSolve' and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind) #FIXME consider taking away the asking permission to launch, or at least providing an option for it (probably just launch by default)
     
-    elif numRoots in (2,3): #FIXME this needs a lot of testing...
+    elif numActualRoots in (2,3): #FIXME this needs a lot of testing...
         stableRoots = determineRootStability(combined, rootErs)
         numStableRoots = len(stableRoots)
-        if numStableRoots == 1:
-            # FIXME FIXME FIXME search for the other stable root
+        if numStableRoots == 1 and numActualRoots == 2: #FIXME this is not efficient at all... group your repetitive code!
+            estRoots, ErScan, JrScan = getAllRootInfo(combined)
+            uniqueRootGuesses = findUniqueRoots(rootErs, estRoots)
+            numUniqueRootGuesses = len(uniqueRootGuesses)
+            if numUniqueRootGuesses == 0:
+                errMsg = 'One stable and one unstable root were found for the rN={} subdirectory, but the location of a second stable root could not be estimated.'.format(ds.Erscans[radInd].rN))
+                errMsg += ' Please generate data for more electric field values and run this script again.'
+                raise ValueError(errMsg)
+            else:
+                for root in uniqueRootGuesses:
+                    closestInd = np.argmin(np.abs(root - ErVals))
+                    ds.Erscans[radInd].launchRun('Er', root, 'nearest', closestInd, ambipolarSolve=True, launchCommand='sbatch') #FIXME generalize 'Er' and 'ambipolarSolve' and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind) #FIXME consider taking away the asking permission to launch, or at least providing an option for it (probably just launch by default)
+        elif numStableRoots == 1 and numActualRoots == 3:
+            raise ValueError('Three roots were found in the rN={} subdirectory, both two of them appear to be unstable. Something is wrong.'.format(ds.Erscans[radInd].rN))
         elif numStableRoots == 2:
             ionRoot = np.min(stableRoots)
             electronRoot = np.max(stableRoots)
-            intVal = trapezoid(combined[:,1], x=combined[:,0]) # FIXME could in principle use polynomial integration, but you'd have to treat the middle bit separately
+            truncCombined = combined[np.where((ionRoot <= combined[:,0]) & (combined[:,0] <= electronRoot))]
+            intVal = trapezoid(truncCombined[:,1], x=truncCombined[:,0]) # FIXME could in principle use polynomial integration, but you'd have to treat the middle bit separately
             if intVal > 0:
                 rootsToUse.append(ionRoot) 
             elif intVal < 0:
@@ -118,11 +133,11 @@ for radInd in range(ds.Nradii):
             else:
                 raise ValueError('An integral of Jr with respect to Er was identically zero. Something is wrong.')
         else:
-            raise ValueError('{} roots were found in the rN={} subdirectory, but {} of them appear to be stable. Something is wrong.'.format(numRoots, ds.Erscans[radInd].rN, numStableRoots))
+            raise ValueError('{} roots were found in the rN={} subdirectory, but {} of them appear to be stable. Something is wrong.'.format(numActualRoots, ds.Erscans[radInd].rN, numStableRoots))
 
         # FIXME can this be merged with the code above? Should all roots be checked for stability, for example?
     
-    elif numRoots > 3:
+    elif numActualRoots > 3:
         raise ValueError('More than three roots were detected, which should not be possible. The search tolerance used to determine whether or not a root exists may need to be smaller.') #FIXME mention an input name if you end up making this an input.
 
 quit()
