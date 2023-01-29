@@ -164,7 +164,9 @@ for radInd in range(ds.Nradii):
     plt.plot(negErScan, negJrEst)
     plt.plot(posErScan, posJrEst)
     plt.scatter(combined[:,0], combined[:,1])
-    plt.vlines(estRoots, np.min(combined[:,1]), np.max(combined[:,1]), linestyles='dotted')
+    plt.axhline(y=0, color='black', linestyle='-')
+    for root in estRoots: #FIXME should you be using estRoots?
+        plt.axvline(x=root, color='black', linestyle=':')
     plt.xlabel('$\mathrm{E_r}$')
     plt.ylabel('$\mathrm{J_r}$')
     plt.savefig(outdir+str(radInd)+'.pdf', bbox_inches='tight', dpi=400) #FIXME generalize address
