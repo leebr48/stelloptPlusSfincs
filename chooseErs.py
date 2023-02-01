@@ -1,5 +1,5 @@
 # FIXME explain what this script does and its limitations both here and in the eventual args. You should also explain that some manual checking must be done with the output plots to ensure all the roots have been found.
-#FIXME note that Er should be pretty smooth... not sure if you want to check that somehow in the script, or just tell users to check it by eye
+#FIXME note that Er should be pretty smooth (except for electron-ion root change, since you assume D_E=0)... not sure if you want to check that somehow in the script, or just tell users to check it by eye
 
 # Load necessary modules
 from os.path import dirname, abspath, join
@@ -9,18 +9,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import splrep, sproot, splev, splder
 from scipy.integrate import trapezoid
+from collections import Counter
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
 from dataProc import combineAndSort
-from IO import makeDir, messagePrinter
+from IO import makeDir, findFiles, messagePrinter
 from sfincsOutputLib import sfincsRadialAndErScan
 
-#FIXME try to generalize the radial labels
+#FIXME try to generalize the radial labels - you are able to retrieve it, now just propagate that throughout the code
+#FIXME ensure that outside package can handle all the radial labels from Sfincs - psiN seems to be absent, even though it is in some of the derivatives (and psiHat seems to be ignored at those times?...)
 #FIXME what will you actually run once you have the correct Er's? Your phi1 script, but modified??
 
 # Defaults
-indir = '/u/lebra/src/stelloptPlusSfincs/outsideTest/sixthObjCopy' # FIXME generalize
+indir = '/u/lebra/src/stelloptPlusSfincs/outsideTest/sixthObjCopy' # FIXME generalize AND regularize
 outdir = makeDir(join(indir, 'determineEr')) # FIXME generalize... if necessary
 ErSearchTol = 1.0e-12 # Maximum Jr - this is also used in writeNamelist.py #FIXME might make this an option. Keep in mind you should make it an option for writeNamelist too, and you will perhaps need to pass it to ambipolarSolve in this script so that Sfincs actually performs root finding when you ask it to.
 
@@ -108,6 +110,17 @@ def printMoreRunsMessage(customString):
 def recordNoEr(listOfLists):
     for singleList in listOfLists:
         singleList.append(np.nan)
+
+def determineRadialLabel(sfincsDir):
+    # A lot of this is probably overkill, but it should help add a level of automation safety
+    dataFiles = findFiles('sfincsOutput.h5', sfincsDir, raiseError=True) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
+    subdirsFirst = [address.replace(sfincsDir, '') for address in dataFiles]
+    subdirTitles = [address.split('/')[1] for address in subdirsFirst]
+    subdirLabels = [title.split('_')[0] for title in subdirTitles]
+    countLabels = Counter(subdirLabels)
+    mostCommonLabel = max(countLabels, key=countLabels.get)
+
+    return mostCommonLabel
 
 # Load tools from external library
 ds = sfincsRadialAndErScan(indir, verbose=0)
