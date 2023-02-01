@@ -4,6 +4,7 @@
 # It was last updated on 03 June 2021.
 # The primary function of interest was Ersearch. This file was modified to function better in this library.
 # Many of the functions in this library essentially duplicate the functions in this file. You may choose to use one or the other at your discretion.
+# FIXME update this explanation when finished
 
 import numpy as np 
 import os, sys, inspect, math, h5py, copy
@@ -113,6 +114,7 @@ class sfincsScan:
       self.FSABFlow            =np.zeros((Nruns,Nspecies))
       self.FSABjHat            =np.zeros((Nruns))
       self.NTV                 =np.zeros((Nruns,Nspecies))
+      self.Jr                  =np.zeros((Nruns))
 
       self.classicalParticleFlux_rHat=np.zeros((Nruns,Nspecies))
       self.classicalParticleFlux_rN  =np.zeros((Nruns,Nspecies))
@@ -149,7 +151,8 @@ class sfincsScan:
 
       CandidateDirs = sorted(CandidateDirs)
       if len(CandidateDirs) < 1:
-        print('Error! Could not find any directories in ' + mainDirectory)
+        if verbose > 0:
+            print('Error! Could not find any directories in ' + mainDirectory)
         sys.exit(1)
 
       #Check for valid directories
@@ -304,7 +307,7 @@ class sfincsScan:
         self.dPhiHatdpsiN[ind] = file['dPhiHatdpsiN'][()]
         self.dPhiHatdrN[ind]   = file['dPhiHatdrN'][()]
         self.dPhiHatdrHat[ind] = file['dPhiHatdrHat'][()]
-        self.Er[ind] = file['Er'][()]
+        self.Er[ind]           = file['Er'][()]
         self.EParallelHat[ind] = file['EParallelHat'][()]
         if withAdiabatic:
           self.adiabaticNHat[ind] = file['adiabaticNHat'][()]
@@ -389,7 +392,13 @@ class sfincsScan:
       self.Nspecies=Nspecies
       self.mainDir=mainDirectory
       self.reduced=True
-
+    
+    # Added here for ease
+    if self.includePhi1:
+      particleFlux=self.particleFlux_vd_rHat
+    else:
+      particleFlux=self.particleFlux_vm_rHat
+    self.Jr=np.sum(particleFlux*self.Zs,axis=1)
 
   def disp(self,radialCoord='rHat'):
     print('--------------------------------------------------------------------------------------')
@@ -587,13 +596,12 @@ class sfincsScan:
         elif startind != -1:
             newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
       newnamelist_fid.close()
-      ''' # FIXME uncomment!
+
       env = dict(os.environ)
       stat=subprocess.call([launchCommand,'job.sfincsScan'],cwd=newDataDir,env=env)
       if stat > 0:
         print('Error submitting the file '+newDataDir+'/job.sfincsScan with '+launchCommand+' !')
         sys.exit(stat)
-      '''
 
   def plot(self,xvarName,yvarNames):
     print(xvarName)
@@ -738,7 +746,8 @@ class sfincsRadialAndErScan:
 
     CandidateDirs = sorted(CandidateDirs)
     if len(CandidateDirs) < 1:
-      print('Error! Could not find any directories in ' + headDirectory)
+      if verbose > 0:
+          print('Error! Could not find any directories in ' + headDirectory)
       sys.exit(1)
 
     unsrtErscans=[]
@@ -752,7 +761,10 @@ class sfincsRadialAndErScan:
           tmp=sfincsScan(headDirectory+'/'+CandidateDirs[ind],sortafter='dPhiHatdrN',verbose=verbose)
           unsrtErscans.append(tmp)
         except:
-          print('Could not load '+headDirectory+'/'+CandidateDirs[ind])
+          if verbose > 0:
+            print('Could not load '+headDirectory+'/'+CandidateDirs[ind])
+          else:
+            pass
 
     self.Nradii=len(unsrtErscans)
     unsrt_rN=np.zeros((self.Nradii))
