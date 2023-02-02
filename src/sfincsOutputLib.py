@@ -395,9 +395,9 @@ class sfincsScan:
     
     # Added here for ease
     if self.includePhi1:
-      particleFlux=self.particleFlux_vd_rHat
+      particleFlux=self.particleFlux_vd_rN
     else:
-      particleFlux=self.particleFlux_vm_rHat
+      particleFlux=self.particleFlux_vm_rN
     self.Jr=np.sum(particleFlux*self.Zs,axis=1)
 
   def disp(self,radialCoord='rHat'):

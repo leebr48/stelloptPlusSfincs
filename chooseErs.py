@@ -20,6 +20,7 @@ from sfincsOutputLib import sfincsRadialAndErScan
 #FIXME try to generalize the radial labels - you are able to retrieve it, now just propagate that throughout the code
 #FIXME ensure that outside package can handle all the radial labels from Sfincs - psiN seems to be absent, even though it is in some of the derivatives (and psiHat seems to be ignored at those times?...)
 #FIXME what will you actually run once you have the correct Er's? Your phi1 script, but modified??
+#FIXME lots of testing is needed!
 
 # Defaults
 indir = '/u/lebra/src/stelloptPlusSfincs/outsideTest/sixthObjCopy' # FIXME generalize AND regularize
@@ -119,6 +120,7 @@ def determineRadialLabel(sfincsDir):
     subdirLabels = [title.split('_')[0] for title in subdirTitles]
     countLabels = Counter(subdirLabels)
     mostCommonLabel = max(countLabels, key=countLabels.get)
+    #FIXME maybe grab electric field variable too?
 
     return mostCommonLabel
 
