@@ -804,13 +804,29 @@ def prettyDataLabel(inString):
 
     if '_' not in inString:
         
+        PhiHat = r'$\hat{\Phi}$'
+        def derFormat(top, bottom):
+            return r'$\frac{d %s}{d %s}$' % (top, bottom)
+        
         extensiveParticleFluxUnits = r' $\mathrm{\left(\frac{1}{s}\right)}$'
         extensiveHeatFluxUnits = r' $\mathrm{\left(W\right)}$'
         extensiveMomentumFluxUnits = r' $\mathrm{\left(\frac{kg T m}{s^{-2}}\right)}$'
         extensiveRadialCurrentUnits = r' $\mathrm{\left(A\right)}$'
-        
+
         if inString == 'Er':
             return r'Radial electric field $\mathrm{\left(\frac{V}{m}\right)}$'
+
+        elif inString == 'dPhiHatdpsiHat':
+            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiHat', innerOnly=True))
+
+        elif inString == 'dPhiHatdpsiN':
+            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiN', innerOnly=True))
+        
+        elif inString == 'dPhiHatdrHat':
+            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rHat', innerOnly=True))
+        
+        elif inString == 'dPhiHatdrN':
+            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rN', innerOnly=True))
         
         elif inString == 'FSABFlow':
             return r'FSAB parallel flow $\mathrm{\left(\frac{T}{m^{2} s}\right)}$'

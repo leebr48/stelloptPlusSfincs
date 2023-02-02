@@ -48,6 +48,7 @@ class sfincsScan:
       self.theta    = [None]*Nruns
       self.zeta     = [None]*Nruns
       self.psiHat   = np.zeros((Nruns))
+      self.psiN     = np.zeros((Nruns))
       self.rN       = np.zeros((Nruns))
       self.rHat     = np.zeros((Nruns))
       self.GHat     = np.zeros((Nruns))
@@ -85,6 +86,7 @@ class sfincsScan:
       self.dTHatdrN      = np.zeros((Nruns,Nspecies))
       self.dTHatdrHat    = np.zeros((Nruns,Nspecies))
       self.dPhiHatdpsiN  = np.zeros((Nruns))
+      self.dPhiHatdpsiHat= np.zeros((Nruns))
       self.dPhiHatdrN    = np.zeros((Nruns))
       self.dPhiHatdrHat  = np.zeros((Nruns))
       self.Er            = np.zeros((Nruns))
@@ -264,6 +266,7 @@ class sfincsScan:
         self.theta[ind]     = file['theta'][()]
         self.zeta[ind]      = file['zeta'][()]
         self.psiHat[ind]    = file['psiHat'][()]
+        self.psiN[ind]      = file['psiN'][()]
         self.rN[ind]        = file['rN'][()]  
         self.rHat[ind]      = file['rHat'][()]  
         self.GHat[ind]      = file['GHat'][()]
@@ -305,6 +308,7 @@ class sfincsScan:
         self.dTHatdrN[ind]     = file['dTHatdrN'][()]
         self.dTHatdrHat[ind]   = file['dTHatdrHat'][()]
         self.dPhiHatdpsiN[ind] = file['dPhiHatdpsiN'][()]
+        self.dPhiHatdpsiHat[ind]= file['dPhiHatdpsiHat'][()]
         self.dPhiHatdrN[ind]   = file['dPhiHatdrN'][()]
         self.dPhiHatdrHat[ind] = file['dPhiHatdrHat'][()]
         self.Er[ind]           = file['Er'][()]
@@ -430,7 +434,7 @@ class sfincsScan:
 
   def choose_Erscan_run_with_best_Er(self,ErQuantity='dPhiHatdrN'):
     # returns the index of the run with the lowest radial current
-    if not(self.sortafter=='dPhiHatdrN' or self.sortafter=='dPhiHatdrHat' or self.sortafter=='dPhiHatdpsiN' or self.sortafter=='Er'):
+    if not(self.sortafter=='dPhiHatdrN' or self.sortafter=='dPhiHatdrHat' or self.sortafter=='dPhiHatdpsiN' or self.dPhiHatdpsiHat or self.sortafter=='Er'):
       sys.exit("Error using Ersearch: The sfincsScan data was not sorted after radial electric field. "+
                "Please use the option sortafter='dPhiHatdrN' in the initialisation.")
     Er=getattr(self,ErQuantity)
@@ -448,7 +452,7 @@ class sfincsScan:
   def Ersearch(self,ErQuantity='dPhiHatdrN',verbose=0,launch='no',launchCommand='sbatch',interptype='quad',
                jobfilefrom='nearest'):
     #launch can be 'yes', 'no' or 'ask'
-    if not(self.sortafter=='dPhiHatdrN' or self.sortafter=='dPhiHatdrHat' or self.sortafter=='dPhiHatdpsiN' or self.sortafter=='Er'):
+    if not(self.sortafter=='dPhiHatdrN' or self.sortafter=='dPhiHatdrHat' or self.sortafter=='dPhiHatdpsiN' or self.dPhiHatdpsiHat or self.sortafter=='Er'):
       sys.exit("Error using Ersearch: The sfincsScan data was not sorted after radial electric field. "+
                "Please use the option sortafter='dPhiHatdrN' in the initialisation.")
     if self.Nruns<2:
@@ -555,7 +559,7 @@ class sfincsScan:
 
     return newEr
   
-  def launchRun(self, ErQuantity, newEr, jobfilefrom, closestind, ambipolarSolve=False, launchCommand='sbatch'):
+  def launchRun(self, ErQuantity, newEr, jobfilefrom, closestind, ambipolarSolve=False, sendRunToScheduler=True, launchCommand='sbatch'):
     newDataDir=self.mainDir + '/' + ErQuantity + '{:8.6f}'.format(newEr)
     launchindeed=False
     if not(os.path.isdir(newDataDir)):
@@ -596,12 +600,13 @@ class sfincsScan:
         elif startind != -1:
             newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
       newnamelist_fid.close()
-
-      env = dict(os.environ)
-      stat=subprocess.call([launchCommand,'job.sfincsScan'],cwd=newDataDir,env=env)
-      if stat > 0:
-        print('Error submitting the file '+newDataDir+'/job.sfincsScan with '+launchCommand+' !')
-        sys.exit(stat)
+      
+      if sendRunToScheduler:
+          env = dict(os.environ)
+          stat=subprocess.call([launchCommand,'job.sfincsScan'],cwd=newDataDir,env=env)
+          if stat > 0:
+            print('Error submitting the file '+newDataDir+'/job.sfincsScan with '+launchCommand+' !')
+            sys.exit(stat)
 
   def plot(self,xvarName,yvarNames):
     print(xvarName)
