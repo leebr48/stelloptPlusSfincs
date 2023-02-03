@@ -24,6 +24,7 @@ def getRunArgs():
     parser.add_argument('--minRad', type=float, nargs=1, required=False, default=[0.15], help='Lower bound for the radial scan. If <resScan> is used, the flux surface specified by this parameter will be used for the convergence scan. Note that VMEC has resolution issues near the magnetic axis and SFINCS often converges much slower there due to the relatively low collisionality, so setting <minRad> to be very small may cause problems. If the innermost surface of a loaded equilibrium is outside <minRad>, SFINCS will give nonphysical (usually divergent) answers.')
     parser.add_argument('--maxRad', type=float, nargs=1, required=False, default=[0.95], help='Upper bound for the radial scan.')
     parser.add_argument('--noAmbiSolve', action='store_true', default=False, help='Disable ambipolarSolve. This means that the "seed" value of Er specified using any other commands will become *the* Er value used during the SFINCS run(s). This may create nonphysical results, so be careful if you use this option.')
+    parser.add_argument('--maxRootJr', type=float, nargs=1, required=False, default=[1.0e-12], help='Maximum radial current (defined as in SFINCS) that may be present for a given electric field value to be considered a "root". The default is recommended.')
     parser.add_argument('--loadPot', action='store_true', default=False, help='Load a potential from <profilesIn>. This will overwrite <seedEr>. If you use this option, you must set <numErSubscan> >=1 and <radialGradientVar> = 1. The former requirement ensures the software knows whether or not you wish to use the given potential alone or a range around it, and the latter requirement is required because STELLOPT always specifies the potential profile in terms of "s".')
     parser.add_argument('--seedEr', type=float, nargs=1, required=False, default=[0], help="Input an initial guess for the radial electric field in units of <radialGradientVar>. You should consider that this seed value may influence whether SFINCS converges to the ion or electron root. This parameter will be overwritten if you trigger an electric field scan with <numErSubscan>.")
     parser.add_argument('--numErSubscan', type=int, nargs=1, required=False, default=[0], help='Number of radial electric field scans to perform within each radial directory. This parameter generates equidistant radial electric field seed values between <minSeedEr> and <maxSeedEr> for the root-finding algorithm in SFINCS. This parameter will be overwritten if <resScan> is activated.')
@@ -275,6 +276,29 @@ def getCompoundPlotArgs():
 
     return args
     
+def getChooseErArgs():
+
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for choosing the right radial electric field on a given flux surface.
+    '''
+
+    import argparse
+    from os.path import isdir
+    
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--sfincsDir', type=str, nargs=1, required=True, help='Top directory for SFINCS run, with path if necessary. This directory must contain subdirectories which either contain SFINCS output files (*.h5) or more subdirectories for the electric field scan. In the latter case, those subsubdirectories contain SFINCS output files.')
+    parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=[None], help='Location in which to save plots and informational *.txt files. Defaults to <sfincsDir>/determineEr/.')
+    parser.add_argument('--maxRootJr', type=float, nargs=1, required=False, default=[1.0e-12], help='Maximum radial current (defined as in SFINCS) that may be present for a given electric field value to be considered a "root". The default is the same as that used in writeNamelist.py and is recommended.')
+    args = parser.parse_args()
+
+    if not isdir(args.sfincsDir[0]):
+        raise IOError('The input given in <sfincsDir> must be a directory.')
+    
+    return args
+
 def getFileInfo(inFile, saveLoc, outFileName):
 
     '''
@@ -284,8 +308,7 @@ def getFileInfo(inFile, saveLoc, outFileName):
         saveLoc: String with (relative or absolute) path 
                  where other files (such as the outputs
                  of other scripts) should be saved. Defaults
-                 to the location of inFile, but can be
-                 specified with <saveLoc> command line option.
+                 to the location of inFile.
         outFileName: String with name for an outFile.
     Outputs:
         Strings with the inFile absolute path, inFile name,

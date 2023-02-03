@@ -20,7 +20,6 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     # List out some hard-coded variables
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
     ambipolarSolveOption = 3 # Use a Newton method
-    Er_search_tolerance_f = str(1.0e-12).lower().replace('e','d') # Root-finding tolerance (radial current in SFINCS internal units) - lower than default to help ensure ambipolar fluxes
     VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
     Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
     alpha = str(1.0e+0).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
@@ -63,6 +62,8 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     else:
         ambipolarSolve = '.false.' # Use the given seed value of Er
 
+    Er_search_tolerance_f = str(args.maxRootJr[0]).lower().replace('e','d') # Root-finding tolerance (radial current in SFINCS internal units) - lower than default to help ensure ambipolar fluxes
+    
     Er_min = args.minSolverEr[0]
     Er_max = args.maxSolverEr[0]
     

@@ -1,5 +1,6 @@
 # FIXME explain what this script does and its limitations both here and in the eventual args. You should also explain that some manual checking must be done with the output plots to ensure all the roots have been found.
 #FIXME note that Er should be pretty smooth (except for electron-ion root change, since you assume D_E=0)... not sure if you want to check that somehow in the script, or just tell users to check it by eye
+#FIXME note that you can perhaps shorten the run time when ambipolarSolve is turned off.
 
 # Load necessary modules
 from os.path import dirname, abspath, join
@@ -14,16 +15,24 @@ from collections import Counter
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
 from dataProc import combineAndSort
-from IO import makeDir, findFiles, messagePrinter, prettyDataLabel
+from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter, prettyDataLabel
 from sfincsOutputLib import sfincsRadialAndErScan
 
 #FIXME what will you actually run once you have the correct Er's? Your phi1 script, but modified?? (Shouldn't be terrible). What about just using launchRun?
 #FIXME lots of testing is needed!
 
-# Administrative matters
-indir = '/u/lebra/src/stelloptPlusSfincs/outsideTest/sixthObjCopy' # FIXME generalize AND regularize
-outdir = makeDir(join(indir, 'determineEr')) # FIXME generalize... if necessary
-ErSearchTol = 1.0e-12 # Maximum Jr - this is also used in writeNamelist.py #FIXME might make this an option. Keep in mind you should make it an option for writeNamelist too, and you will perhaps need to pass it to ambipolarSolve in this script so that Sfincs actually performs root finding when you ask it to.
+# Administrative bits
+args = getChooseErArgs()
+_, _, _, inDir, _ = getFileInfo('/arbitrary/path', args.sfincsDir[0], 'arbitrary')
+
+if args.saveLoc[0] is None:
+    outDir = join(inDir, 'determineEr')
+else:
+    _, _, _, outDir, _ = getFileInfo('/arbitrary/path', args.saveLoc[0], 'arbitrary')
+
+_ = makeDir(outDir)
+
+ErSearchTol = 1.0e-12 # Maximum Jr - this is also used in writeNamelist.py #FIXME might make this an option. Keep in mind you should make it an option for writeNamelist too, and you will perhaps need to pass it to ambipolarSolve in this script so that Sfincs actually performs root finding when you ask it to. #FIXME can delete once edits are made
 
 # Locally useful bits
 def constructBSpline(dataMat): # Just here to ensure the spline order and smoothing settings are consistent throughout this script #FIXME you might ought to move this elsewhere? Other scripts could perhaps use it...
@@ -130,10 +139,10 @@ def getSplineBounds(tck):
     return [np.min(tck[0]), np.max(tck[0])]
 
 # Load tools from external library
-ds = sfincsRadialAndErScan(indir, verbose=0)
+ds = sfincsRadialAndErScan(inDir, verbose=0)
 
 # Check how the input directory is organized
-radLabel, electricFieldLabel = determineLabels(indir)
+radLabel, electricFieldLabel = determineLabels(inDir)
 
 # Determine where the satisfactory roots are for each radial subdirectory
 rootsToUse = [] 
@@ -146,7 +155,7 @@ for radInd in range(ds.Nradii):
     # Load and sort data from the given radial directory
     ErVals = getattr(ds.Erscans[radInd], electricFieldLabel)
     JrVals = ds.Erscans[radInd].Jr
-    rootInds = np.where(np.abs(np.array(JrVals)) <= ErSearchTol)
+    rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
     rootErs = np.array(ErVals)[rootInds]
     numActualRoots = len(rootErs)
     ErJrVals = combineAndSort(ErVals, JrVals)
@@ -168,7 +177,7 @@ for radInd in range(ds.Nradii):
         plt.axvline(x=root, color='black', linestyle='-')
     plt.xlabel(prettyDataLabel(electricFieldLabel))
     plt.ylabel(prettyDataLabel('radialCurrent_vm_rN')) # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
-    plt.savefig(join(outdir, 'testImg'+str(radInd)+'.pdf'), bbox_inches='tight', dpi=400) #FIXME generalize address
+    plt.savefig(join(outDir, 'testImg'+str(radInd)+'.pdf'), bbox_inches='tight', dpi=400) #FIXME generalize address
 
     # Determine if new runs should be launched, or the data processed as-is
     if numActualRoots == 0:
@@ -289,7 +298,12 @@ for radInd in range(ds.Nradii):
         continue
 
 # Now save the Er information that was found
-np.savetxt(join(outdir, 'rootsToUse.txt'), rootsToUse)
-np.savetxt(join(outdir, 'ionRoots.txt'), ionRoots)
-np.savetxt(join(outdir, 'electronRoots.txt'), electronRoots)
-np.savetxt(join(outdir, 'soloRoots.txt'), soloRoots)
+assert ds.Nradii == len(rootsToUse), 'The vector used to write rootsToUse.txt was the wrong length. Something is wrong.'
+assert ds.Nradii == len(ionRoots), 'The vector used to write ionRoots.txt was the wrong length. Something is wrong.'
+assert ds.Nradii == len(electronRoots), 'The vector used to write electronRoots.txt was the wrong length. Something is wrong.'
+assert ds.Nradii == len(soloRoots), 'The vector used to write soloRoots.txt was the wrong length. Something is wrong.'
+
+np.savetxt(join(outDir, 'rootsToUse.txt'), rootsToUse)
+np.savetxt(join(outDir, 'ionRoots.txt'), ionRoots)
+np.savetxt(join(outDir, 'electronRoots.txt'), electronRoots)
+np.savetxt(join(outDir, 'soloRoots.txt'), soloRoots)
