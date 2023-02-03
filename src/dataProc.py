@@ -121,6 +121,28 @@ def scaleInputData(dataOfInterest, profiles=True, phiBar=1, nBar=1e20, TBar=1, m
 
     return dataOfInterest
 
+def constructBSpline(ivVec, dvVec, k=3, s=0):
+
+    '''
+    Inputs:
+        ivVec: List of independent variable values.
+        dvVec: List of dependent variable values.
+        k: Degree of the spline.
+        s: Smoothing parameter. For details, see the docs on
+           scipy.interpolate.splrep. s=0 corresponds to no
+           smoothing, meaning that the interpolation function
+           will go through every data point.
+    Outputs:
+        A "tck" tuple describing the spline - see the docs
+        mentioned above for details.
+    '''
+    
+    from scipy.interpolate import splrep
+
+    tck = splrep(ivVec, dvVec, k=k, s=s)
+    
+    return tck
+
 def nonlinearInterp(inputData, ders, k=3, s=0):
 
     '''
@@ -143,14 +165,14 @@ def nonlinearInterp(inputData, ders, k=3, s=0):
         objects in place of the data.
     '''
 
-    from scipy.interpolate import splrep, splev
+    from scipy.interpolate import splev
 
     outputData = {}
     for key, data in inputData.items():
         
         interpObjs = []
         for ivVec,dvVec in zip(data['iv'], data['dv']):
-            tck = splrep(ivVec, dvVec, k=k, s=s)
+            tck = constructBSpline(ivVec, dvVec, k=k, s=s)
             interpObj = lambda x, tck=tck, der=ders[key]: splev(x, tck, der=der, ext=2) # Will raise an error if extrapolation is requested
             interpObjs.append(interpObj)
         

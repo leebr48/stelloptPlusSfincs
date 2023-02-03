@@ -14,7 +14,7 @@ from collections import Counter
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from dataProc import combineAndSort
+from dataProc import combineAndSort, constructBSpline
 from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter, prettyDataLabel
 from sfincsOutputLib import sfincsRadialAndErScan
 
@@ -32,15 +32,9 @@ else:
 
 _ = makeDir(outDir)
 
-ErSearchTol = 1.0e-12 # Maximum Jr - this is also used in writeNamelist.py #FIXME might make this an option. Keep in mind you should make it an option for writeNamelist too, and you will perhaps need to pass it to ambipolarSolve in this script so that Sfincs actually performs root finding when you ask it to. #FIXME can delete once edits are made
-
 # Locally useful bits
-def constructBSpline(dataMat): # Just here to ensure the spline order and smoothing settings are consistent throughout this script #FIXME you might ought to move this elsewhere? Other scripts could perhaps use it...
-    tck = splrep(dataMat[:,0], dataMat[:,1], k=3, s=0)
-    return tck
-
 def findRoots(dataMat, numRootEst, xScan):
-    tck = constructBSpline(dataMat)
+    tck = constructBSpline(dataMat[:,0], dataMat[:,1], k=3, s=0)
     estRoots = sproot(tck, mest=numRootEst) # Should not extrapolate outside of provided data
     yEst = splev(xScan, tck)
     return tck, estRoots, yEst
@@ -105,7 +99,7 @@ def launchNewRuns(uniqueRootGuesses, sfincsScanInstance, electricFieldVar):
     ErVals = getattr(sfincsScanInstance, electricFieldVar)
     for root in uniqueRootGuesses:
         closestInd = np.argmin(np.abs(root - ErVals))
-        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, ambipolarSolve=True, sendRunToScheduler=True, launchCommand='sbatch') #FIXME generalize 'ambipolarSolve' and the schedulerRun and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind) #FIXME consider taking away the asking permission to launch, or at least providing an option for it (probably just launch by default)
+        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, ambipolarSolve=True, JrTol=args.maxRootJr[0], sendRunToScheduler=True, launchCommand='sbatch') #FIXME generalize 'ambipolarSolve' and the schedulerRun and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind), AND ensure that the copied input scripts generated have the right properties for lots of different combinations, AND perhaps forcibly insert any missing lines (or be lazy and just tell people to look for them?...) #FIXME consider taking away the asking permission to launch, or at least providing an option for it (probably just launch by default)
         # FIXME depending on how the permissions work, you may need to print a notification when you auto-launch a run
 
 def printMoreRunsMessage(customString):
@@ -177,7 +171,8 @@ for radInd in range(ds.Nradii):
         plt.axvline(x=root, color='black', linestyle='-')
     plt.xlabel(prettyDataLabel(electricFieldLabel))
     plt.ylabel(prettyDataLabel('radialCurrent_vm_rN')) # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
-    plt.savefig(join(outDir, 'testImg'+str(radInd)+'.pdf'), bbox_inches='tight', dpi=400) #FIXME generalize address
+    plotName = radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel + '.pdf'
+    plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
 
     # Determine if new runs should be launched, or the data processed as-is
     if numActualRoots == 0:

@@ -105,11 +105,10 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
 
     stringToWrite += '&general\n'
     stringToWrite += '\tambipolarSolve = {} ! Whether or not to determine the ambipolar Er\n'.format(ambipolarSolve)
-    if not args.noAmbiSolve:
-        stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
-        stringToWrite += '\tEr_search_tolerance_f = {} ! Root-finding tolerance (radial current in SFINCS internal units)\n'.format(Er_search_tolerance_f)
-        stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_min)
-        stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_max)
+    stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
+    stringToWrite += '\tEr_search_tolerance_f = {} ! Root-finding tolerance (radial current in SFINCS internal units)\n'.format(Er_search_tolerance_f)
+    stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_min)
+    stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_max)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 

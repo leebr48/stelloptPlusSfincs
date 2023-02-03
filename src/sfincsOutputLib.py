@@ -559,7 +559,7 @@ class sfincsScan:
 
     return newEr
   
-  def launchRun(self, ErQuantity, newEr, jobfilefrom, closestind, ambipolarSolve=False, sendRunToScheduler=True, launchCommand='sbatch'):
+  def launchRun(self, ErQuantity, newEr, jobfilefrom, closestind, ambipolarSolve=False, JrTol=1.0e-12, sendRunToScheduler=True, launchCommand='sbatch'):
     newDataDir=self.mainDir + '/' + ErQuantity + '{:8.6f}'.format(newEr)
     launchindeed=False
     if not(os.path.isdir(newDataDir)):
@@ -590,13 +590,19 @@ class sfincsScan:
       for line in oldnamelist_file:
         startind=line.find(ErQuantity)
         ambiSolveInd = line.find('ambipolarSolve')
-        if startind == -1 and ambiSolveInd == -1:
+        JrTolInd = line.find('Er_search_tolerance_f')
+        if startind == -1 and ambiSolveInd == -1 and JrTolInd == -1:
             newnamelist_fid.write(line)
         elif ambiSolveInd != -1:
             if ambipolarSolve is True:
                 newnamelist_fid.write(line[:ambiSolveInd]+'ambipolarSolve = .true.\n')
             else:
                 newnamelist_fid.write(line[:ambiSolveInd]+'ambipolarSolve = .false.\n')
+        elif JrTolInd != -1:
+            if ambipolarSolve is True:
+                newnamelist_fid.write(line[:JrTolInd]+'Er_search_tolerance_f = {}\n'.format(str(JrTol).lower().replace('e','d')))
+            else:
+                newnamelist_fid.write(line)
         elif startind != -1:
             newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
       newnamelist_fid.close()
