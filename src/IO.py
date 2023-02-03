@@ -291,6 +291,8 @@ def getChooseErArgs():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--sfincsDir', type=str, nargs=1, required=True, help='Top directory for SFINCS run, with path if necessary. This directory must contain subdirectories which either contain SFINCS output files (*.h5) or more subdirectories for the electric field scan. In the latter case, those subsubdirectories contain SFINCS output files.')
     parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=[None], help='Location in which to save plots and informational *.txt files. Defaults to <sfincsDir>/determineEr/.')
+    parser.add_argument('--noAmbiSolve', action='store_true', default=False, help='Disable ambipolarSolve. This means that guessed value(s) of Er will be used without modification during the SFINCS run(s). Note that if Phi1 effects are included in the calculations, you MUST toggle <noAmbiSolve> and repeatedly use this script to find the roots.')
+    parser.add_argument('--noRun', action='store_true', default=False, help='Copy files, but do not launch SFINCS runs.')
     parser.add_argument('--maxRootJr', type=float, nargs=1, required=False, default=[1.0e-12], help='Maximum radial current (defined as in SFINCS) that may be present for a given electric field value to be considered a "root". The default is the same as that used in writeNamelist.py and is recommended.')
     args = parser.parse_args()
 

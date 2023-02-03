@@ -8,7 +8,7 @@ from inspect import getfile, currentframe
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.interpolate import splrep, sproot, splev, splder, splint
+from scipy.interpolate import sproot, splev, splder, splint
 from scipy.integrate import trapezoid
 from collections import Counter
 
@@ -99,8 +99,7 @@ def launchNewRuns(uniqueRootGuesses, sfincsScanInstance, electricFieldVar):
     ErVals = getattr(sfincsScanInstance, electricFieldVar)
     for root in uniqueRootGuesses:
         closestInd = np.argmin(np.abs(root - ErVals))
-        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, ambipolarSolve=True, JrTol=args.maxRootJr[0], sendRunToScheduler=True, launchCommand='sbatch') #FIXME generalize 'ambipolarSolve' and the schedulerRun and 'sbatch' if appropriate (keep ambipolarSolve weirdness in mind), AND ensure that the copied input scripts generated have the right properties for lots of different combinations, AND perhaps forcibly insert any missing lines (or be lazy and just tell people to look for them?...) #FIXME consider taking away the asking permission to launch, or at least providing an option for it (probably just launch by default)
-        # FIXME depending on how the permissions work, you may need to print a notification when you auto-launch a run
+        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, ambipolarSolve=(not args.noAmbiSolve), JrTol=args.maxRootJr[0], sendRunToScheduler=(not args.noRun), launchCommand='sbatch') #FIXME ensure that the copied input scripts generated have the right properties for lots of different combinations, AND perhaps forcibly insert any missing lines (or be lazy and just tell people to look for them?...) You could maybe do this by forcibly deleting the lines (that is, not saving them) if they are found and forcibly inserting the lines after the physics namelist is detected
 
 def printMoreRunsMessage(customString):
     standardLittleDataErrorMsg = ' This likely means not enough data was available.'
