@@ -3,7 +3,7 @@
 #FIXME note that you can perhaps shorten the run time when ambipolarSolve is turned off.
 
 # Load necessary modules
-from os.path import dirname, abspath, join
+from os.path import dirname, abspath, join, basename
 from inspect import getfile, currentframe
 import sys
 import matplotlib.pyplot as plt
@@ -24,6 +24,7 @@ from sfincsOutputLib import sfincsRadialAndErScan
 # Administrative bits
 args = getChooseErArgs()
 _, _, _, inDir, _ = getFileInfo('/arbitrary/path', args.sfincsDir[0], 'arbitrary')
+inDirName = basename(inDir)
 
 if args.saveLoc[0] is None:
     outDir = join(inDir, 'determineEr')
@@ -99,7 +100,7 @@ def launchNewRuns(uniqueRootGuesses, sfincsScanInstance, electricFieldVar):
     ErVals = getattr(sfincsScanInstance, electricFieldVar)
     for root in uniqueRootGuesses:
         closestInd = np.argmin(np.abs(root - ErVals))
-        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, ambipolarSolve=(not args.noAmbiSolve), JrTol=args.maxRootJr[0], sendRunToScheduler=(not args.noRun), launchCommand='sbatch') #FIXME ensure that the copied input scripts generated have the right properties for lots of different combinations, AND perhaps forcibly insert any missing lines (or be lazy and just tell people to look for them?...) You could maybe do this by forcibly deleting the lines (that is, not saving them) if they are found and forcibly inserting the lines after the physics namelist is detected
+        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, ambipolarSolve=(not args.noAmbiSolve), JrTol=args.maxRootJr[0], sendRunToScheduler=(not args.noRun), launchCommand='sbatch') #FIXME ensure that the copied input scripts generated have the right properties for lots of different combinations, especially/even with missing lines
 
 def printMoreRunsMessage(customString):
     standardLittleDataErrorMsg = ' This likely means not enough data was available.'
@@ -170,7 +171,7 @@ for radInd in range(ds.Nradii):
         plt.axvline(x=root, color='black', linestyle='-')
     plt.xlabel(prettyDataLabel(electricFieldLabel))
     plt.ylabel(prettyDataLabel('radialCurrent_vm_rN')) # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
-    plotName = radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel + '.pdf'
+    plotName = inDirName + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel + '.pdf'
     plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
 
     # Determine if new runs should be launched, or the data processed as-is
@@ -301,3 +302,7 @@ np.savetxt(join(outDir, 'rootsToUse.txt'), rootsToUse)
 np.savetxt(join(outDir, 'ionRoots.txt'), ionRoots)
 np.savetxt(join(outDir, 'electronRoots.txt'), electronRoots)
 np.savetxt(join(outDir, 'soloRoots.txt'), soloRoots)
+
+# Closing message
+messagePrinter('The root-choosing algorithms have run on {}.'.format(inDir))
+messagePrinter('Please check the outputs in {} to see the status of the calculations.'.format(outDir))

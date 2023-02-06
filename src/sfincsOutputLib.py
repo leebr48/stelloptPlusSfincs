@@ -586,6 +586,51 @@ class sfincsScan:
       #copy input.namelist
       with open(self.mainDir + '/' + self.DataDirs[closestind]+'/input.namelist') as f:
         oldnamelist_file=f.readlines()
+      
+      # First, some safety checks and modifications as needed
+      Phi1IsOn = False
+      ambipolarSolveLineInd = None
+      ambipolarSolveIsOn = False
+      Er_search_tolerance_f_LineInd = None
+      ErQuantityLineInd = None
+      for lineInd, line in enumerate(oldnamelist_file):
+          
+          if ('includePhi1' in line) and ('.true.' in line):
+              Phi1IsOn = True
+          
+          if 'ambipolarSolve' in line:
+              ambipolarSolveLineInd = lineInd
+              if '.true.' in line:
+                  ambipolarSolveIsOn = True
+
+          if 'Er_search_tolerance_f' in line:
+              Er_search_tolerance_f_LineInd = lineInd
+        
+          if ErQuantity in line:
+              ErQuantityLineInd = lineInd
+
+          if '&general' in line:
+              generalLineInd = lineInd
+
+          if '&physicsParameters' in line:
+              physicsParametersLineInd = lineInd
+
+      if Phi1IsOn and ambipolarSolveIsOn:
+          errMsg = 'It appears that ambipolarSolve and includePhi1 are both turned on in at least one input file to be copied, '
+          errMsg += 'but SFINCS is not yet capable of performing such calculations. Please choose one option or the other.'
+          raise IOError(errMsg)
+
+      if ambipolarSolveLineInd is None:
+          ambipolarSolveLineInd = generalLineInd + 1
+          oldnamelist_file.insert(ambipolarSolveLineInd, '  ambipolarSolve = .false.')
+        
+      if Er_search_tolerance_f_LineInd is None:
+          oldnamelist_file.insert(ambipolarSolveLineInd + 1, '  Er_search_tolerance_f = 1.0d-10')
+
+      if ErQuantityLineInd is None:
+          oldnamelist_file.insert(physicsParametersLineInd + 1, '{} = 0'.format(ErQuantity))
+
+      # Now write the new file
       newnamelist_fid=open(newDataDir+'/input.namelist','w')
       for line in oldnamelist_file:
         startind=line.find(ErQuantity)
