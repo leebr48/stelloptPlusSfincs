@@ -311,6 +311,10 @@ np.savetxt(join(outDir, 'ionRoots.txt'), ionRoots)
 np.savetxt(join(outDir, 'electronRoots.txt'), electronRoots)
 np.savetxt(join(outDir, 'soloRoots.txt'), soloRoots)
 
+# FIXME big 'if' statement would have its other half here. Could perhaps use the external library to load sfincsDir, compare ErQauntity vals for a given radius, and choose the one with the least difference from the appropriate one in the rootsToUse file. Then copy that over to the new directory.
+# FIXME be sure to throw an error if any nans are included in rootsToUse when this second piece of the script is run.
+# FIXME ensure the radial coordinates increase monotonically with radInd
+
 # Closing message
 messagePrinter('The root-choosing algorithms have run on {}.'.format(inDir))
 messagePrinter('Please check the outputs in {} to see the status of the calculations.'.format(outDir))
