@@ -18,8 +18,9 @@ from dataProc import combineAndSort, constructBSpline
 from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter, prettyDataLabel
 from sfincsOutputLib import sfincsRadialAndErScan
 
-#FIXME what will you actually run once you have the correct Er's? Your phi1 script, but modified?? (Shouldn't be terrible). What about just using launchRun?
+#FIXME what will you actually run once you have the correct Er's? Your phi1 script, but modified?? (Shouldn't be terrible). What about just using launchRun? Or wait, can you literally just copy directories since the runs were already completed?
 #FIXME lots of testing is needed!
+#FIXME are you getting into any weird loops with root finding, especially when you use ambipolarSolve?
 
 # Administrative bits
 args = getChooseErArgs()
@@ -41,17 +42,15 @@ def findRoots(dataMat, numRootEst, xScan):
     return tck, estRoots, yEst
 
 def getErJrData(dataMat, negative=True, numInterpPoints=100):
-    ErRange = [dataMat[0,0], dataMat[-1,0]]
 
     if negative:
         ErsData = ErJrVals[np.where(ErJrVals[:,0] < 0)]
-        ErScanRange = [ErRange[0], 0]
         numRoots = 1
     else:
         ErsData = ErJrVals[np.where(ErJrVals[:,0] > 0)]
-        ErScanRange = [0, ErRange[1]]
         numRoots = 2
         
+    ErScanRange = [ErsData[0,0], ErsData[-1,0]]
     ErScan = np.linspace(*ErScanRange, num=numInterpPoints)
 
     tck, estRoots, JrEst = findRoots(ErsData, numRoots, ErScan)
@@ -74,8 +73,8 @@ def getAllRootInfo(dataMat, knownRoots):
     tcks = [negTck, posTck]
     estRoots = np.append(negEstRoots, posEstRoots)
     stableRoots = np.append(negStableRoots, posStableRoots)
-    ErScan = np.append(negErScan, posErScan)
-    JrScan = np.append(negJrEst, posJrEst)
+    ErScan = [negErScan, posErScan]
+    JrScan = [negJrEst, posJrEst]
 
     return tcks, estRoots, stableRoots, ErScan, JrScan # Note that estRoots will contain any actual roots since there is no smoothing of the polynomials
 
@@ -100,7 +99,7 @@ def launchNewRuns(uniqueRootGuesses, sfincsScanInstance, electricFieldVar):
     ErVals = getattr(sfincsScanInstance, electricFieldVar)
     for root in uniqueRootGuesses:
         closestInd = np.argmin(np.abs(root - ErVals))
-        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, ambipolarSolve=(not args.noAmbiSolve), JrTol=args.maxRootJr[0], sendRunToScheduler=(not args.noRun), launchCommand='sbatch') #FIXME ensure that the copied input scripts generated have the right properties for lots of different combinations, especially/even with missing lines
+        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, ambipolarSolve=(not args.noAmbiSolve), JrTol=args.maxRootJr[0], sendRunToScheduler=(not args.noRun), launchCommand='sbatch')
 
 def printMoreRunsMessage(customString):
     standardLittleDataErrorMsg = ' This likely means not enough data was available.'
@@ -163,12 +162,21 @@ for radInd in range(ds.Nradii):
     # Plot data for interpretation later (if needed)
     plt.figure()
     plt.axhline(y=0, color='black', linestyle='-')
-    plt.plot(ErScan, JrScan)
     plt.scatter(ErJrVals[:,0], ErJrVals[:,1])
+    for ErPart, JrPart in zip(ErScan, JrScan):
+        plt.plot(ErPart, JrPart, color='tab:blue')
     for root in estRoots:
-        plt.axvline(x=root, color='black', linestyle=':')
-    for root in rootErs:
-        plt.axvline(x=root, color='black', linestyle='-')
+        if root in rootErs:
+            plt.axvline(x=root, color='black', linestyle='-')
+        else:
+            plt.axvline(x=root, color='black', linestyle=':')
+    dataMin = np.min(ErJrVals[:,1])
+    dataMax = np.max(ErJrVals[:,1])
+    dataRange = dataMax - dataMin
+    marg = 0.02 # The Matplotlib margins function wouldn't work properly for some reason, so it has to be done manually
+    useMin = dataMin - marg * dataRange
+    useMax = dataMax + marg * dataRange
+    plt.ylim(bottom=useMin, top=useMax)
     plt.xlabel(prettyDataLabel(electricFieldLabel))
     plt.ylabel(prettyDataLabel('radialCurrent_vm_rN')) # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
     plotName = inDirName + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel + '.pdf'

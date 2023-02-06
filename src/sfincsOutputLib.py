@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
 # This file was taken from https://github.com/landreman/sfincsProjectsAndTools/blob/master/tools/Hakan/pythonversion3scans/sfincsOutputLib.py on 23 January 2023.
-# It was last updated on 03 June 2021.
-# The primary function of interest was Ersearch. This file was modified to function better in this library.
+# The original file was last updated on 03 June 2021. It was modified after being copied to be more suitable for this library.
 # Many of the functions in this library essentially duplicate the functions in this file. You may choose to use one or the other at your discretion.
-# FIXME update this explanation when finished
 
 import numpy as np 
 import os, sys, inspect, math, h5py, copy
@@ -567,7 +565,7 @@ class sfincsScan:
       launchindeed=True
     else:
       print('The directory {} already exists. It might contain a failed calculation.'.format(newDataDir))
-      answer=inp('Launch the calculation again? (ret=yes,n=no):')        
+      answer=inp('Overwrite and/or run again? (ret=yes,n=no):') 
       if len(answer)==0:
         launchindeed=True
     if launchindeed:
@@ -615,20 +613,23 @@ class sfincsScan:
           if '&physicsParameters' in line:
               physicsParametersLineInd = lineInd
 
-      if Phi1IsOn and ambipolarSolveIsOn:
-          errMsg = 'It appears that ambipolarSolve and includePhi1 are both turned on in at least one input file to be copied, '
+      if Phi1IsOn and (ambipolarSolveIsOn or ambipolarSolve):
+          errMsg = 'It appears that both ambipolarSolve and includePhi1 are desired in at least one run, '
           errMsg += 'but SFINCS is not yet capable of performing such calculations. Please choose one option or the other.'
           raise IOError(errMsg)
 
       if ambipolarSolveLineInd is None:
           ambipolarSolveLineInd = generalLineInd + 1
-          oldnamelist_file.insert(ambipolarSolveLineInd, '  ambipolarSolve = .false.')
+          if ambipolarSolve is True:
+            oldnamelist_file.insert(ambipolarSolveLineInd, '  ambipolarSolve = .true.\n')
+          else:
+            oldnamelist_file.insert(ambipolarSolveLineInd, '  ambipolarSolve = .false.\n')
         
       if Er_search_tolerance_f_LineInd is None:
-          oldnamelist_file.insert(ambipolarSolveLineInd + 1, '  Er_search_tolerance_f = 1.0d-10')
+          oldnamelist_file.insert(ambipolarSolveLineInd + 1, '  Er_search_tolerance_f = {}\n'.format(str(JrTol).lower().replace('e','d')))
 
       if ErQuantityLineInd is None:
-          oldnamelist_file.insert(physicsParametersLineInd + 1, '{} = 0'.format(ErQuantity))
+          oldnamelist_file.insert(physicsParametersLineInd + 1, '{} = {:8.6f}\n'.format(ErQuantity, newEr))
 
       # Now write the new file
       newnamelist_fid=open(newDataDir+'/input.namelist','w')
@@ -644,10 +645,7 @@ class sfincsScan:
             else:
                 newnamelist_fid.write(line[:ambiSolveInd]+'ambipolarSolve = .false.\n')
         elif JrTolInd != -1:
-            if ambipolarSolve is True:
-                newnamelist_fid.write(line[:JrTolInd]+'Er_search_tolerance_f = {}\n'.format(str(JrTol).lower().replace('e','d')))
-            else:
-                newnamelist_fid.write(line)
+            newnamelist_fid.write(line[:JrTolInd]+'Er_search_tolerance_f = {}\n'.format(str(JrTol).lower().replace('e','d')))
         elif startind != -1:
             newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
       newnamelist_fid.close()

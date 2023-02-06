@@ -28,7 +28,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     includeXDotTerm = '.true.' # (Default) Necessary to calculate full trajectories
     includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
     magneticDriftScheme = 0 # Whether or not to include angular drifts, and if so, what model to use
-    includePhi1 = '.false' # Whether or not to include variation of electric potential on the flux surface
+    includePhi1 = '.false.' # Whether or not to include variation of electric potential on the flux surface
     export_full_f = '.false.' # Whether or not to save the full distribution function in the output file 
     export_delta_f = '.false.' # Whether or not to save the departure from the Maxwellian distribution function in the output file
 
