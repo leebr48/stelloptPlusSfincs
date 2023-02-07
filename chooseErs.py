@@ -124,6 +124,33 @@ def determineLabels(sfincsDir):
 def getSplineBounds(tck):
     return [np.min(tck[0]), np.max(tck[0])]
 
+def relDiff(n1, n2):
+    num = n1 - n2
+    denom = 0.5 * (n1 + n2)
+    
+    return np.abs(num / denom)
+
+def filterActualRoots(rootErs, rootJrs, diffTol = 0.01):
+    
+    # This is not efficient, but for our (small) data sets it should be fine
+    rootErsToKeep = np.array([])
+    rootJrsToKeep = np.array([])
+    for ind1, rootEr1 in enumerate(rootErs):
+       diffs = relDiff(rootEr1, rootErs) # Compare one root with all the others
+       tooSimilarInds = np.where(diffs < diffTol)
+       ErsToCompare = rootErs[tooSimilarInds]
+       JrsToCompare = rootJrs[tooSimilarInds]
+       bestJrInd = np.argmin(np.abs(JrsToCompare))
+       rootErsToKeep = np.append(rootErsToKeep, ErsToCompare[bestJrInd])
+       rootJrsToKeep = np.append(rootJrsToKeep, JrsToCompare[bestJrInd])
+
+    sortMat = np.unique(combineAndSort(rootErsToKeep, rootJrsToKeep), axis=0)
+
+    ErsOut = sortMat[:,0]
+    JrsOut = sortMat[:,1]
+
+    return ErsOut, JrsOut #FIXME do you even need to return the Jrs?
+
 # Sort out directories
 _, _, _, inDir, _ = getFileInfo('/arbitrary/path', args.sfincsDir[0], 'arbitrary')
 
@@ -164,7 +191,7 @@ if not args.filter:
         # Interpolate between the available data points to determine root stability and guess the position of as-yet-unfound roots
         tcks, estRoots, stableRoots, ErScan, JrScan = getAllRootInfo(ErJrVals, rootErs)
         numStableRoots = len(stableRoots)
-        uniqueRootGuesses = findUniqueRoots(rootErs, estRoots)
+        uniqueRootGuesses = findUniqueRoots(rootErs, estRoots) # FIXME almost certainly need to filter these too
         numUniqueRootGuesses = len(uniqueRootGuesses)
         
         # Plot data for interpretation later (if needed)
