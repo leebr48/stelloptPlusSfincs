@@ -202,7 +202,7 @@ for (inDir, outDir) in zip(inDirs, outDirs):
         writeFile(outFile, stringToWrite, silent=True)
 
         # Copy the job.sfincsScan file to the new directory
-        copy(join(copyDir, jobFileName), outSubDir)
+        copy(join(copyDir, jobFileName), outSubDir) # Note that this has file overwrite powers!
 
     messagePrinter('All relevant files have been copied from {} to {}.'.format(inDir, outDir))
     logFileString += '\tinput.namelist file(s) were pulled from {}, converted to include Phi1, and written\n'.format(inDir)
