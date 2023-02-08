@@ -57,7 +57,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     else:
         scanType = 5
     
-    if not args.noAmbiSolve:
+    if args.ambiSolve:
         ambipolarSolve = '.true.' # Determine the ambipolar Er
     else:
         ambipolarSolve = '.false.' # Use the given seed value of Er

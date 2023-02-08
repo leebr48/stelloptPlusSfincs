@@ -11,8 +11,6 @@
 # consider switching the value of the electric field on that flux surface (in rootsToUse.txt) to the alternative (found in electronRoots.txt or ionRoots.txt). Finally, keep in mind
 # that you may need to substantially modify the run time for SFINCS when ambipolarSolve or includePhi1 are turned on.
 
-#FIXME consider changing the RUN.PY noAmbiSolve to ambiSolve, so that it doesn't run by default... make sure this wouldn't break anything!
-
 # Load necessary modules
 from os.path import dirname, abspath, join, basename
 from inspect import getfile, currentframe
