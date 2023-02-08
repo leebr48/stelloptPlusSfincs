@@ -1,8 +1,17 @@
-# FIXME explain what this script does and its limitations both here and in the eventual args. You should also explain that some manual checking must be done with the output plots to ensure all the roots have been found.
-#FIXME note that Er should be pretty smooth (except for electron-ion root change, since you assume D_E=0)... not sure if you want to check that somehow in the script, or just tell users to check it by eye
-#FIXME note that you can perhaps shorten the run time when ambipolarSolve is turned off.
-#FIXME the points near Er=0 should probably include a bit of the upward spike in Jr so that polynomial integration can be relied on as much as possible.
-#FIXME if you copy directories, run plot.py to see the final result
+# This script helps the user identify the root(s) of the ambipolar electric field in a given configuration. Note that each flux surface in a device should have either 1 or 3 roots.
+# In the former case, the root is identified with confidence by the script. In the latter case, eq. (A2) of Turkin et al., PoP 18, 022505 (2011) is used to determine the correct root.
+# A normal workflow would be to use run.py for a given configuration to generate many scans over flux surfaces and radial electric field values (WITHOUT using ambipolarSolve), running
+# this script repeatedly until all the roots are identified (which may sometimes require looking at the plots produced and choosing radial electric field values manually), running
+# this script with the <filter> option to copy only the information for the "correct" electric field values to a new directory, and running ploy.py on that directory to get the
+# "correct" system behavior. The plots of Jr vs the radial electric field will typically show a spike when the electric field variable is zero. It is suggested that the scanned
+# electric field values span into part of this upward spike, but do not get too close to the peak. This is because polynomial integration is used for most of the points on this
+# plot, but the polynomials cannot fit the full spike properly. So, placing some points near the peak, but not so near that the fit polynomials become inaccurate, should give the
+# best results. Note that the final electric field should be relatively smooth, except if the system "switches" between the electron and ion roots - this will look like a step
+# change since the equation from Turkin et al. assumes the diffusion coefficient D_E = 0. If the electric field is jagged, the script may have chosen the wrong root. In this case,
+# consider switching the value of the electric field on that flux surface (in rootsToUse.txt) to the alternative (found in electronRoots.txt or ionRoots.txt). Finally, keep in mind
+# that you may need to substantially modify the run time for SFINCS when ambipolarSolve or includePhi1 are turned on.
+
+#FIXME consider changing the RUN.PY noAmbiSolve to ambiSolve, so that it doesn't run by default... make sure this wouldn't break anything!
 
 # Load necessary modules
 from os.path import dirname, abspath, join, basename
@@ -107,7 +116,8 @@ def recordNoEr(listOfLists):
         singleList.append(np.nan)
 
 def determineLabels(sfincsDir):
-    # A lot of this is probably overkill, but it should help add a level of automation safety
+    # This will only work if the radial directories are named 'var_val', rather than just given an integer number.
+    # Directories created with stelloptPlusSfincs will always follow this naming convention.
     dataFiles = findFiles('sfincsOutput.h5', sfincsDir, raiseError=True) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
     subdirsFirst = [address.replace(sfincsDir, '') for address in dataFiles]
     radSubdirTitles = [address.split('/')[1] for address in subdirsFirst]
