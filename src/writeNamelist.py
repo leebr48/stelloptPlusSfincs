@@ -27,8 +27,6 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     collisionOperator = 0 # (Default) Full linearized Fokker-Planck operator
     includeXDotTerm = '.true.' # (Default) Necessary to calculate full trajectories
     includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
-    magneticDriftScheme = 0 # Whether or not to include angular drifts, and if so, what model to use
-    includePhi1 = '.false.' # Whether or not to include variation of electric potential on the flux surface
     export_full_f = '.false.' # Whether or not to save the full distribution function in the output file 
     export_delta_f = '.false.' # Whether or not to save the departure from the Maxwellian distribution function in the output file
 
@@ -56,7 +54,14 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
         scanType = 4
     else:
         scanType = 5
-    
+
+    magneticDriftScheme = args.driftScheme[0] # Whether or not to include angular drifts, and if so, what model to use
+
+    if args.includePhi1:
+        includePhi1 = '.true.' # Calculate angular variation of the electric potential on a flux surface
+    else:
+        includePhi1 = '.false.' # Assume the electric potential is a flux function
+
     if args.ambiSolve:
         ambipolarSolve = '.true.' # Determine the ambipolar Er
     else:

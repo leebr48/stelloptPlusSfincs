@@ -23,6 +23,8 @@ def getRunArgs():
     parser.add_argument('--numCalcSurf', type=int, nargs=1, required=False, default=[16], help='Number of radial surfaces on which to perform full SFINCS calculations.')
     parser.add_argument('--minRad', type=float, nargs=1, required=False, default=[0.15], help='Lower bound for the radial scan. If <resScan> is used, the flux surface specified by this parameter will be used for the convergence scan. Note that VMEC has resolution issues near the magnetic axis and SFINCS often converges much slower there due to the relatively low collisionality, so setting <minRad> to be very small may cause problems. If the innermost surface of a loaded equilibrium is outside <minRad>, SFINCS will give nonphysical (usually divergent) answers.')
     parser.add_argument('--maxRad', type=float, nargs=1, required=False, default=[0.95], help='Upper bound for the radial scan.')
+    parser.add_argument('--driftScheme', type=int, nargs=1, required=False, default=[0], help='Specifies the scheme with which to calculate the poloidal and toroidal magnetic drifts. Valid inputs are the integers 0-9. With the default, no angular drifts are calculated. Any other setting is incompatible with <includePhi1> and <ambiSolve>. For explanations of the physical models used by the other settings, see the SFINCS documentation.')
+    parser.add_argument('--includePhi1', action='store_true', default=False, help='Have SFINCS calculate the angular variation of the electric potential within flux surfaces. Note that this is incompatible with <driftScheme> > 0 and <ambiSolve>.')
     parser.add_argument('--ambiSolve', action='store_true', default=False, help='Enable ambipolarSolve. SFINCS will start from a "seed" value of Er specified using other commands and attempt to modify it such that the radial current is driven to zero (which is what we would expect in a real device). Note that ambipolarSolve searches for *a* root, but it might not find the *correct* root. The script chooseErs.py can help with that.')
     parser.add_argument('--maxRootJr', type=float, nargs=1, required=False, default=[1.0e-12], help='Maximum radial current (defined as in SFINCS) that may be present for a given electric field value to be considered a "root". The default is recommended.')
     parser.add_argument('--loadPot', action='store_true', default=False, help='Load a potential from <profilesIn>. This will overwrite <seedEr>. If you use this option, you must set <numErSubscan> >=1 and <radialGradientVar> = 1. The former requirement ensures the software knows whether or not you wish to use the given potential alone or a range around it, and the latter requirement is required because STELLOPT always specifies the potential profile in terms of "s".')
@@ -70,6 +72,12 @@ def getRunArgs():
 
     if len(args.bcSymmetry) not in [1, len(args.eqIn)]:
         raise IOError('The length of <bcSymmetry> must either be 1 or the same as <eqIn>.')
+
+    if args.driftScheme[0] < 0 or args.driftScheme[0] > 9:
+        raise IOError('<driftScheme> must be between 0 and 9.')
+
+    if [args.driftScheme[0] > 0, args.includePhi1, args.ambiSolve].count(True) > 1:
+        raise IOError('You may do at most one of the following things for a given SFINCS run: set <driftScheme> > 0, turn on <includePhi1>, or turn on <ambiSolve>.')
 
     if args.loadPot:
         if args.numErSubscan[0] < 1:
