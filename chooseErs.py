@@ -130,7 +130,7 @@ def relDiff(n1, n2):
     
     return np.abs(num / denom)
 
-def filterActualRoots(rootErs, rootJrs, diffTol = 0.01):
+def filterActualRoots(rootErs, rootJrs, diffTol = 0.01): #FIXME might need to change (raise?) diffTol if this doesn't work as expected
     
     # This is not efficient, but for our (small) data sets it should be fine
     rootErsToKeep = np.array([])
@@ -149,7 +149,7 @@ def filterActualRoots(rootErs, rootJrs, diffTol = 0.01):
     ErsOut = sortMat[:,0]
     JrsOut = sortMat[:,1]
 
-    return ErsOut, JrsOut #FIXME do you even need to return the Jrs?
+    return ErsOut, JrsOut
 
 # Sort out directories
 _, _, _, inDir, _ = getFileInfo('/arbitrary/path', args.sfincsDir[0], 'arbitrary')
@@ -184,16 +184,19 @@ if not args.filter:
         ErVals = getattr(ds.Erscans[radInd], electricFieldLabel)
         JrVals = ds.Erscans[radInd].Jr
         rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
-        rootErs = np.array(ErVals)[rootInds] # FIXME should probably filter this... or maybe just the guesses?
+        allRootErs = np.array(ErVals)[rootInds] # Could contain (effective) duplicates in rare cases
+        allRootJrs = np.array(JrVals)[rootInds]
+        rootErs, rootJrs = filterActualRoots(allRootErs, allRootJrs)
         numActualRoots = len(rootErs)
         ErJrVals = combineAndSort(ErVals, JrVals)
 
         # Interpolate between the available data points to determine root stability and guess the position of as-yet-unfound roots
-        tcks, estRoots, stableRoots, ErScan, JrScan = getAllRootInfo(ErJrVals, rootErs)
+        tcks, allEstRoots, stableRoots, ErScan, JrScan = getAllRootInfo(ErJrVals, rootErs)
         numStableRoots = len(stableRoots)
-        uniqueRootGuesses = findUniqueRoots(rootErs, estRoots) # FIXME almost certainly need to filter these too
+        estRoots, _ = filterActualRoots(np.append(rootErs, allEstRoots), np.append(rootJrs, [10 ** 9]*len(allEstRoots))) # Eliminate estimated roots if they are too close to real ones
+        uniqueRootGuesses = findUniqueRoots(rootErs, estRoots)
         numUniqueRootGuesses = len(uniqueRootGuesses)
-        
+
         # Plot data for interpretation later (if needed)
         plt.figure()
         plt.axhline(y=0, color='black', linestyle='-')
