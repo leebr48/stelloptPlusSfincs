@@ -31,13 +31,14 @@ from sfincsOutputLib import sfincsRadialAndErScan
 
 #FIXME lots of testing is needed!
 # FIXME the root filtering doesn't really seem to be working?... You're still getting guesses that are very close together.
+# FIXME the fits are having a lot of trouble - roots that were previously categorized as good to go became guesses. You CANNOT use different poly orders besides 3!
 
 # Get arguments
 args = getChooseErArgs()
 
 # Locally useful functions
 def findRoots(dataMat, xScan):
-    tck = constructBSpline(dataMat[:,0], dataMat[:,1], k=3, s=0) #FIXME try different poly orders? Perhaps this would help convergence speed?
+    tck = constructBSpline(dataMat[:,0], dataMat[:,1], k=3, s=0)
     estRoots = sproot(tck) # Should not extrapolate outside of provided data
     yEst = splev(xScan, tck)
     return tck, estRoots, yEst
