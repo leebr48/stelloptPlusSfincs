@@ -8,8 +8,9 @@
 # plot, but the polynomials cannot fit the full spike properly. So, placing some points near the peak, but not so near that the fit polynomials become inaccurate, should give the
 # best results. Note that the final electric field should be relatively smooth, except if the system "switches" between the electron and ion roots - this will look like a step
 # change since the equation from Turkin et al. assumes the diffusion coefficient D_E = 0. If the electric field is jagged, the script may have chosen the wrong root. In this case,
-# consider switching the value of the electric field on that flux surface (in rootsToUse.txt) to the alternative (found in electronRoots.txt or ionRoots.txt). Finally, keep in mind
-# that you may need to substantially modify the run time for SFINCS when ambipolarSolve or includePhi1 are turned on.
+# consider switching the value of the electric field on that flux surface (in rootsToUse.txt) to the alternative (found in electronRoots.txt or ionRoots.txt). Keep in mind
+# that you may need to substantially modify the run time for SFINCS when includePhi1 is turned on. Also keep in mind that you should NOT use ambipolarSolve with this script - 
+# doing so will create complications that can be unpleasant to deal with. It is easier and more reliable to simply run this script repeatedly.
 
 # Load necessary modules
 from os.path import dirname, abspath, join, basename
@@ -29,15 +30,14 @@ from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter,
 from sfincsOutputLib import sfincsRadialAndErScan
 
 #FIXME lots of testing is needed!
-#FIXME are you getting into any weird loops with root finding, especially when you use ambipolarSolve?
 
 # Get arguments
 args = getChooseErArgs()
 
 # Locally useful functions
-def findRoots(dataMat, numRootEst, xScan):
+def findRoots(dataMat, xScan):
     tck = constructBSpline(dataMat[:,0], dataMat[:,1], k=3, s=0)
-    estRoots = sproot(tck, mest=numRootEst) # Should not extrapolate outside of provided data
+    estRoots = sproot(tck) # Should not extrapolate outside of provided data
     yEst = splev(xScan, tck)
     return tck, estRoots, yEst
 
@@ -45,29 +45,27 @@ def getErJrData(dataMat, negative=True, numInterpPoints=100):
 
     if negative:
         ErsData = ErJrVals[np.where(ErJrVals[:,0] < 0)]
-        numRoots = 1
     else:
         ErsData = ErJrVals[np.where(ErJrVals[:,0] > 0)]
-        numRoots = 2
         
     ErScanRange = [ErsData[0,0], ErsData[-1,0]]
     ErScan = np.linspace(*ErScanRange, num=numInterpPoints)
 
-    tck, estRoots, JrEst = findRoots(ErsData, numRoots, ErScan)
+    tck, estRoots, JrEst = findRoots(ErsData, ErScan)
 
     return tck, estRoots, ErScan, JrEst
 
-def getAllRootInfo(dataMat, knownRoots):
+def getAllRootInfo(dataMat, knownRoots, ErQuantityHasSameSignAsEr):
     negKnownRoots = np.array(knownRoots)[np.where(knownRoots < 0)]
     posKnownRoots = np.array(knownRoots)[np.where(knownRoots > 0)]
 
     # Negative roots first
     negTck, negEstRoots, negErScan, negJrEst = getErJrData(dataMat, negative=True)
-    negStableRoots = determineRootStability(negTck, negKnownRoots)
+    negStableRoots = determineRootStability(negTck, negKnownRoots, ErQuantityHasSameSignAsEr)
 
     # Now positive roots
     posTck, posEstRoots, posErScan, posJrEst = getErJrData(dataMat, negative=False)
-    posStableRoots = determineRootStability(posTck, posKnownRoots)
+    posStableRoots = determineRootStability(posTck, posKnownRoots, ErQuantityHasSameSignAsEr)
     
     # Now combine everything
     tcks = [negTck, posTck]
@@ -84,11 +82,14 @@ def findUniqueRoots(actualRoots, estRoots):
 
     return uniqueGuesses
 
-def determineRootStability(tckData, knownRoots):
+def determineRootStability(tckData, knownRoots, ErQuantityHasSameSignAsEr):
     if len(knownRoots) != 0:
         tckDer = splder(tckData, n=1)
         ders = splev(knownRoots, tckDer)
-        stableInds = np.where(ders > 0) # dJr/dEr > 0 -> stable root
+        if ErQuantityHasSameSignAsEr:
+            stableInds = np.where(ders > 0) # dJr/dEr > 0 -> stable root
+        else:
+            stableInds = np.where(ders < 0) # Using Er definition/representation with opposite sign -> root stability condition flips
         stableRoots = knownRoots[stableInds]
     else:
         stableRoots = np.array([])
@@ -99,7 +100,7 @@ def launchNewRuns(uniqueRootGuesses, sfincsScanInstance, electricFieldVar):
     ErVals = getattr(sfincsScanInstance, electricFieldVar)
     for root in uniqueRootGuesses:
         closestInd = np.argmin(np.abs(root - ErVals))
-        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, ambipolarSolve=(not args.noAmbiSolve), JrTol=args.maxRootJr[0], sendRunToScheduler=(not args.noRun), launchCommand='sbatch')
+        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, sendRunToScheduler=(not args.noRun), launchCommand='sbatch')
 
 def printMoreRunsMessage(customString):
     standardLittleDataErrorMsg = ' This likely means not enough data was available.'
@@ -159,6 +160,9 @@ def filterActualRoots(rootErs, rootJrs, diffTol = 0.01): #FIXME might need to ch
 
     return ErsOut, JrsOut
 
+def determineErQuantitySign(ErQuantity, Er):
+    return np.all(ErQuantity * Er >= 0) # True if same sign, False if different signs
+
 # Sort out directories
 _, _, _, inDir, _ = getFileInfo('/arbitrary/path', args.sfincsDir[0], 'arbitrary')
 
@@ -189,7 +193,9 @@ if not args.filter:
     for radInd in range(ds.Nradii):
         
         # Load and sort data from the given radial directory
-        ErVals = getattr(ds.Erscans[radInd], electricFieldLabel)
+        ErVals = getattr(ds.Erscans[radInd], electricFieldLabel) # Note this doesn't literally have to be Er, it could be various derivatives of the potential
+        actualEr = getattr(ds.Erscans[radInd], 'Er') # This is only for sign comparisons
+        ErQuantityHasSameSignAsEr = determineErQuantitySign(ErVals, actualEr)
         JrVals = ds.Erscans[radInd].Jr
         rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
         allRootErs = np.array(ErVals)[rootInds] # Could contain (effective) duplicates in rare cases
@@ -199,7 +205,7 @@ if not args.filter:
         ErJrVals = combineAndSort(ErVals, JrVals)
 
         # Interpolate between the available data points to determine root stability and guess the position of as-yet-unfound roots
-        tcks, allEstRoots, stableRoots, ErScan, JrScan = getAllRootInfo(ErJrVals, rootErs)
+        tcks, allEstRoots, stableRoots, ErScan, JrScan = getAllRootInfo(ErJrVals, rootErs, ErQuantityHasSameSignAsEr)
         numStableRoots = len(stableRoots)
         estRoots, _ = filterActualRoots(np.append(rootErs, allEstRoots), np.append(rootJrs, [10 ** 9]*len(allEstRoots))) # Eliminate estimated roots if they are too close to real ones
         uniqueRootGuesses = findUniqueRoots(rootErs, estRoots)
@@ -213,9 +219,15 @@ if not args.filter:
             plt.plot(ErPart, JrPart, color='tab:blue')
         for root in estRoots:
             if root in rootErs:
-                plt.axvline(x=root, color='black', linestyle='-')
+                ls = '-'
+                if root in stableRoots:
+                    clr = 'green'
+                else:
+                    clr = 'red'
             else:
-                plt.axvline(x=root, color='black', linestyle=':')
+                ls = ':'
+                clr = 'black'
+            plt.axvline(x=root, color=clr, linestyle=ls)
         dataMin = np.min(ErJrVals[:,1])
         dataMax = np.max(ErJrVals[:,1])
         dataRange = dataMax - dataMin
@@ -305,20 +317,21 @@ if not args.filter:
                    
                     # We need to check that the unstable root is between the stable roots
                     unstableRoot = list(set(rootErs) - set(stableRoots))[0]
-                    ionRoot = np.min(stableRoots)
-                    electronRoot = np.max(stableRoots)
+                    lowerRoot = np.min(stableRoots)
+                    upperRoot = np.max(stableRoots)
 
-                    if ionRoot < unstableRoot and unstableRoot < electronRoot: # Everything is in order, so we can choose the correct root using eq. (A2) of Turkin et al., PoP 18, 022505 (2011)
+                    if lowerRoot < unstableRoot < upperRoot: # Everything is in order, so we can choose the correct root using eq. (A2) of Turkin et al., PoP 18, 022505 (2011)
                         
                         negTck = tcks[0]
                         posTck = tcks[1]
 
-                        negBounds = getSplineBounds(negTck)
-                        posBounds = getSplineBounds(posTck)
-                        truncatedErJrVals = ErJrVals[np.where((negBounds[1] <= ErJrVals[:,0]) & (ErJrVals[:,0] <= posBounds[0]))] # Use poly. int. over the fit domain, trapezoidal int. elsewhere
-
-                        negIntVal = splint(*negBounds, negTck)
-                        posIntVal = splint(*posBounds, posTck)
+                        _, lowerInnerBound = getSplineBounds(negTck)
+                        upperInnerBound, _ = getSplineBounds(posTck)
+                        truncatedErJrVals = ErJrVals[np.where((lowerInnerBound <= ErJrVals[:,0]) & (ErJrVals[:,0] <= upperInnerBound))] # Use poly. int. over the fit domain, trapezoidal int. elsewhere
+                        # FIXME you may be able to just fit a polynomial to all the data (probably split at E=0) and integrate that?
+                        # FIXME if roots end up in places the polynomials can't fit, probably force the program to use the trapezoidal method there. Maybe decide by checking the derivative? Perhaps you could use first-degree splines instead of the trapezoidal method in this case?
+                        negIntVal = splint(lowerRoot, lowerInnerBound, negTck)
+                        posIntVal = splint(upperInnerBound, upperRoot, posTck)
                         middleIntVal = trapezoid(truncatedErJrVals[:,1], x=truncatedErJrVals[:,0])
 
                         intVal = negIntVal + posIntVal + middleIntVal
@@ -328,10 +341,17 @@ if not args.filter:
                             recordNoEr(allRootsLists)
                             continue
 
+                        if ErQuantityHasSameSignAsEr:
+                            ionRoot = lowerRoot
+                            electronRoot = upperRoot
+                        else:
+                            ionRoot = upperRoot
+                            electronRoot = lowerRoot
+                        
                         ionRoots.append(ionRoot)
                         electronRoots.append(electronRoot)
                         
-                        if intVal > 0:
+                        if intVal > 0: # FIXME does this work any more with multiple Er defs?
                             rootsToUse.append(ionRoot)
                         elif intVal < 0:
                             rootsToUse.append(electronRoot)

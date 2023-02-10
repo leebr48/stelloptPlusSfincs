@@ -300,7 +300,6 @@ def getChooseErArgs():
     parser.add_argument('--sfincsDir', type=str, nargs=1, required=True, help='Top directory for SFINCS run, with path if necessary. This directory must contain subdirectories which contain more subdirectories for the electric field scan. The lowest-level subsubdirectories contain SFINCS output files (*.h5).')
     parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=[None], help='Location in which to save outputs. If <filter> is not used, these outputs are plots and informational *.txt files. In this case, the default is <sfincsDir>/determineEr/. If <filter> is used, the output is a "mirror" of <sfincsDir> containing only the "correct" electric field information. In this case, the default is <sfincsDir>+"_correctEr". The default is recommended, particularly when <filter> is not used.')
     parser.add_argument('--filter', action='store_true', default=False, help='Once all the roots for all flux surfaces of interest in a given <sfincsDir> are determined, this option can be used to copy only the subdirectories that contain the "correct" electric field information from <sfincsDir> to <saveLoc>. If plot.py is then run on <saveLoc>, the "true" behavior of the system will be seen. Note that <sfincsDir> must contain a determineEr/ subdirectory with a rootsToUse.txt file for this option to work.')
-    parser.add_argument('--noAmbiSolve', action='store_true', default=False, help='Disable ambipolarSolve. This means that guessed value(s) of Er will be used without modification during the SFINCS run(s). Note that if Phi1 effects are included in the calculations, you MUST toggle <noAmbiSolve> and repeatedly use this script to find the roots.')
     parser.add_argument('--noRun', action='store_true', default=False, help='Copy files, but do not launch SFINCS runs.')
     parser.add_argument('--maxRootJr', type=float, nargs=1, required=False, default=[1.0e-12], help='Maximum radial current (defined as in SFINCS) that may be present for a given electric field value to be considered a "root". The default is the same as that used in writeNamelist.py and is recommended.')
     args = parser.parse_args()
@@ -838,7 +837,7 @@ def prettyDataLabel(inString):
 
     if '_' not in inString:
         
-        PhiHat = r'$\hat{\Phi}$'
+        PhiHat = r'\hat{\Phi}'
         def derFormat(top, bottom):
             return r'$\frac{d %s}{d %s}$' % (top, bottom)
         
