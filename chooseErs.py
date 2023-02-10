@@ -30,13 +30,14 @@ from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter,
 from sfincsOutputLib import sfincsRadialAndErScan
 
 #FIXME lots of testing is needed!
+# FIXME the root filtering doesn't really seem to be working?... You're still getting guesses that are very close together.
 
 # Get arguments
 args = getChooseErArgs()
 
 # Locally useful functions
 def findRoots(dataMat, xScan):
-    tck = constructBSpline(dataMat[:,0], dataMat[:,1], k=3, s=0)
+    tck = constructBSpline(dataMat[:,0], dataMat[:,1], k=3, s=0) #FIXME try different poly orders? Perhaps this would help convergence speed?
     estRoots = sproot(tck) # Should not extrapolate outside of provided data
     yEst = splev(xScan, tck)
     return tck, estRoots, yEst
@@ -211,7 +212,7 @@ if not args.filter:
         uniqueRootGuesses = findUniqueRoots(rootErs, estRoots)
         numUniqueRootGuesses = len(uniqueRootGuesses)
 
-        # Plot data for interpretation later (if needed)
+        # Plot data for interpretation
         plt.figure()
         plt.axhline(y=0, color='black', linestyle='-')
         plt.scatter(ErJrVals[:,0], ErJrVals[:,1])
@@ -330,6 +331,7 @@ if not args.filter:
                         truncatedErJrVals = ErJrVals[np.where((lowerInnerBound <= ErJrVals[:,0]) & (ErJrVals[:,0] <= upperInnerBound))] # Use poly. int. over the fit domain, trapezoidal int. elsewhere
                         # FIXME you may be able to just fit a polynomial to all the data (probably split at E=0) and integrate that?
                         # FIXME if roots end up in places the polynomials can't fit, probably force the program to use the trapezoidal method there. Maybe decide by checking the derivative? Perhaps you could use first-degree splines instead of the trapezoidal method in this case?
+                        # FIXME in any case, test this integral stuff a lot, it's important!
                         negIntVal = splint(lowerRoot, lowerInnerBound, negTck)
                         posIntVal = splint(upperInnerBound, upperRoot, posTck)
                         middleIntVal = trapezoid(truncatedErJrVals[:,1], x=truncatedErJrVals[:,0])
@@ -350,6 +352,7 @@ if not args.filter:
                         
                         ionRoots.append(ionRoot)
                         electronRoots.append(electronRoot)
+                        soloRoots.append(np.nan)
                         
                         if intVal > 0: # FIXME does this work any more with multiple Er defs?
                             rootsToUse.append(ionRoot)
@@ -366,11 +369,11 @@ if not args.filter:
             recordNoEr(allRootsLists)
             continue
 
-    # Now save the Er information that was found
-    assert ds.Nradii == len(rootsToUse), 'The vector used to write rootsToUse.txt was the wrong length. Something is wrong.'
-    assert ds.Nradii == len(ionRoots), 'The vector used to write ionRoots.txt was the wrong length. Something is wrong.'
-    assert ds.Nradii == len(electronRoots), 'The vector used to write electronRoots.txt was the wrong length. Something is wrong.'
-    assert ds.Nradii == len(soloRoots), 'The vector used to write soloRoots.txt was the wrong length. Something is wrong.'
+    # Now perform some checks and save the Er information that was found
+    assert ds.Nradii == len(rootsToUse), 'The vector to be written in rootsToUse.txt was the wrong length. Something is wrong.'
+    assert ds.Nradii == len(ionRoots), 'The vector to be written in ionRoots.txt was the wrong length. Something is wrong.'
+    assert ds.Nradii == len(electronRoots), 'The vector to be written in electronRoots.txt was the wrong length. Something is wrong.'
+    assert ds.Nradii == len(soloRoots), 'The vector to be written in soloRoots.txt was the wrong length. Something is wrong.'
 
     np.savetxt(join(outDir, 'rootsToUse.txt'), rootsToUse)
     np.savetxt(join(outDir, 'ionRoots.txt'), ionRoots)
