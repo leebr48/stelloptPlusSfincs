@@ -18,8 +18,9 @@ from inspect import getfile, currentframe
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.interpolate import sproot, splev, splder, splint
-from scipy.integrate import trapezoid
+from scipy.interpolate import sproot, splev, splder, splint #FIXME probably delete?
+from scipy.interpolate import PchipInterpolator
+from scipy.integrate import trapezoid #FIXME probably delete?
 from collections import Counter
 from shutil import copy
 
@@ -30,56 +31,56 @@ from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter,
 from sfincsOutputLib import sfincsRadialAndErScan
 
 # FIXME lots of testing is needed!
+# FIXME add root printing and explain that some manual sorting may be required!
 # FIXME the root filtering doesn't really seem to be working?... You're still getting guesses that are very close together. Maybe raise diffTol? Maybe you need to filter the data set being used for fitting?
 # FIXME the fits are having a lot of trouble - roots that were previously categorized as good to go became guesses. You CANNOT use different poly orders besides 3! Might need to tell user to be careful and delete directories with bad Jrs to avoid over-fitting... adding that printing option would help this. Note from later: yeah... overfitting is definitely a problem.
-# FIXME use PchipInterpolator! It has roots, derivative, and integral. You can fit the regions <0 and >0. Won't be perfect fit for really tight data sets, but very close, and you won't need the trapezoidal method then.
 # FIXME the method of Turkin probably requires Er... just force everything to use that?
 # FIXME would it be good to have an option to print ErQuantities and Jrs for troubleshooting purposes? Should probably tell the user about overfitting and when to use this, in the args and at the top of the file.
+# FIXME probably mention what the vertical lines on the plots mean?
 
 # Get arguments
 args = getChooseErArgs()
 
 # Locally useful functions
 def findRoots(dataMat, xScan):
-    tck = constructBSpline(dataMat[:,0], dataMat[:,1], k=3, s=0)
-    estRoots = sproot(tck) # Should not extrapolate outside of provided data
-    yEst = splev(xScan, tck)
-    return tck, estRoots, yEst
+    f = PchipInterpolator(dataMat[:,0], dataMat[:,1], extrapolate=False)
+    estRoots = f.roots(extrapolate=False)
+    yEst = f(xScan)
+    return f, estRoots, yEst
 
 def getErJrData(dataMat, negative=True, numInterpPoints=100):
 
     if negative:
-        ErsData = ErJrVals[np.where(ErJrVals[:,0] < 0)]
+        ErsData = dataMat[np.where(dataMat[:,0] <= 0)]
     else:
-        ErsData = ErJrVals[np.where(ErJrVals[:,0] > 0)]
+        ErsData = dataMat[np.where(dataMat[:,0] >= 0)]
         
-    ErScanRange = [ErsData[0,0], ErsData[-1,0]]
-    ErScan = np.linspace(*ErScanRange, num=numInterpPoints)
+    ErScan = np.linspace(np.min(ErsData[:,0]), np.max(ErsData[:,0]), num=numInterpPoints)
 
-    tck, estRoots, JrEst = findRoots(ErsData, ErScan)
+    f, estRoots, JrEst = findRoots(ErsData, ErScan)
 
-    return tck, estRoots, ErScan, JrEst
+    return f, estRoots, ErScan, JrEst
 
 def getAllRootInfo(dataMat, knownRoots, ErQuantityHasSameSignAsEr):
     negKnownRoots = np.array(knownRoots)[np.where(knownRoots < 0)]
     posKnownRoots = np.array(knownRoots)[np.where(knownRoots > 0)]
 
     # Negative roots first
-    negTck, negEstRoots, negErScan, negJrEst = getErJrData(dataMat, negative=True)
-    negStableRoots = determineRootStability(negTck, negKnownRoots, ErQuantityHasSameSignAsEr)
+    negF, negEstRoots, negErScan, negJrEst = getErJrData(dataMat, negative=True)
+    negStableRoots = determineRootStability(negF, negKnownRoots, ErQuantityHasSameSignAsEr)
 
     # Now positive roots
-    posTck, posEstRoots, posErScan, posJrEst = getErJrData(dataMat, negative=False)
-    posStableRoots = determineRootStability(posTck, posKnownRoots, ErQuantityHasSameSignAsEr)
+    posF, posEstRoots, posErScan, posJrEst = getErJrData(dataMat, negative=False)
+    posStableRoots = determineRootStability(posF, posKnownRoots, ErQuantityHasSameSignAsEr)
     
     # Now combine everything
-    tcks = [negTck, posTck]
+    fs = [negF, posF]
     estRoots = np.append(negEstRoots, posEstRoots)
     stableRoots = np.append(negStableRoots, posStableRoots)
     ErScan = [negErScan, posErScan]
     JrScan = [negJrEst, posJrEst]
 
-    return tcks, estRoots, stableRoots, ErScan, JrScan # Note that estRoots will contain any actual roots since there is no smoothing of the polynomials
+    return fs, estRoots, stableRoots, ErScan, JrScan # Note that estRoots will contain any actual roots since there is no smoothing of the polynomials
 
 def findUniqueRoots(actualRoots, estRoots):
     uniqueInds = np.isin(estRoots, actualRoots, invert=True)
@@ -87,10 +88,10 @@ def findUniqueRoots(actualRoots, estRoots):
 
     return uniqueGuesses
 
-def determineRootStability(tckData, knownRoots, ErQuantityHasSameSignAsEr):
+def determineRootStability(f, knownRoots, ErQuantityHasSameSignAsEr):
     if len(knownRoots) != 0:
-        tckDer = splder(tckData, n=1)
-        ders = splev(knownRoots, tckDer)
+        fDer = f.derivative()
+        ders = fDer(knownRoots)
         if ErQuantityHasSameSignAsEr:
             stableInds = np.where(ders > 0) # dJr/dEr > 0 -> stable root
         else:
@@ -134,9 +135,6 @@ def determineLabels(sfincsDir):
     mostCommonElecLabel = max(countElecLabels, key=countElecLabels.get)
 
     return mostCommonRadLabel, mostCommonElecLabel
-
-def getSplineBounds(tck):
-    return [np.min(tck[0]), np.max(tck[0])]
 
 def relDiff(n1, n2):
     num = n1 - n2
@@ -210,7 +208,7 @@ if not args.filter:
         ErJrVals = combineAndSort(ErVals, JrVals)
 
         # Interpolate between the available data points to determine root stability and guess the position of as-yet-unfound roots
-        tcks, allEstRoots, stableRoots, ErScan, JrScan = getAllRootInfo(ErJrVals, rootErs, ErQuantityHasSameSignAsEr)
+        fs, allEstRoots, stableRoots, ErScan, JrScan = getAllRootInfo(ErJrVals, rootErs, ErQuantityHasSameSignAsEr)
         numStableRoots = len(stableRoots)
         estRoots, _ = filterActualRoots(np.append(rootErs, allEstRoots), np.append(rootJrs, [10 ** 9]*len(allEstRoots))) # Eliminate estimated roots if they are too close to real ones
         uniqueRootGuesses = findUniqueRoots(rootErs, estRoots)
@@ -236,7 +234,7 @@ if not args.filter:
         dataMin = np.min(ErJrVals[:,1])
         dataMax = np.max(ErJrVals[:,1])
         dataRange = dataMax - dataMin
-        marg = 0.02 # The Matplotlib margins function wouldn't work properly for some reason, so it has to be done manually
+        marg = 0.02 # The Matplotlib margins function would not work properly for some reason, so it has to be done manually
         useMin = dataMin - marg * dataRange
         useMax = dataMax + marg * dataRange
         plt.ylim(bottom=useMin, top=useMax)
@@ -327,23 +325,17 @@ if not args.filter:
 
                     if lowerRoot < unstableRoot < upperRoot: # Everything is in order, so we can choose the correct root using eq. (A2) of Turkin et al., PoP 18, 022505 (2011)
                         
-                        negTck = tcks[0]
-                        posTck = tcks[1]
+                        negF = fs[0]
+                        posF = fs[1]
 
-                        _, lowerInnerBound = getSplineBounds(negTck)
-                        upperInnerBound, _ = getSplineBounds(posTck)
-                        truncatedErJrVals = ErJrVals[np.where((lowerInnerBound <= ErJrVals[:,0]) & (ErJrVals[:,0] <= upperInnerBound))] # Use poly. int. over the fit domain, trapezoidal int. elsewhere
-                        # FIXME you may be able to just fit a polynomial to all the data (probably split at E=0) and integrate that?
-                        # FIXME if roots end up in places the polynomials can't fit, probably force the program to use the trapezoidal method there. Maybe decide by checking the derivative? Perhaps you could use first-degree splines instead of the trapezoidal method in this case?
-                        # FIXME in any case, test this integral stuff a lot, it's important!
-                        negIntVal = splint(lowerRoot, lowerInnerBound, negTck)
-                        posIntVal = splint(upperInnerBound, upperRoot, posTck)
-                        middleIntVal = trapezoid(truncatedErJrVals[:,1], x=truncatedErJrVals[:,0])
+                        # FIXME test this integral stuff a lot, it's important!
+                        negIntVal = negF.integrate(np.min(ErJrVals[:,0]), 0, extrapolate=False) # FIXME be sure 0 is included in the domain - makes sense in general since there is a spike there
+                        posIntVal = posF.integrate(0, np.max(ErJrVals[:,0]), extrapolate=False)
 
-                        intVal = negIntVal + posIntVal + middleIntVal
+                        intVal = negIntVal + posIntVal
                         
-                        if intVal == 0:
-                            messagePrinter('The integral of Jr with respect to Er was identically zero for {} = {}. Something is wrong.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
+                        if np.isnan(intVal) or intVal == 0:
+                            messagePrinter('The integral of Jr with respect to Er was NaN or identically zero for {} = {}. Something is wrong.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                             recordNoEr(allRootsLists)
                             continue
 
