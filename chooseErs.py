@@ -29,9 +29,11 @@ from dataProc import combineAndSort, constructBSpline
 from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter, prettyDataLabel, saveTimeStampFile
 from sfincsOutputLib import sfincsRadialAndErScan
 
-#FIXME lots of testing is needed!
-# FIXME the root filtering doesn't really seem to be working?... You're still getting guesses that are very close together.
+# FIXME lots of testing is needed!
+# FIXME the root filtering doesn't really seem to be working?... You're still getting guesses that are very close together. Maybe raise diffTol? Maybe you need to filter the data set being used for fitting?
 # FIXME the fits are having a lot of trouble - roots that were previously categorized as good to go became guesses. You CANNOT use different poly orders besides 3!
+# FIXME the method of Turkin probably requires Er... just force everything to use that?
+# FIXME would it be good to have an option to print ErQuantities and Jrs for troubleshooting purposes?
 
 # Get arguments
 args = getChooseErArgs()
