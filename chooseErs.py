@@ -18,9 +18,7 @@ from inspect import getfile, currentframe
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.interpolate import sproot, splev, splder, splint #FIXME probably delete?
 from scipy.interpolate import PchipInterpolator
-from scipy.integrate import trapezoid #FIXME probably delete?
 from collections import Counter
 from shutil import copy
 
@@ -31,12 +29,9 @@ from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter,
 from sfincsOutputLib import sfincsRadialAndErScan
 
 # FIXME lots of testing is needed!
-# FIXME add root printing and explain that some manual sorting may be required!
-# FIXME the root filtering doesn't really seem to be working?... You're still getting guesses that are very close together. Maybe raise diffTol? Maybe you need to filter the data set being used for fitting?
-# FIXME the fits are having a lot of trouble - roots that were previously categorized as good to go became guesses. You CANNOT use different poly orders besides 3! Might need to tell user to be careful and delete directories with bad Jrs to avoid over-fitting... adding that printing option would help this. Note from later: yeah... overfitting is definitely a problem.
 # FIXME the method of Turkin probably requires Er... just force everything to use that?
 # FIXME probably mention what the vertical lines on the plots mean?
-# FIXME can you make the root finding algorithm itself more precise? Or the numpy arrays passing everything around? (likely the former) - may help with not needing to delete directories
+# FIXME can you plot things after finding the roots and such, so that you don't need to run the code once at the end? (Might already essentially be doing this)
 
 # Get arguments
 args = getChooseErArgs()

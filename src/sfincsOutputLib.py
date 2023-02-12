@@ -558,7 +558,7 @@ class sfincsScan:
     return newEr
   
   def launchRun(self, ErQuantity, newEr, jobfilefrom, closestind, sendRunToScheduler=True, launchCommand='sbatch'):
-    newDataDir=self.mainDir + '/' + ErQuantity + '{:8.6f}'.format(newEr)
+    newDataDir=self.mainDir + '/' + ErQuantity + '{}'.format(newEr)
     launchindeed=False
     if not(os.path.isdir(newDataDir)):
       os.mkdir(newDataDir) 
@@ -596,7 +596,7 @@ class sfincsScan:
               ErQuantityLineInd = lineInd
 
       if ErQuantityLineInd is None:
-          oldnamelist_file.insert(physicsParametersLineInd + 1, '{} = {:8.6f}\n'.format(ErQuantity, newEr))
+          oldnamelist_file.insert(physicsParametersLineInd + 1, '{} = {}\n'.format(ErQuantity, newEr))
 
       # Now write the new file
       newnamelist_fid=open(newDataDir+'/input.namelist','w')
@@ -608,7 +608,7 @@ class sfincsScan:
         elif ambiSolveInd != -1:
             newnamelist_fid.write(line[:ambiSolveInd]+'ambipolarSolve = .false.\n')
         elif startind != -1:
-            newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{:8.6f}\n'.format(newEr))
+            newnamelist_fid.write(line[:startind]+ErQuantity+' = '+'{}\n'.format(newEr))
       newnamelist_fid.close()
       
       if sendRunToScheduler:
