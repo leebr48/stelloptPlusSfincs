@@ -32,7 +32,7 @@ from sfincsOutputLib import sfincsRadialAndErScan
 # FIXME lots of testing is needed!
 # FIXME the root filtering doesn't really seem to be working?... You're still getting guesses that are very close together. Maybe raise diffTol? Maybe you need to filter the data set being used for fitting?
 # FIXME the fits are having a lot of trouble - roots that were previously categorized as good to go became guesses. You CANNOT use different poly orders besides 3! Might need to tell user to be careful and delete directories with bad Jrs to avoid over-fitting... adding that printing option would help this. Note from later: yeah... overfitting is definitely a problem.
-# FIXME the others seem to use PchipInterpolator or interp1d for the fitting...
+# FIXME use PchipInterpolator! It has roots, derivative, and integral. You can fit the regions <0 and >0. Won't be perfect fit for really tight data sets, but very close, and you won't need the trapezoidal method then.
 # FIXME the method of Turkin probably requires Er... just force everything to use that?
 # FIXME would it be good to have an option to print ErQuantities and Jrs for troubleshooting purposes? Should probably tell the user about overfitting and when to use this, in the args and at the top of the file.
 
