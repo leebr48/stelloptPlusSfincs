@@ -298,7 +298,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
         allData = {} # This should be clean for each new directory
         didNotConvergeDir = [] # This should be clean for each new directory
         
-        messagePrinter('Finished processing all available data in {}.'.format(directory))
+        messagePrinter('All available data in {} has been processed. Outputs were placed in {}.'.format(directory, outDir))
         saveTimeStampFile(outDir, 'automatedPostprocessingLog', 'Data was last automatically postprocessed at this time: ')
 
 # Notify the user of convergence issues if necessary
