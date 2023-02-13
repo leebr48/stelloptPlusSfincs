@@ -29,10 +29,7 @@ from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter,
 from sfincsOutputLib import sfincsRadialAndErScan
 
 # FIXME lots of testing is needed!
-# FIXME the method of Turkin probably requires Er... just force everything to use that?
 # FIXME probably mention what the vertical lines on the plots mean?
-# FIXME can you plot things after finding the roots and such, so that you don't need to run the code once at the end? (Might already essentially be doing this)
-# FIXME note that odd numbers of jobs work well?
 # FIXME ensure that run.py <time> isn't zero or negative?
 
 # Get arguments
@@ -139,7 +136,7 @@ def relDiff(n1, n2):
     
     return np.abs(num / denom)
 
-def filterActualRoots(rootErs, rootJrs, diffTol = 0.01): #FIXME might need to change (raise?) diffTol if this doesn't work as expected
+def filterActualRoots(rootErs, rootJrs, diffTol = 0.01):
     
     # This is not efficient, but for our (small) data sets it should be fine
     rootErsToKeep = np.array([])
@@ -161,7 +158,21 @@ def filterActualRoots(rootErs, rootJrs, diffTol = 0.01): #FIXME might need to ch
     return ErsOut, JrsOut
 
 def determineErQuantitySign(ErQuantity, Er):
-    return np.all(ErQuantity * Er >= 0) # True if same sign, False if different signs
+    return np.all(ErQuantity * Er >= 0) # True if same sign, False if different signs #FIXME should probably be more careful... use Counter, perhaps?
+
+def evaluateIntegral(negF, posF, a, b):
+
+    if (a <= 0) and (b <= 0):
+        return negF.integrate(a, b, extrapolate=False)
+
+    elif (a >= 0) and (b >= 0):
+        return posF.integrate(a, b, extrapolate=False)
+
+    elif (a <= 0) and (b >= 0):
+        return negF.integrate(a, 0, extrapolate=False) + posF.integrate(0, b, extrapolate=False)
+
+    else:
+        return np.nan
 
 # Sort out directories
 _, _, _, inDir, _ = getFileInfo('/arbitrary/path', args.sfincsDir[0], 'arbitrary')
@@ -193,8 +204,15 @@ if not args.filter:
     for radInd in range(ds.Nradii):
         
         # Load and sort data from the given radial directory
-        ErVals = getattr(ds.Erscans[radInd], electricFieldLabel) # Note this doesn't literally have to be Er, it could be various derivatives of the potential
-        actualEr = getattr(ds.Erscans[radInd], 'Er') # This is only for sign comparisons
+        ErVals = getattr(ds.Erscans[radInd], electricFieldLabel) # Note this doesn't literally have to be Er, it could be various derivatives of the electric potential
+        if 0 not in ErVals:
+            msg = 'No zero-electric-field case was found in the {} = {} subdirectory, '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+            msg += 'so this subdirectory will be skipped.'
+            messagePrinter(msg)
+            recordNoEr(allRootsLists)
+            continue
+        print('psiAHat: ', getattr(ds.Erscans[radInd], 'psiAHat')) #FIXME kill
+        actualEr = getattr(ds.Erscans[radInd], 'Er')
         ErQuantityHasSameSignAsEr = determineErQuantitySign(ErVals, actualEr)
         JrVals = ds.Erscans[radInd].Jr
         rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
@@ -228,12 +246,15 @@ if not args.filter:
                 ls = '-'
                 if root in stableRoots:
                     clr = 'green'
+                    lbl = 'Stable Root'
                 else:
                     clr = 'red'
+                    lbl = 'Unstable Root'
             else:
                 ls = ':'
                 clr = 'black'
-            plt.axvline(x=root, color=clr, linestyle=ls)
+                lbl = 'Root Guess'
+            plt.axvline(x=root, color=clr, linestyle=ls, label=lbl)
         dataMin = np.min(ErJrVals[:,1])
         dataMax = np.max(ErJrVals[:,1])
         dataRange = dataMax - dataMin
@@ -241,6 +262,7 @@ if not args.filter:
         useMin = dataMin - marg * dataRange
         useMax = dataMax + marg * dataRange
         plt.ylim(bottom=useMin, top=useMax)
+        plt.legend(loc='best')
         plt.xlabel(prettyDataLabel(electricFieldLabel))
         plt.ylabel(prettyDataLabel('radialCurrent_vm_rN')) # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
         plotName = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel + '.pdf'
@@ -332,13 +354,15 @@ if not args.filter:
                         posF = fs[1]
 
                         # FIXME test this integral stuff a lot, it's important!
-                        negIntVal = negF.integrate(np.min(ErJrVals[:,0]), 0, extrapolate=False) # FIXME be sure 0 is included in the domain - makes sense in general since there is a spike there
-                        posIntVal = posF.integrate(0, np.max(ErJrVals[:,0]), extrapolate=False)
+                        # FIXME in particular, will any definition of the radial electric field work?
+                        # FIXME wait... should you always integrate from the lower root to the upper one, or does it need to flip for other Er definitions?
+                        negIntVal = negF.integrate(lowerRoot, 0, extrapolate=False)
+                        posIntVal = posF.integrate(0, upperRoot, extrapolate=False)
 
-                        intVal = negIntVal + posIntVal
+                        intVal = evaluateIntegral(negF, posF, lowerRoot, upperRoot)
                         
                         if np.isnan(intVal) or intVal == 0:
-                            messagePrinter('The integral of Jr with respect to Er was NaN or identically zero for {} = {}. Something is wrong.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
+                            messagePrinter('For {} = {}, the integral of Jr with respect to Er was NaN or identically zero, or the bounds of integration were backwards. Something is wrong.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                             recordNoEr(allRootsLists)
                             continue
 
@@ -353,10 +377,12 @@ if not args.filter:
                         electronRoots.append(electronRoot)
                         soloRoots.append(np.nan)
                         
-                        if intVal > 0: # FIXME does this work any more with multiple Er defs?
+                        if intVal > 0: # FIXME does this work any more with multiple Er defs? - can maybe test with ~/data/w7x/validation/range/
                             rootsToUse.append(ionRoot)
                         elif intVal < 0:
                             rootsToUse.append(electronRoot)
+
+                        print('intVal: ', intVal) #FIXME kill
 
                     else:
                         printMoreRunsMessage('For {} = {}, three roots were found and two were stable, but the unstable root was not between the stable ones.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
