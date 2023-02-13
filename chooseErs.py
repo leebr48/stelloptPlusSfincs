@@ -28,10 +28,6 @@ from dataProc import combineAndSort, constructBSpline
 from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter, prettyDataLabel, saveTimeStampFile
 from sfincsOutputLib import sfincsRadialAndErScan
 
-# FIXME lots of testing is needed!
-# FIXME probably mention what the vertical lines on the plots mean?
-# FIXME ensure that run.py <time> isn't zero or negative?
-
 # Get arguments
 args = getChooseErArgs()
 
@@ -158,18 +154,36 @@ def filterActualRoots(rootErs, rootJrs, diffTol = 0.01):
     return ErsOut, JrsOut
 
 def determineErQuantitySign(ErQuantity, Er):
-    return np.all(ErQuantity * Er >= 0) # True if same sign, False if different signs #FIXME should probably be more careful... use Counter, perhaps?
+    if len(ErQuantity) != len(Er): # I/O problem
+        return np.nan
+    zeroInd = np.where(ErQuantity == 0)
+    if not np.all(Er[zeroInd] == 0): # Physics problem
+        return np.nan
+    newErQuantity = np.delete(ErQuantity, zeroInd)
+    newEr = np.delete(Er, zeroInd)
+    if len(newErQuantity) != len(newEr): # Physics problem
+        return np.nan
+    trueCount = np.count_nonzero(newErQuantity * newEr > 0) # All entries True if same sign, all entries False otherwise
+    if (trueCount != len(newErQuantity)) and (trueCount != 0): # Physics problem
+        return np.nan
+    if trueCount != 0:
+        return True # ErQuantity and Er have the same sign
+    else:
+        return False # ErQuantity and Er have different signs
 
-def evaluateIntegral(negF, posF, a, b):
+def evaluateIntegral(negF, posF, lowerBound, upperBound):
 
-    if (a <= 0) and (b <= 0):
-        return negF.integrate(a, b, extrapolate=False)
+    if (lowerBound <= 0) and (upperBound <= 0):
+        return negF.integrate(lowerBound, upperBound, extrapolate=False)
 
-    elif (a >= 0) and (b >= 0):
-        return posF.integrate(a, b, extrapolate=False)
+    elif (lowerBound >= 0) and (upperBound >= 0):
+        return posF.integrate(lowerBound, upperBound, extrapolate=False)
 
-    elif (a <= 0) and (b >= 0):
-        return negF.integrate(a, 0, extrapolate=False) + posF.integrate(0, b, extrapolate=False)
+    elif (lowerBound <= 0) and (upperBound >= 0):
+        return negF.integrate(lowerBound, 0, extrapolate=False) + posF.integrate(0, upperBound, extrapolate=False)
+
+    elif (lowerBound >= 0) and (upperBound <= 0):
+        return posF.integrate(lowerBound, 0, extrapolate=False) + negF.integrate(0, upperBound, extrapolate=False)
 
     else:
         return np.nan
@@ -211,9 +225,15 @@ if not args.filter:
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
-        print('psiAHat: ', getattr(ds.Erscans[radInd], 'psiAHat')) #FIXME kill
         actualEr = getattr(ds.Erscans[radInd], 'Er')
         ErQuantityHasSameSignAsEr = determineErQuantitySign(ErVals, actualEr)
+        if np.isnan(ErQuantityHasSameSignAsEr):
+            msg = 'For {} = {}, the radial electric field as represented by {} did not seem to be consistent '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0], electricFieldLabel)
+            msg += 'with the standard definition. It may have been zero in odd places or not followed the proper sign convention. Please investigate. '
+            msg += 'In the meantime, this subdirectory will be skipped.'
+            messagePrinter(msg)
+            recordNoEr(allRootsLists)
+            continue
         JrVals = ds.Erscans[radInd].Jr
         rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
         allRootErs = np.array(ErVals)[rootInds] # Could contain (effective) duplicates in rare cases
@@ -221,6 +241,7 @@ if not args.filter:
         rootErs, rootJrs = filterActualRoots(allRootErs, allRootJrs)
         numActualRoots = len(rootErs)
         ErJrVals = combineAndSort(ErVals, JrVals)
+        print('rad: ', getattr(ds.Erscans[radInd], radLabel)[0]) #FIXME kill
         if args.print:
             msg = 'For {} = {}, the radial electric field (or proxy) values are:\n'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
             msg += str(ErJrVals[:,0])+'\n'
@@ -348,30 +369,28 @@ if not args.filter:
                     lowerRoot = np.min(stableRoots)
                     upperRoot = np.max(stableRoots)
 
+                    if ErQuantityHasSameSignAsEr:
+                        ionRoot = lowerRoot
+                        electronRoot = upperRoot
+                    else:
+                        ionRoot = upperRoot
+                        electronRoot = lowerRoot
+                    
                     if lowerRoot < unstableRoot < upperRoot: # Everything is in order, so we can choose the correct root using eq. (A2) of Turkin et al., PoP 18, 022505 (2011)
                         
-                        negF = fs[0]
-                        posF = fs[1]
-
                         # FIXME test this integral stuff a lot, it's important!
                         # FIXME in particular, will any definition of the radial electric field work?
                         # FIXME wait... should you always integrate from the lower root to the upper one, or does it need to flip for other Er definitions?
-                        negIntVal = negF.integrate(lowerRoot, 0, extrapolate=False)
-                        posIntVal = posF.integrate(0, upperRoot, extrapolate=False)
-
-                        intVal = evaluateIntegral(negF, posF, lowerRoot, upperRoot)
+                        negF = fs[0]
+                        posF = fs[1]
+                        intVal = evaluateIntegral(negF, posF, ionRoot, electronRoot) # FIXME this appears to be flipping the sign on the integral when it shouldn't...
                         
                         if np.isnan(intVal) or intVal == 0:
-                            messagePrinter('For {} = {}, the integral of Jr with respect to Er was NaN or identically zero, or the bounds of integration were backwards. Something is wrong.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
+                            msg = 'For {} = {}, the integral of Jr with respect to Er was NaN or identically zero. '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+                            msg += 'Something is wrong, so this subdirectory will be skipped.'
+                            messagePrinter(msg)
                             recordNoEr(allRootsLists)
                             continue
-
-                        if ErQuantityHasSameSignAsEr:
-                            ionRoot = lowerRoot
-                            electronRoot = upperRoot
-                        else:
-                            ionRoot = upperRoot
-                            electronRoot = lowerRoot
                         
                         ionRoots.append(ionRoot)
                         electronRoots.append(electronRoot)
