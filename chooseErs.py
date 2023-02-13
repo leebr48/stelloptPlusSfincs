@@ -32,6 +32,8 @@ from sfincsOutputLib import sfincsRadialAndErScan
 # FIXME the method of Turkin probably requires Er... just force everything to use that?
 # FIXME probably mention what the vertical lines on the plots mean?
 # FIXME can you plot things after finding the roots and such, so that you don't need to run the code once at the end? (Might already essentially be doing this)
+# FIXME note that odd numbers of jobs work well?
+# FIXME ensure that run.py <time> isn't zero or negative?
 
 # Get arguments
 args = getChooseErArgs()

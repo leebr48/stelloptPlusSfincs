@@ -1,4 +1,5 @@
 # This is a one-off script that pulls the axis parameters from a VMEC wout file and prints them in such a way that they can be easily copy-pasted into a VMEC input file.
+# This can be useful for restarting STELLOPT optimizations.
 
 # Load packages
 from os.path import dirname, abspath, join

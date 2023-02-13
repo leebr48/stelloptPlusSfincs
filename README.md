@@ -18,4 +18,4 @@ Note that the profiles input into these scripts are not checked for physical sen
 
 ## Version Notes
 
-The scripts in this repository have been tested on the `master` branch of SFINCS. At the time of writing, this branch was last updated on 12 May 2022. The version of STELLOPT used is likely not critical since its basic calls and output structure (especially for VMEC) have not substantially changed for quite some time.
+The scripts in this repository have been tested on the `master` branch of SFINCS. At the time of writing, this branch was last updated on 12 May 2022. The version of STELLOPT used is likely not critical since its basic calls and output structure (especially for VMEC) have not changed much over time.
