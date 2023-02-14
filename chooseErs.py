@@ -138,13 +138,18 @@ def filterActualRoots(rootErs, rootJrs, diffTol = 0.01):
     rootErsToKeep = np.array([])
     rootJrsToKeep = np.array([])
     for ind1, rootEr1 in enumerate(rootErs):
-       diffs = relDiff(rootEr1, rootErs) # Compare one root with all the others
-       tooSimilarInds = np.where(diffs < diffTol)
-       ErsToCompare = rootErs[tooSimilarInds]
-       JrsToCompare = rootJrs[tooSimilarInds]
-       bestJrInd = np.argmin(np.abs(JrsToCompare))
-       rootErsToKeep = np.append(rootErsToKeep, ErsToCompare[bestJrInd])
-       rootJrsToKeep = np.append(rootJrsToKeep, JrsToCompare[bestJrInd])
+        diffs = relDiff(rootEr1, rootErs) # Compare one root with all the others
+        tooSimilarInds = np.where(diffs < diffTol)
+        if tooSimilarInds[0].size == 0: # No similar roots -> no comparison needed
+            ErsToCompare = rootErs
+            JrsToCompare = rootJrs
+            bestJrInd = ind1
+        else:
+            ErsToCompare = rootErs[tooSimilarInds]
+            JrsToCompare = rootJrs[tooSimilarInds]
+            bestJrInd = np.argmin(np.abs(JrsToCompare))
+        rootErsToKeep = np.append(rootErsToKeep, ErsToCompare[bestJrInd])
+        rootJrsToKeep = np.append(rootJrsToKeep, JrsToCompare[bestJrInd])
 
     sortMat = np.unique(combineAndSort(rootErsToKeep, rootJrsToKeep), axis=0)
 
@@ -235,6 +240,16 @@ if not args.filter:
             recordNoEr(allRootsLists)
             continue
         JrVals = ds.Erscans[radInd].Jr
+        exactlyZeroCurrentInds = np.where(np.array(JrVals) == 0)
+        exactlyZeroErVals = np.array(ErVals)[exactlyZeroCurrentInds]
+        if len(exactlyZeroErVals) != 0:
+            msg = 'For {} = {}, it appears that the following electric field subdirectories contained a run with zero radial current:\n'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+            msg += str(exactlyZeroErVals) + '\n'
+            msg += 'This indicates a SFINCS error. Please check and fix these run(s) to get reliable results. '
+            msg += 'In the meantime, this subdirectory will be skipped.'
+            messagePrinter(msg)
+            recordNoEr(allRootsLists)
+            continue
         rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
         allRootErs = np.array(ErVals)[rootInds] # Could contain (effective) duplicates in rare cases
         allRootJrs = np.array(JrVals)[rootInds]
