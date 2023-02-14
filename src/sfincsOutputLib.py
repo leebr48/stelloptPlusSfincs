@@ -600,7 +600,7 @@ class sfincsScan:
           if '&physicsParameters' in line:
               physicsParametersLineInd = lineInd
         
-          if ErQuantity in line:
+          if (ErQuantity in line) and ('_min' not in line) and ('_max' not in line) and ('search_tolerance' not in line):
               ErQuantityLineInd = lineInd
 
       if ErQuantityLineInd is None:
@@ -610,7 +610,11 @@ class sfincsScan:
       newnamelist_fid=open(newDataDir+'/input.namelist','w')
       for line in oldnamelist_file:
         startind=line.find(ErQuantity)
+        if (line.find('_min') != -1) or (line.find('_max') != -1) or (line.find('search_tolerance') != -1): # the previous line will throw a false positive
+            startind = -1
         ambiSolveInd = line.find('ambipolarSolve')
+        if (line.find('ambipolarSolveOption') != -1) or (line.find('NEr_ambipolarSolve') != -1): # the previous line will throw a false positive
+            ambiSolveInd = -1
         if startind == -1 and ambiSolveInd == -1:
             newnamelist_fid.write(line)
         elif ambiSolveInd != -1:
