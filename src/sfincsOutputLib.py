@@ -95,9 +95,11 @@ class sfincsScan:
 
       self.particleFlux_vm_rHat=np.zeros((Nruns,Nspecies))
       self.particleFlux_vm_rN  =np.zeros((Nruns,Nspecies))
+      self.particleFlux_vm_psiHat=np.zeros((Nruns,Nspecies))
       self.particleFlux_vm_psiN=np.zeros((Nruns,Nspecies))
       self.particleFlux_vd_rHat=np.zeros((Nruns,Nspecies))
       self.particleFlux_vd_rN  =np.zeros((Nruns,Nspecies))
+      self.particleFlux_vd_psiHat=np.zeros((Nruns,Nspecies))
       self.particleFlux_vd_psiN=np.zeros((Nruns,Nspecies))
       self.heatFlux_vm_rHat    =np.zeros((Nruns,Nspecies))
       self.heatFlux_vm_rN      =np.zeros((Nruns,Nspecies))
@@ -128,10 +130,11 @@ class sfincsScan:
       self.Phi1Hat                  = [None]*Nruns
       self.NTVBeforeSurfaceIntegral = [None]*Nruns
 
-  def __init__(self,mainDirectory,sortafter='rN',verbose=0,collapseErScans=False):
+  def __init__(self,mainDirectory,sortafter='rN',verbose=0,collapseErScans=False,ErDefForJr='-dPhiHatdrHat'):
     ########################################################
     # Begin __init__()
     ########################################################
+    self.ErDefForJr = ErDefForJr
     if not(collapseErScans): #This is the normal case, loading one scan
       #print('normal case: collapseErScans=False')
       if mainDirectory is None:
@@ -325,6 +328,7 @@ class sfincsScan:
             #print self.particleFlux_vm_rHat[ind]
             self.particleFlux_vm_rHat[ind]=file['particleFlux_vm_rHat'][()][:,-1]
             self.particleFlux_vm_rN[ind]  =file['particleFlux_vm_rN'][()][:,-1]
+            self.particleFlux_vm_psiHat[ind]=file['particleFlux_vm_psiHat'][()][:,-1]
             self.particleFlux_vm_psiN[ind]=file['particleFlux_vm_psiN'][()][:,-1]
             self.heatFlux_vm_rHat[ind]    =file['heatFlux_vm_rHat'][()][:,-1]
             self.heatFlux_vm_rN[ind]      =file['heatFlux_vm_rN'][()][:,-1]
@@ -341,6 +345,7 @@ class sfincsScan:
             self.Phi1Hat[ind]             =file['Phi1Hat'][()]
             self.particleFlux_vd_rHat[ind]=file['particleFlux_vd_rHat'][()][:,-1]
             self.particleFlux_vd_rN[ind]  =file['particleFlux_vd_rN'][()][:,-1]
+            self.particleFlux_vd_psiHat[ind]=file['particleFlux_vd_psiHat'][()][:,-1]
             self.particleFlux_vd_psiN[ind]=file['particleFlux_vd_psiN'][()][:,-1]
             self.heatFlux_vd_rHat[ind]    =file['heatFlux_vd_rHat'][()][:,-1]
             self.heatFlux_vd_rN[ind]      =file['heatFlux_vd_rN'][()][:,-1]
@@ -396,10 +401,13 @@ class sfincsScan:
       self.reduced=True
     
     # Added here for ease
+    particleFluxName = 'particleFlux'
     if self.includePhi1:
-      particleFlux=self.particleFlux_vd_rN
+      particleFluxName += '_vd_'
     else:
-      particleFlux=self.particleFlux_vm_rN
+      particleFluxName += '_vm_'
+    particleFluxName += self.ErDefForJr.split('d')[-1] # This adds the proper definition of 'radius'
+    particleFlux = getattr(self, particleFluxName)
     self.Jr=np.sum(particleFlux*self.Zs,axis=1)
 
   def disp(self,radialCoord='rHat'):
@@ -742,9 +750,13 @@ class sfincsScan:
 class sfincsRadialAndErScan:
 #################################################################################################################
 #################################################################################################################
-  def __init__(self,headDirectory,verbose=0):
+  def __init__(self,headDirectory,verbose=0,ErDefForJr='Er'):
     #print('In sfincsRadialAndErScan')
     #print('verbose='+str(verbose))
+    if ErDefForJr == 'Er':
+      self.ErDefForJr = '-dPhiHatdrHat'
+    else:
+      self.ErDefForJr = ErDefForJr
     if headDirectory is None:
       sys.exit('Missing input headDirectory!')
     if headDirectory[-1]=='/':

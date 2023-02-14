@@ -201,11 +201,11 @@ else:
 
 _ = makeDir(outDir)
 
-# Load tools from external library
-ds = sfincsRadialAndErScan(inDir, verbose=0)
-
 # Check how the input directory is organized
 radLabel, electricFieldLabel = determineLabels(inDir)
+
+# Load tools from external library
+ds = sfincsRadialAndErScan(inDir, verbose=0, ErDefForJr=electricFieldLabel)
 
 if not args.filter:
     
@@ -225,7 +225,7 @@ if not args.filter:
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
-        actualEr = getattr(ds.Erscans[radInd], 'Er')
+        actualEr = getattr(ds.Erscans[radInd], 'Er') # This is just for comparison purposes
         ErQuantityHasSameSignAsEr = determineErQuantitySign(ErVals, actualEr)
         if np.isnan(ErQuantityHasSameSignAsEr):
             msg = 'For {} = {}, the radial electric field as represented by {} did not seem to be consistent '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0], electricFieldLabel)
@@ -241,7 +241,6 @@ if not args.filter:
         rootErs, rootJrs = filterActualRoots(allRootErs, allRootJrs)
         numActualRoots = len(rootErs)
         ErJrVals = combineAndSort(ErVals, JrVals)
-        print('rad: ', getattr(ds.Erscans[radInd], radLabel)[0]) #FIXME kill
         if args.print:
             msg = 'For {} = {}, the radial electric field (or proxy) values are:\n'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
             msg += str(ErJrVals[:,0])+'\n'
@@ -285,7 +284,12 @@ if not args.filter:
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
         plt.xlabel(prettyDataLabel(electricFieldLabel))
-        plt.ylabel(prettyDataLabel('radialCurrent_vm_rN')) # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
+        if electricFieldLabel == 'Er':
+            coord = 'rHat'
+        else:
+            coord = electricFieldLabel.split('d')[-1]
+        yName = 'radialCurrent_vm_'+coord # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
+        plt.ylabel(prettyDataLabel(yName))
         plotName = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel + '.pdf'
         plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
 
@@ -368,23 +372,14 @@ if not args.filter:
                     unstableRoot = list(set(rootErs) - set(stableRoots))[0]
                     lowerRoot = np.min(stableRoots)
                     upperRoot = np.max(stableRoots)
-
-                    if ErQuantityHasSameSignAsEr:
-                        ionRoot = lowerRoot
-                        electronRoot = upperRoot
-                    else:
-                        ionRoot = upperRoot
-                        electronRoot = lowerRoot
                     
                     if lowerRoot < unstableRoot < upperRoot: # Everything is in order, so we can choose the correct root using eq. (A2) of Turkin et al., PoP 18, 022505 (2011)
                         
-                        # FIXME test this integral stuff a lot, it's important!
-                        # FIXME in particular, will any definition of the radial electric field work?
-                        # FIXME wait... should you always integrate from the lower root to the upper one, or does it need to flip for other Er definitions?
                         negF = fs[0]
                         posF = fs[1]
-                        intVal = evaluateIntegral(negF, posF, ionRoot, electronRoot) # FIXME this appears to be flipping the sign on the integral when it shouldn't...
-                        # FIXME the definition of Jr and Phi derivative "r" need to be the same! Then you can integrate from ion to electron root (I think)
+                        intVal = evaluateIntegral(negF, posF, lowerRoot, upperRoot) 
+                        # Note that the bounds of the integral in Turkin et al. would switch when Er is defined as a derivative of the potential without the negative sign,
+                        # so this ^ form of the integral should be correct.
                         
                         if np.isnan(intVal) or intVal == 0:
                             msg = 'For {} = {}, the integral of Jr with respect to Er was NaN or identically zero. '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
@@ -392,17 +387,22 @@ if not args.filter:
                             messagePrinter(msg)
                             recordNoEr(allRootsLists)
                             continue
+
+                        if ErQuantityHasSameSignAsEr:
+                            ionRoot = lowerRoot
+                            electronRoot = upperRoot
+                        else:
+                            ionRoot = upperRoot
+                            electronRoot = lowerRoot
+                            
+                            ionRoots.append(ionRoot)
+                            electronRoots.append(electronRoot)
+                            soloRoots.append(np.nan)
                         
-                        ionRoots.append(ionRoot)
-                        electronRoots.append(electronRoot)
-                        soloRoots.append(np.nan)
-                        
-                        if intVal > 0: # FIXME does this work any more with multiple Er defs? - can maybe test with ~/data/w7x/validation/range/
+                        if intVal > 0:
                             rootsToUse.append(ionRoot)
                         elif intVal < 0:
                             rootsToUse.append(electronRoot)
-
-                        print('intVal: ', intVal) #FIXME kill
 
                     else:
                         printMoreRunsMessage('For {} = {}, three roots were found and two were stable, but the unstable root was not between the stable ones.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
