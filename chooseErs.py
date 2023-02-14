@@ -129,8 +129,10 @@ def determineLabels(sfincsDir):
 def relDiff(n1, n2):
     num = n1 - n2
     denom = 0.5 * (n1 + n2)
+    with np.errstate(invalid='ignore'): # NumPy will throw a warning before evaluating frac, which makes output confusing
+        frac = num / denom
     
-    return np.abs(num / denom)
+    return np.abs(frac)
 
 def filterActualRoots(rootErs, rootJrs, diffTol = 0.01):
     
@@ -245,11 +247,8 @@ if not args.filter:
         if len(exactlyZeroErVals) != 0:
             msg = 'For {} = {}, it appears that the following electric field subdirectories contained a run with zero radial current:\n'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
             msg += str(exactlyZeroErVals) + '\n'
-            msg += 'This indicates a SFINCS error. Please check and fix these run(s) to get reliable results. '
-            msg += 'In the meantime, this subdirectory will be skipped.'
+            msg += 'This indicates a SFINCS error. Please check and fix these run(s) to get reliable results.'
             messagePrinter(msg)
-            recordNoEr(allRootsLists)
-            continue
         rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
         allRootErs = np.array(ErVals)[rootInds] # Could contain (effective) duplicates in rare cases
         allRootJrs = np.array(JrVals)[rootInds]
