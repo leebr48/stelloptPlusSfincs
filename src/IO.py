@@ -23,10 +23,13 @@ def getRunArgs():
     parser.add_argument('--numCalcSurf', type=int, nargs=1, required=False, default=[16], help='Number of radial surfaces on which to perform full SFINCS calculations.')
     parser.add_argument('--minRad', type=float, nargs=1, required=False, default=[0.15], help='Lower bound for the radial scan. If <resScan> is used, the flux surface specified by this parameter will be used for the convergence scan. Note that VMEC has resolution issues near the magnetic axis and SFINCS often converges much slower there due to the relatively low collisionality, so setting <minRad> to be very small may cause problems. If the innermost surface of a loaded equilibrium is outside <minRad>, SFINCS will give nonphysical (usually divergent) answers.')
     parser.add_argument('--maxRad', type=float, nargs=1, required=False, default=[0.95], help='Upper bound for the radial scan.')
-    parser.add_argument('--noAmbiSolve', action='store_true', default=False, help='Disable ambipolarSolve. This means that the "seed" value of Er specified using any other commands will become *the* Er value used during the SFINCS run(s). This may create nonphysical results, so be careful if you use this option.')
+    parser.add_argument('--driftScheme', type=int, nargs=1, required=False, default=[0], help='Specifies the scheme with which to calculate the poloidal and toroidal magnetic drifts. Valid inputs are the integers 0-9. With the default, no angular drifts are calculated. Any other setting is incompatible with <includePhi1> and <ambiSolve>. For explanations of the physical models used by the other settings, see the SFINCS documentation.')
+    parser.add_argument('--includePhi1', action='store_true', default=False, help='Have SFINCS calculate the angular variation of the electric potential within flux surfaces. Note that this is incompatible with <driftScheme> > 0 and <ambiSolve>.')
+    parser.add_argument('--ambiSolve', action='store_true', default=False, help='Enable ambipolarSolve. SFINCS will start from a "seed" value of Er specified using other commands and attempt to modify it such that the radial current is driven to zero (which is what we would expect in a real device). Note that ambipolarSolve searches for *a* root, but it might not find the *correct* root. The script chooseErs.py can help with that.')
+    parser.add_argument('--maxRootJr', type=float, nargs=1, required=False, default=[1.0e-12], help='Maximum radial current (defined as in SFINCS) that may be present for a given electric field value to be considered a "root". The default is recommended.')
     parser.add_argument('--loadPot', action='store_true', default=False, help='Load a potential from <profilesIn>. This will overwrite <seedEr>. If you use this option, you must set <numErSubscan> >=1 and <radialGradientVar> = 1. The former requirement ensures the software knows whether or not you wish to use the given potential alone or a range around it, and the latter requirement is required because STELLOPT always specifies the potential profile in terms of "s".')
-    parser.add_argument('--seedEr', type=float, nargs=1, required=False, default=[0], help="Input an initial guess for the radial electric field in units of <radialGradientVar>. You should consider that this seed value may influence whether SFINCS converges to the ion or electron root. This parameter will be overwritten if you trigger an electric field scan with <numErSubscan>.")
-    parser.add_argument('--numErSubscan', type=int, nargs=1, required=False, default=[0], help='Number of radial electric field scans to perform within each radial directory. This parameter generates equidistant radial electric field seed values between <minSeedEr> and <maxSeedEr> for the root-finding algorithm in SFINCS. This parameter will be overwritten if <resScan> is activated.')
+    parser.add_argument('--seedEr', type=float, nargs=1, required=False, default=[0], help="Input an initial guess for the radial electric field in units of <radialGradientVar>. If you use ambipolarSolve, this seed value may influence whether SFINCS converges to the ion or electron root. This parameter will be overwritten if you trigger an electric field scan with <numErSubscan>.")
+    parser.add_argument('--numErSubscan', type=int, nargs=1, required=False, default=[0], help='Number of radial electric field scans to perform within each radial directory. This parameter generates equidistant radial electric field seed values between <minSeedEr> and <maxSeedEr>. This parameter will be overwritten if <resScan> is activated.')
     parser.add_argument('--minSeedEr', type=float, nargs=1, required=False, default=[-5], help='If <loadPot> is used, this value will be added to the values of the loaded potential to determine the minimum seed value of the radial electric field on each flux surface in units of <radialGradientVar>. (Note that for typicaly usage, this value should probably be negative.) If <loadPot> is not used, this parameter gives the mimimum seed value of the radial electric field in units of <radialGradientVar>. You may need to change this parameter to get good results.')
     parser.add_argument('--maxSeedEr', type=float, nargs=1, required=False, default=[5], help='If <loadPot> is used, this value will be added to the values of the loaded potential to determine the maximum seed value of the radial electric field on each flux surface in units of <radialGradientVar>. (Note that for typicaly usage, this value should probably be positive.) If <loadPot> is not used, this parameter gives the maximum seed value of the radial electric field in units of <radialGradientVar>. You may need to change this parameter to get good results.')
     parser.add_argument('--minSolverEr', type=float, nargs=1, required=False, default=[-100], help='Explicitly set the minimum Er (=-dPhiHatdrHat, regardless of <radialGradientVar>) available to ambipolarSolve. This will seldom need to be modified. It is included because the Newton method used by ambipolarSolve can sometimes "get lost" if it is seeded poorly and specify progressively larger |Er| values during the root search. Setting this parameter and <maxSolverEr> closer to the electric field seed value would make the runs fail faster in such situations and therefore save time.')
@@ -69,6 +72,12 @@ def getRunArgs():
 
     if len(args.bcSymmetry) not in [1, len(args.eqIn)]:
         raise IOError('The length of <bcSymmetry> must either be 1 or the same as <eqIn>.')
+
+    if args.driftScheme[0] < 0 or args.driftScheme[0] > 9:
+        raise IOError('<driftScheme> must be between 0 and 9.')
+
+    if [args.driftScheme[0] > 0, args.includePhi1, args.ambiSolve].count(True) > 1:
+        raise IOError('You may do at most one of the following things for a given SFINCS run: set <driftScheme> > 0, turn on <includePhi1>, or turn on <ambiSolve>.')
 
     if args.loadPot:
         if args.numErSubscan[0] < 1:
@@ -163,9 +172,9 @@ def getPlotArgs():
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--sfincsDir', type=str, nargs='*', required=True, help='Top directory(ies) for SFINCS run(s), with path(s) if necessary. Such directories contain subdirectories which either contain SFINCS output files (*.h5) or more subdirectories for the electric field scan. In the latter case, those subsubdirectories contain SFINCS output files. Note that the "most complete" distribution function available ("vm" for calculations without Phi1 and "vd" for calculations with Phi1) will be used for most plots. If you input multiple directories, order matters!')
+    parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save plots, plot data, and informational *.txt files. Defaults to <sfincsDir>/processed/. If you input multiple directories, order matters!')
     parser.add_argument('--radialVar', type=int, nargs=1, required=False, default=[3], help='ID of the radial coordinate used in the input.namelist file to specify which surfaces should be scanned over. Valid entries are: 0 = psiHat, 1 = psiN (which is the STELLOPT "S"), 2 = rHat, and 3 = rN (which is the STELLOPT rho)')
     parser.add_argument('--radialVarBounds', type=float, nargs=2, required=False, default=[-1, -1], help='Two floats, which are (in order) the minimum and maximum values of <radialVar> that will be plotted. If one of the inputs is negative, it will be ignored (so that the min or max is not limited).')
-    parser.add_argument('--saveLoc', type=str, nargs='*', required=False, default=[None], help='Location(s) in which to save plots, plot data, and informational *.txt files. Defaults to <sfincsDir>/processed/. If you input multiple directories, order matters!')
     parser.add_argument('--checkConv', action='store_true', default=False, help='Instead of plotting anything, just check if the SFINCS runs in the <sfincsDir> location(s) converged. If they all did, you will receive no output.')
     args = parser.parse_args()
 
@@ -275,6 +284,32 @@ def getCompoundPlotArgs():
 
     return args
     
+def getChooseErArgs():
+
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for choosing the right radial electric field on a given flux surface.
+    '''
+
+    import argparse
+    from os.path import isdir
+    
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--sfincsDir', type=str, nargs=1, required=True, help='Top directory for SFINCS run, with path if necessary. This directory must contain subdirectories which contain more subdirectories for the electric field scan, each of which contain SFINCS output files (*.h5). The field scan should include 0 and should NOT use ambipolarSolve. Having an odd number of equally-spaced scan points centered about 0 seems to work well - 11 points is usually enough for the program to function properly.')
+    parser.add_argument('--saveLoc', type=str, nargs=1, required=False, default=[None], help='Location in which to save outputs. If <filter> is not used, these outputs are plots and informational *.txt files. In this case, the default is <sfincsDir>/determineEr/. If <filter> is used, the output is a "mirror" of <sfincsDir> containing only the "correct" electric field information. In this case, the default is <sfincsDir>+"_correctEr". The default is recommended, particularly when <filter> is not used.')
+    parser.add_argument('--print', action='store_true', default=False, help='Print values of the radial electric field and corresponding radial currents for each flux surface. This is useful if the program gets caught in a loop of repeatedly choosing the wrong guess for a root rather than converging to an answer. (Such a situation is rare but possible.) The user can delete all the electric field subdirectories near a given root except the one with the lowest radial current. This should help the program converge.')
+    parser.add_argument('--filter', action='store_true', default=False, help='Once all the roots for all flux surfaces of interest in a given <sfincsDir> are determined, this option can be used to copy only the subdirectories that contain the "correct" electric field information from <sfincsDir> to <saveLoc>. If plot.py is then run on <saveLoc>, the "true" behavior of the system will be seen. Note that <sfincsDir> must contain a determineEr/ subdirectory with a rootsToUse.txt file for this option to work. Note also that this command will not delete anything from <saveLoc>, so pointing to a fresh directory every time is best practice.')
+    parser.add_argument('--noRun', action='store_true', default=False, help='Copy files, but do not launch SFINCS runs.')
+    parser.add_argument('--maxRootJr', type=float, nargs=1, required=False, default=[1.0e-12], help='Maximum radial current that may be present for a given electric field value to be considered a "root". The definition of the radial current is based on the coordinate with respect to which the derivative of the electric potential is taken in the given <sfincsDir>. The default is recommended. Note that setting <maxRootJr> too low may make it impossible to find any satisfactory roots.')
+    args = parser.parse_args()
+
+    if not isdir(args.sfincsDir[0]):
+        raise IOError('The input given in <sfincsDir> must be a directory.')
+    
+    return args
+
 def getFileInfo(inFile, saveLoc, outFileName):
 
     '''
@@ -284,8 +319,7 @@ def getFileInfo(inFile, saveLoc, outFileName):
         saveLoc: String with (relative or absolute) path 
                  where other files (such as the outputs
                  of other scripts) should be saved. Defaults
-                 to the location of inFile, but can be
-                 specified with <saveLoc> command line option.
+                 to the location of inFile.
         outFileName: String with name for an outFile.
     Outputs:
         Strings with the inFile absolute path, inFile name,
@@ -804,13 +838,29 @@ def prettyDataLabel(inString):
 
     if '_' not in inString:
         
+        PhiHat = r'\hat{\Phi}'
+        def derFormat(top, bottom):
+            return r'$\frac{d %s}{d %s}$' % (top, bottom)
+        
         extensiveParticleFluxUnits = r' $\mathrm{\left(\frac{1}{s}\right)}$'
         extensiveHeatFluxUnits = r' $\mathrm{\left(W\right)}$'
         extensiveMomentumFluxUnits = r' $\mathrm{\left(\frac{kg T m}{s^{-2}}\right)}$'
         extensiveRadialCurrentUnits = r' $\mathrm{\left(A\right)}$'
-        
+
         if inString == 'Er':
             return r'Radial electric field $\mathrm{\left(\frac{V}{m}\right)}$'
+
+        elif inString == 'dPhiHatdpsiHat':
+            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiHat', innerOnly=True))
+
+        elif inString == 'dPhiHatdpsiN':
+            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiN', innerOnly=True))
+        
+        elif inString == 'dPhiHatdrHat':
+            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rHat', innerOnly=True))
+        
+        elif inString == 'dPhiHatdrN':
+            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rN', innerOnly=True))
         
         elif inString == 'FSABFlow':
             return r'FSAB parallel flow $\mathrm{\left(\frac{T}{m^{2} s}\right)}$'

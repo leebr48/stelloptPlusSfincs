@@ -121,6 +121,28 @@ def scaleInputData(dataOfInterest, profiles=True, phiBar=1, nBar=1e20, TBar=1, m
 
     return dataOfInterest
 
+def constructBSpline(ivVec, dvVec, k=3, s=0):
+
+    '''
+    Inputs:
+        ivVec: List of independent variable values.
+        dvVec: List of dependent variable values.
+        k: Degree of the spline.
+        s: Smoothing parameter. For details, see the docs on
+           scipy.interpolate.splrep. s=0 corresponds to no
+           smoothing, meaning that the interpolation function
+           will go through every data point.
+    Outputs:
+        A "tck" tuple describing the spline - see the docs
+        mentioned above for details.
+    '''
+    
+    from scipy.interpolate import splrep
+
+    tck = splrep(ivVec, dvVec, k=k, s=s)
+    
+    return tck
+
 def nonlinearInterp(inputData, ders, k=3, s=0):
 
     '''
@@ -143,14 +165,14 @@ def nonlinearInterp(inputData, ders, k=3, s=0):
         objects in place of the data.
     '''
 
-    from scipy.interpolate import splrep, splev
+    from scipy.interpolate import splev
 
     outputData = {}
     for key, data in inputData.items():
         
         interpObjs = []
         for ivVec,dvVec in zip(data['iv'], data['dv']):
-            tck = splrep(ivVec, dvVec, k=k, s=s)
+            tck = constructBSpline(ivVec, dvVec, k=k, s=s)
             interpObj = lambda x, tck=tck, der=ders[key]: splev(x, tck, der=der, ext=2) # Will raise an error if extrapolation is requested
             interpObjs.append(interpObj)
         
@@ -335,3 +357,47 @@ def checkConvergence(file):
         raise IOError
 
     return f
+
+def combineAndSort(IVvec, DVarr):
+
+    '''
+    Inputs:
+        IVvec: List or Numpy array of independent
+        variable data.
+        DVarr: List, or list of lists, or 1D Numpy
+        array, or 2D numpy array of dependent 
+        variable data. One of the array dimensions
+        must match the length of IVvec.
+    Outputs:
+        A Numpy array in which the independent variable
+        lives in the first column, the dependent
+        variable series live in subsequent columns, and
+        the data is sorted so that the independent
+        variable is strictly increasing
+    '''
+
+    import numpy as np
+
+    IVvec = np.array(IVvec)
+    DVarr = np.array(DVarr)
+
+    if IVvec.ndim != 1:
+        raise IOError('<IVvec> must be one-dimensional.')
+    
+    compatibleLength = IVvec.shape[0]
+    DVdim = DVarr.ndim
+    DVshape = DVarr.shape
+    
+    if  DVdim == 1 and DVshape[0] == compatibleLength:
+        pass
+    elif DVdim == 2 and DVshape[0] == compatibleLength:
+        pass
+    elif DVdim == 2 and DVshape[1] == compatibleLength:
+        DVarr = DVarr.T
+    else:
+        raise IOError('Neither of the dimensions of <DVarr> were the same as the length of <IVvec>, or <DVarr> was not 2D.')
+
+    combined = np.column_stack((IVvec, DVarr)) # The IV values will be the first column. The data comes in subsequent columns.
+    combined = combined[combined[:, 0].argsort()] # This sorts the data so that IVvec values are strictly increasing
+
+    return combined

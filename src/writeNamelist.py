@@ -20,7 +20,6 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     # List out some hard-coded variables
     profilesScheme = 1 # The profile information is specified on many flux surfaces rather than using polynomials, simply because it's easier and we don't need to worry about fit quality as much
     ambipolarSolveOption = 3 # Use a Newton method
-    Er_search_tolerance_f = str(1.0e-12).lower().replace('e','d') # Root-finding tolerance (radial current in SFINCS internal units) - lower than default to help ensure ambipolar fluxes
     VMECRadialOption = 0 # Interpolate when the target surface does not exactly match a VMEC flux surface
     Delta = str(4.5694e-3).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
     alpha = str(1.0e+0).lower().replace('e','d') # Default -> makes reference quantities sensible/easy
@@ -28,8 +27,6 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     collisionOperator = 0 # (Default) Full linearized Fokker-Planck operator
     includeXDotTerm = '.true.' # (Default) Necessary to calculate full trajectories
     includeElectricFieldTermInXiDot = '.true.' # (Default) Necessary to calculate full trajectories
-    magneticDriftScheme = 0 # Whether or not to include angular drifts, and if so, what model to use
-    includePhi1 = '.false' # Whether or not to include variation of electric potential on the flux surface
     export_full_f = '.false.' # Whether or not to save the full distribution function in the output file 
     export_delta_f = '.false.' # Whether or not to save the departure from the Maxwellian distribution function in the output file
 
@@ -57,12 +54,21 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
         scanType = 4
     else:
         scanType = 5
-    
-    if not args.noAmbiSolve:
+
+    magneticDriftScheme = args.driftScheme[0] # Whether or not to include angular drifts, and if so, what model to use
+
+    if args.includePhi1:
+        includePhi1 = '.true.' # Calculate angular variation of the electric potential on a flux surface
+    else:
+        includePhi1 = '.false.' # Assume the electric potential is a flux function
+
+    if args.ambiSolve:
         ambipolarSolve = '.true.' # Determine the ambipolar Er
     else:
         ambipolarSolve = '.false.' # Use the given seed value of Er
 
+    Er_search_tolerance_f = str(args.maxRootJr[0]).lower().replace('e','d') # Root-finding tolerance (radial current in SFINCS internal units) - lower than default to help ensure ambipolar fluxes
+    
     Er_min = args.minSolverEr[0]
     Er_max = args.maxSolverEr[0]
     
@@ -104,11 +110,10 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
 
     stringToWrite += '&general\n'
     stringToWrite += '\tambipolarSolve = {} ! Whether or not to determine the ambipolar Er\n'.format(ambipolarSolve)
-    if not args.noAmbiSolve:
-        stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
-        stringToWrite += '\tEr_search_tolerance_f = {} ! Root-finding tolerance (radial current in SFINCS internal units)\n'.format(Er_search_tolerance_f)
-        stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_min)
-        stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_max)
+    stringToWrite += '\tambipolarSolveOption = {} ! Specifies the root-finding algorithm to use\n'.format(ambipolarSolveOption)
+    stringToWrite += '\tEr_search_tolerance_f = {} ! Root-finding tolerance (radial current in SFINCS internal units)\n'.format(Er_search_tolerance_f)
+    stringToWrite += '\tEr_min = {} ! Minimum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_min)
+    stringToWrite += '\tEr_max = {} ! Maximum value of Er (= -dPhiHatdrHat) accessible to ambipolarSolve.\n'.format(Er_max)
     stringToWrite += '/\n'
     stringToWrite += '\n'
 
