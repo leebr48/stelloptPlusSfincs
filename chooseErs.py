@@ -384,6 +384,7 @@ if not args.filter:
                         negF = fs[0]
                         posF = fs[1]
                         intVal = evaluateIntegral(negF, posF, ionRoot, electronRoot) # FIXME this appears to be flipping the sign on the integral when it shouldn't...
+                        # FIXME the definition of Jr and Phi derivative "r" need to be the same! Then you can integrate from ion to electron root (I think)
                         
                         if np.isnan(intVal) or intVal == 0:
                             msg = 'For {} = {}, the integral of Jr with respect to Er was NaN or identically zero. '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
