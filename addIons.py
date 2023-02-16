@@ -1,43 +1,56 @@
 # FIXME this script adds new ions to plasma profiles. The outputs are in STELLOPT format.
 # FIXME inputs should be quasineutral # FIXME maybe check that?
 # FIXME probably note that ne is fixed
+# FIXME note that the S values for NE will be the points on which the pressure profile is evaluated 
+# FIXME for the purposes of determining the pressure, the temperature profile for all ion species is assumed to match that of the first ion species. (T same for all species in a reactor anyway)
+
+# FIXME ensure the args have checks on the length of inputs and so on
 
 # Import necessary modules
 import numpy as np
 from os.path import dirname, abspath, join
 from inspect import getfile, currentframe
 import sys
-from scipy.linalg import solve #FIXME needed?
+from scipy.linalg import solve
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
 from IO import cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, extractScalarData
-from dataProc import nonlinearInterp
+from dataProc import nonlinearInterp, relDiff
 
 # Important constant
-eVToJ = 1.602176634e-19 # STELLOPT temperatures are written in eV
+eVToJ = 1.602176634e-19 # In STELLOPT, temperatures are written in eV but pressures are written in Pa
 
-# Desired new ion parameters # FIXME use args!
-He_frac = 0.05 # Fraction of total ion number density attributed to this species #FIXME kill anything with this variable
-He_mass = 6.64647907E-27 # kg #FIXME kill anything with this variable
-He_charge = 2 # charge number #FIXME kill anything with this variable
-newCharges = [3.0, 4.0] # FIXME pull from args
-newFracs = [0.05, 0.10] # FIXME pull from args
+# Desired new ion parameters
+newMasses = [6.64647907E-27] # kg # FIXME pull from args
+newCharges = [1.0, 2.0] # FIXME pull from args # FIXME ensure these are ints
+newFracs = [0.475, 0.05] # FIXME pull from args # FIXME ensure the sum of these is less than or equal to 1
 
-# Handy function
-def cleanup(ar, integer=False):
+# Handy functions
+def cleanup(inAr, integer=False):
+    ar = np.array(inAr)
     if integer:
         precision = 0
         ar = ar.astype(int)
     else:
-        precision = 10
+        precision = 10 # Standard precision for STELLOPT
     newstr = np.array2string(ar, separator='     ', precision=precision, max_line_width=100).replace('[','').replace(']','')
     return newstr
 
+def makeString(varName, data, integer=False, namePrefix=' '*2, nameSuffix=' = ', eol='\n'):
+    if type(data) != str:
+        dataStr = cleanup(data, integer=integer)
+    else:
+        dataStr = data
+    return namePrefix + varName + nameSuffix + dataStr + eol
+
 # Retrieve data
-inFile = '/cobra/u/lebra/data/w7x/reactor/input.W7X_REACTOR_woptim_forSfincs' # FIXME use args
-varsToFind = ['NE', 'NI', 'TE', 'TI']
-prefixesOfInterest = cleanStrings(varsToFind)
+inFile = '/raven/u/lebra/src/stelloptPlusSfincs/temp/input.Donly' # FIXME use args
+profileVarsToFind = ['NE', 'NI', 'TE', 'TI']
+massInName = 'NI_AUX_M'
+chargeInName = 'NI_AUX_Z'
+scalarVarsToFind = [massInName, chargeInName]
+prefixesOfInterest = cleanStrings(profileVarsToFind)
 listifiedInFile = listifyBEAMS3DFile(inFile)
 profileVarsOfInterest = makeProfileNames(prefixesOfInterest)
 profileData = extractProfileData(listifiedInFile, profileVarsOfInterest)
@@ -45,18 +58,20 @@ ders = {}
 for key,val in profileData.items():
     ders[key] = 0
 profileFitFuncs = nonlinearInterp(profileData, ders, pchip=True) # Use in case the S vectors are not uniform
-scalarVarsOfInterest = cleanStrings(['NI_AUX_M', 'NI_AUX_Z']) # STELLOPT has the mass and charge of electrons built in, so only the ions need to be specified
+scalarVarsOfInterest = cleanStrings(scalarVarsToFind) # STELLOPT has the mass and charge of electrons built in, so only the ions need to be specified
 scalarData = extractScalarData(listifiedInFile, scalarVarsOfInterest)
 
-# Calculations
-sVec = profileData['ne']['iv'][0] # FIXME generalize, or just note that this is what's done?
+# Some easy administrative things
+ionZs = scalarData['z'] + newCharges # This sets the species order
+ionMs = scalarData['m'] + newMasses
 numOldIons = len(profileFitFuncs['ni'])
 numNewIons = len(newCharges)
-ionZs = scalarData['z'] + newCharges # this sets the species order
 totalNumIons = len(ionZs)
-allZs = [-1] + ionZs
+
+# Calculations
+sVec = profileData['ne']['iv'][0]
 pres = []
-for sVal in sVec: # Calculations must be done one flux surface at a time
+for sInd, sVal in enumerate(sVec): # Calculations must be done one flux surface at a time
     
     # Declare terms of the equation Ax=b
     A = []
@@ -74,7 +89,7 @@ for sVal in sVec: # Calculations must be done one flux surface at a time
         A.append(coeffs)
         b.append(0)
 
-    if numOldIons > 1: # FIXME be sure to test with and without!
+    if numOldIons > 1:
         # Particle balance closure - redundant, but necessary to get a square matrix
         for oldIonInd, oldIonFunc in enumerate(profileFitFuncs['ni'][1:]):
             r = oldIonFunc(sVal) / profileFitFuncs['ni'][0](sVal)
@@ -85,33 +100,44 @@ for sVal in sVec: # Calculations must be done one flux surface at a time
             b.append(0)
 
     # Solve the system for the densities
-    x = solve(A, b) # FIXME note that the accuracy of the solution (like when you do np.dot(A, x) == b) isn't amazing, but maybe it's close enough?
+    x = solve(A, b)
+
+    # Record the densities
+    if sInd == 0:
+        dens = x
+    else:
+        dens = np.vstack((dens, x))
 
     # Calculate the pressure on the given flux surface
     ne_te = localNE * profileFitFuncs['te'][0](sVal)
-    ni_ti = x * profileFitFuncs['ti'][0](sVal) # FIXME assumes that the temperature of all ions is the same
+    ni_ti = x * profileFitFuncs['ti'][0](sVal)
     pres.append((ne_te + np.sum(ni_ti)) * eVToJ)
 
-quit()
-# Calculations # FIXME caluclate pressure! # FIXME multi-species?
-nD = ne / 2 / (1 + 2 * He_frac / (1 - He_frac))
-nT = nD
-nHe = 2 * He_frac * nD / (1 - He_frac)
+    # Check results
+    QN = -1 * localNE + np.dot(ionZs, x)
+    assert np.abs(QN) < 1e-6, 'The outputs do not appear to fulfill quasineutrality. The matrix solve likely went wrong.' # QN is not zero because of numerical error
+    for ionInd in range(numOldIons, totalNumIons):
+        nIonUnderConsideration = x[ionInd]
+        achievedFrac = nIonUnderConsideration / np.sum(x)
+        desiredFrac = newFracs[ionInd - numOldIons]
+        diff = relDiff(achievedFrac, desiredFrac)
+        assert diff <= 1e-6, 'The achieved fraction(s) for the added ion(s) did not match the desired value(s). The matrix solve likely went wrong.' # diff is not zero because of numerical error
 
-mi = np.append(mi, He_mass)
-zi = np.append(zi, He_charge)
+# Perform final checks, just in case
+assert dens.shape[0] == len(pres), 'The density and pressure arrays have inconsistent dimensions. Something is wrong.'
+assert dens.shape[1] == totalNumIons, 'The ion density array does not seem to contain the correct number of species. Something is wrong.'
 
-# Output #FIXME multi-species?
-print('  NI_AUX_F(1,:) =', cleanup(nD))
-print('  NI_AUX_F(2,:) =', cleanup(nT))
-print('  NI_AUX_F(3,:) =', cleanup(nHe))
-print('  NI_AUX_M =', cleanup(mi))
-print('  NI_AUX_Z =', cleanup(zi, integer=True))
+# Prepare outputs
+profileString = makeString('NI_AUX_S', sVec)
+for ionInd in range(totalNumIons):
+    fortranInd = ionInd + 1
+    profileString += makeString('NI_AUX_F({},:)'.format(fortranInd), dens[:, ionInd]) # FIXME be certain to delete old ion stuff from the file or this won't work!
+profileString += makeString(massInName, ionMs)
+profileString += makeString(chargeInName, ionZs, integer=True)
 
-print('******************') # FIXME should these checks be asserts instead?
-QN = -1 * ne + zi[0] * nD + zi[1] * nT + zi[2] * nHe
-HeIonDensFrac = nHe / (nD + nT + nHe)
-print('Quasineutrality check: these should (in principle) be zero, but you must keep numerical error in mind: ', QN)
-print('Accuracy check: these should be the impurity fraction: ', HeIonDensFrac)
-# FIXME maybe print to a file by default and have a print option in args?
-# FIXME don't forget to write/print AM_AUX_S with PMASS_TYPE = 'akima_spline' and PRES_SCALE =  1.00000000000000E+00
+presString = makeString('PMASS_TYPE', "'akima_spline'")
+presString += makeString('PRES_SCALE', [1])
+presString += makeString('AM_AUX_S', sVec)
+presString += makeString('AM_AUX_F', pres)
+
+# FIXME maybe print to a file by default and have a print option in args? Or maybe you could just create a new version of input.* automatically? Can shove the ion stuff right behind the electron stuff.

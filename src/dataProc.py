@@ -408,3 +408,21 @@ def combineAndSort(IVvec, DVarr):
     combined = combined[combined[:, 0].argsort()] # This sorts the data so that IVvec values are strictly increasing
 
     return combined
+
+def relDiff(n1, n2):
+
+    '''
+    Inputs:
+        n1 and n2: Ints, floats, or NumPy arrays of
+                   the same shape.
+    Outputs:
+        Relative difference of n1 and n2 (or their
+        entries) with the same shape as n1 and n2.
+    '''
+
+    import numpy as np
+
+    num = n1 - n2
+    denom = 0.5 * (n1 + n2)
+    
+    return np.abs(num / denom)

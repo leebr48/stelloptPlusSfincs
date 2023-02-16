@@ -24,7 +24,7 @@ from shutil import copy
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from dataProc import combineAndSort, constructBSpline
+from dataProc import combineAndSort, constructBSpline, relDiff
 from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter, prettyDataLabel, saveTimeStampFile
 from sfincsOutputLib import sfincsRadialAndErScan
 
@@ -126,21 +126,14 @@ def determineLabels(sfincsDir):
 
     return mostCommonRadLabel, mostCommonElecLabel
 
-def relDiff(n1, n2):
-    num = n1 - n2
-    denom = 0.5 * (n1 + n2)
-    with np.errstate(invalid='ignore'): # NumPy will throw a warning before evaluating frac, which makes output confusing
-        frac = num / denom
-    
-    return np.abs(frac)
-
 def filterActualRoots(rootErs, rootJrs, diffTol = 0.01):
     
     # This is not efficient, but for our (small) data sets it should be fine
     rootErsToKeep = np.array([])
     rootJrsToKeep = np.array([])
     for ind1, rootEr1 in enumerate(rootErs):
-        diffs = relDiff(rootEr1, rootErs) # Compare one root with all the others
+        with np.errstate(invalid='ignore'): # NumPy will throw a warning before evaluating frac, which makes output confusing
+            diffs = relDiff(rootEr1, rootErs) # Compare one root with all the others
         tooSimilarInds = np.where(diffs < diffTol)
         if tooSimilarInds[0].size == 0: # No similar roots -> no comparison needed
             ErsToCompare = rootErs
