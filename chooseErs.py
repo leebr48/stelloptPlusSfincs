@@ -313,7 +313,6 @@ if not args.filter:
             if numUniqueRootGuesses == 0: # No root (real or estimated) can be identified - this is a problem
                 printMoreRunsMessage('No root could be identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                 recordNoEr(allRootsLists)
-                continue
             
             else: # A root guess has been identified - launch a run for it
                 launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
@@ -326,7 +325,6 @@ if not args.filter:
                 if numStableRoots == 0: # The only root that can be found or guessed is unstable - this is a problem
                     printMoreRunsMessage('Only a single, unstable root could be identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                     recordNoEr(allRootsLists)
-                    continue
 
                 else: # The identified root is stable, and no other guesses are apparent - assume the identified root is the only one
                     soloRoots.append(rootErs[0])
@@ -343,14 +341,12 @@ if not args.filter:
             if numStableRoots == 0: # Impossible - something is wrong
                 printMoreRunsMessage('Two unstable roots were identified for {} = {}, which should not be possible.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                 recordNoEr(allRootsLists)
-                continue
 
             elif numStableRoots == 1: # The other stable root has not been found yet
 
                 if numUniqueRootGuesses == 0: # This is a problem
                     printMoreRunsMessage('Only one stable and one unstable root were identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                     recordNoEr(allRootsLists)
-                    continue
 
                 else: # Investigate the guesses, which will hopefully allow the other stable root to be identified
                     launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
@@ -361,7 +357,6 @@ if not args.filter:
                 if numUniqueRootGuesses == 0: # This is a problem
                     printMoreRunsMessage('Two stable roots and no unstable roots were identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                     recordNoEr(allRootsLists)
-                    continue
 
                 else: # Investigate the guesses, which will hopefully allow the unstable root to be identified
                     launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
@@ -372,7 +367,6 @@ if not args.filter:
             if numStableRoots in (0, 1, 3): # Does not make sense, something strange is going on
                 printMoreRunsMessage('Three roots were identified for {} = {}. {} of these appear to be stable, which should not be possible.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0], numStableRoots))
                 recordNoEr(allRootsLists)
-                continue
 
             else: # We have a valid number of total and stable roots
                
@@ -421,12 +415,10 @@ if not args.filter:
                     else:
                         printMoreRunsMessage('For {} = {}, three roots were found and two were stable, but the unstable root was not between the stable ones.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                         recordNoEr(allRootsLists)
-                        continue
 
         else: # More than three roots should not be possible
             printMoreRunsMessage('More than three roots were identified for {} = {}, which should not be possible.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
             recordNoEr(allRootsLists)
-            continue
 
     # Now perform some checks and save the Er information that was found
     assert ds.Nradii == len(rootsToUse), 'The vector to be written in rootsToUse.txt was the wrong length. Something is wrong.'
