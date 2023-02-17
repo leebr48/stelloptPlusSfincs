@@ -1,5 +1,5 @@
 # FIXME this script adds new ions to plasma profiles. The outputs are in STELLOPT format.
-# FIXME inputs should be quasineutral # FIXME maybe check that?
+# FIXME inputs should be quasineutral (and this is checked)
 # FIXME probably note that ne is fixed
 # FIXME note that the S values for NE will be the points on which the pressure profile is evaluated 
 # FIXME for the purposes of determining the pressure, the temperature profile for all ion species is assumed to match that of the first ion species. (T same for all species in a reactor anyway)
@@ -44,6 +44,10 @@ def makeString(varName, data, integer=False, namePrefix=' '*2, nameSuffix=' = ',
         dataStr = data
     return namePrefix + varName + nameSuffix + dataStr + eol
 
+def checkQN(NE, ionZs, NIs, thresh=1e-6, failmsg='Quasineutrality check failed.'):
+    QN = -1 * NE + np.dot(ionZs, NIs)
+    assert np.abs(QN) < thresh, failmsg # thresh is not zero because of numerical error
+
 # Retrieve data
 inFile = '/raven/u/lebra/src/stelloptPlusSfincs/temp/input.Donly' # FIXME use args
 profileVarsToFind = ['NE', 'NI', 'TE', 'TI']
@@ -72,6 +76,10 @@ totalNumIons = len(ionZs)
 sVec = profileData['ne']['iv'][0]
 pres = []
 for sInd, sVal in enumerate(sVec): # Calculations must be done one flux surface at a time
+
+    # Initial quasineutrality check
+    localNE = float(profileFitFuncs['ne'][0](sVal))
+    checkQN(localNE, scalarData['z'], [oldIonFunc(sVal) for oldIonFunc in profileFitFuncs['ni']], failmsg='The inputs do not appear to fulfill quasineutrality.')
     
     # Declare terms of the equation Ax=b
     A = []
@@ -79,7 +87,6 @@ for sInd, sVal in enumerate(sVec): # Calculations must be done one flux surface 
     
     # Charge conservation
     A.append(ionZs)
-    localNE = float(profileFitFuncs['ne'][0](sVal))
     b.append(localNE)
 
     # New ion particle balance
@@ -114,8 +121,7 @@ for sInd, sVal in enumerate(sVec): # Calculations must be done one flux surface 
     pres.append((ne_te + np.sum(ni_ti)) * eVToJ)
 
     # Check results
-    QN = -1 * localNE + np.dot(ionZs, x)
-    assert np.abs(QN) < 1e-6, 'The outputs do not appear to fulfill quasineutrality. The matrix solve likely went wrong.' # QN is not zero because of numerical error
+    checkQN(localNE, ionZs, x, failmsg='The outputs do not appear to fulfill quasineutrality. The matrix solve likely went wrong.')
     for ionInd in range(numOldIons, totalNumIons):
         nIonUnderConsideration = x[ionInd]
         achievedFrac = nIonUnderConsideration / np.sum(x)
