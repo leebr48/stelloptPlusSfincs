@@ -4,13 +4,14 @@
 # this script repeatedly until all the roots are identified (which may require looking at the plots produced and choosing radial electric field values manually), running
 # this script with the <filter> option to copy only the information for the "correct" electric field values to a new directory, and running ploy.py on that directory to get the
 # "correct" system behavior. The plots of Jr vs the radial electric field will typically show a spike when the electric field variable is zero. It is highly suggested that the scanned
-# electric field values cover much of this upward spike. Ensuring good scan resolution in this region will help the root finding and integration algorithms. Similarly, if you notice
-# that many root guesses are close together and the next guess in the region is strictly less than or greater than all the others in that region, consider manually running a case 
-# further from these guesses to help the root finding algorithm converge faster. Note that the final electric field should be relatively smooth, except if the system "switches" between
-# the electron and ion roots - this will look like a step change since the equation from Turkin et al. assumes the diffusion coefficient D_E = 0. If the electric field is jagged,
-# the script may have chosen the wrong root. In this case, consider switching the value of the electric field on that flux surface (in rootsToUse.txt) to the alternative (found in
-# electronRoots.txt or ionRoots.txt). Keep in mind that you may need to substantially modify the run time for SFINCS when includePhi1 is turned on. Also keep in mind that you should
-# NOT use ambipolarSolve with this script - doing so will create complications that can be unpleasant to deal with. It is easier and more reliable to simply run this script repeatedly.
+# electric field values cover much of this upward spike. Ensuring good scan resolution in this region will help the root finding and integration algorithms. Please note that the spike
+# may be extremely thin, especially for inner flux surfaces (since we expect Er=0 on the magnetic axis). Similarly, if you notice that many root guesses are close together and the next
+# guess in the region is strictly less than or greater than all the others in that region, consider manually running a case further from these guesses to help the root finding algorithm
+# converge faster. Note that the final electric field should be relatively smooth, except if the system "switches" between the electron and ion roots - this will look like a step change
+# since the equation from Turkin et al. assumes the diffusion coefficient D_E = 0. If the electric field is jagged, the script may have chosen the wrong root. In this case, consider
+# switching the value of the electric field on that flux surface (in rootsToUse.txt) to the alternative (found in electronRoots.txt or ionRoots.txt). Keep in mind that you may need to
+# substantially increase the run time for SFINCS when includePhi1 is turned on. Again, you should NOT use ambipolarSolve with this script - doing so will create complications that can
+# be unpleasant to deal with. It is easier and more reliable to simply run this script repeatedly.
 
 # Load necessary modules
 from os.path import dirname, abspath, join, basename
@@ -38,7 +39,7 @@ def findRoots(dataMat, xScan):
     yEst = f(xScan)
     return f, estRoots, yEst
 
-def getErJrData(dataMat, negative=True, numInterpPoints=100):
+def getErJrData(dataMat, negative=True, numInterpPoints=1000):
 
     if negative:
         ErsData = dataMat[np.where(dataMat[:,0] <= 0)]
@@ -118,7 +119,7 @@ def determineLabels(sfincsDir):
     radSubdirTitles = [address.split('/')[1] for address in subdirsFirst]
     elecSubdirTitles = [address.split('/')[2] for address in subdirsFirst]
     radSubdirLabels = [title.split('_')[0] for title in radSubdirTitles]
-    elecSubdirLabels = [''.join(i for i in label if not i.isdigit()).replace('-','') for label in elecSubdirTitles]
+    elecSubdirLabels = [''.join(i for i in label if not i.isdigit()).replace('-','').replace('.','') for label in elecSubdirTitles]
     countRadLabels = Counter(radSubdirLabels)
     countElecLabels = Counter(elecSubdirLabels)
     mostCommonRadLabel = max(countRadLabels, key=countRadLabels.get)
@@ -248,7 +249,10 @@ if not args.filter:
             msg = 'For {} = {}, it appears that the following electric field subdirectories contained a run with zero radial current:\n'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
             msg += str(exactlyZeroErVals) + '\n'
             msg += 'This indicates a SFINCS error. Please check and fix these run(s) to get reliable results.'
+            msg += 'In the meantime, this subdirectory will be skipped because it will break the root finding algorithm.'
             messagePrinter(msg)
+            recordNoEr(allRootsLists)
+            continue
         rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
         allRootErs = np.array(ErVals)[rootInds] # Could contain (effective) duplicates in rare cases
         allRootJrs = np.array(JrVals)[rootInds]
@@ -403,9 +407,9 @@ if not args.filter:
                             ionRoot = upperRoot
                             electronRoot = lowerRoot
                             
-                            ionRoots.append(ionRoot)
-                            electronRoots.append(electronRoot)
-                            soloRoots.append(np.nan)
+                        ionRoots.append(ionRoot)
+                        electronRoots.append(electronRoot)
+                        soloRoots.append(np.nan)
                         
                         if intVal > 0:
                             rootsToUse.append(ionRoot)
