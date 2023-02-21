@@ -401,3 +401,78 @@ def combineAndSort(IVvec, DVarr):
     combined = combined[combined[:, 0].argsort()] # This sorts the data so that IVvec values are strictly increasing
 
     return combined
+
+def coulombLog(eDict, iDict):
+
+    '''
+    Inputs:
+        eDict: Dictionary containing electron density
+               (key 'n', val in units of 10^20 m^-3) and temperature
+               (key 't', val in units of keV) information for
+               electrons.
+        iDict: Dictionary containing ion density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), and mass (key 'm',
+               val in units of proton masses) information
+               for one ion species. If 'n' is zero for iDict,
+               thermal electron-electron collisions will be
+               considered. Otherwise, thermal electron-ion
+               collisions will be considered.
+    Outputs:
+        An approximation of the Coulomb Logarithm based on
+        https://farside.ph.utexas.edu/teaching/plasma/Plasma/node39.html
+    '''
+
+    import math
+    
+    # Convert units so the formulas are easy to use
+    ne = eDict['n'] * 1e14 # cm^-3
+    ni = iDict['n'] * 1e14 # cm^-3
+    te = eDict['t'] * 1000 # eV
+    ti = iDict['t'] * 1000 # eV
+    zi = iDict['z']
+    mi_mp = iDict['m']
+    me_mp = 0.000544617021
+
+    # Initial check
+    if ne <= 0 or ni < 0 or te < 0 or ti < 0 or zi < 0 or mi_mp < 0:
+        raise IOError('Densities, temperatures, and masses cannot be negative. Electron density must be nonzero. Ion charge cannot be negative. Please check the inputs.')
+
+    # Specify some frequently used quantities
+    me_mi = me_mp / mi_mp
+    ti_me_mi = ti * me_mi
+    zfac = 10 * zi**2
+
+    # Do the calculations
+    if ni == 0 and te < 10:
+        return 23 - math.log(ne**(1/2) * te**(-3/2))
+    elif (ni == 0 and te > 10) or (ni != 0 and ti_me_mi < zfac < te):
+        return 24 - math.log(ne**(1/2) * te**(-1))
+    elif ni != 0 and te < ti_me_mi:
+        return 30 - math.log(ne**(1/2) * ti**(-3/2) * zi**(3/2) * mi_mp)
+    elif ni != 0 and ti_me_mi < te < zfac:
+        return 23 - math.log(ne**(1/2) * zi * te**(-3/2))
+    else:
+        raise ValueError('The algorithm could not determine which formula to use for the Coulomb Logarithm. This sometimes happens in edge cases. Try tweaking the inputs and running again.')
+
+def K_ab(aDict, bDict, K):
+    
+    '''
+    Inputs:
+        aDict: Dictionary containing mass (key 'm', val
+               float in arbitrary units) and temperature
+               (key 't', val float in arbitrary units)
+               information for one species.
+        bDict: Same as aDict, but for a second species.
+               The units used for 'm' and 't' must be
+               the same in both dictionaries.
+        K: Normalized kinetic energy (mv^2/2)/T of the species
+           corresponding to aDict. A value of 1 is often used
+           because thermal interactions are frequently of interest.
+    Outputs:
+        The dimesnionless quantity K^(alpha/beta) in
+        Beidler et al, Nuclear Fusion 51 (2011) 076001.
+    '''
+    
+    return bDict['m'] / aDict['m'] * aDict['t'] / bDict['t'] * K
