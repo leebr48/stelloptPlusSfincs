@@ -553,9 +553,8 @@ def nu_ab(eDict, bDict, K):
         bDict: Dictionary containing density (key 'n', 
                val in units of 10^20 m^-3), temperature
                (key 't', val in units of keV), charge number
-               (key 'z', val unitless), mass (key 'm',
-               val in units of proton masses), and velocity
-               (key 'v', val in units of m/s) information
+               (key 'z', val unitless), and mass (key 'm',
+               val in units of proton masses) information
                for another species.
         K: Normalized kinetic energy (mv^2/2)/T of the second species.
            A value of 1 is commmon because thermal interactions
@@ -579,6 +578,11 @@ def nu_ab(eDict, bDict, K):
     # Add mass key to eDict
     me_mp = m_e / m_p
     eDict['m'] = me_mp
+    
+    # Add velocity key to bDict
+    Tb = bDict['t'] * 1.602176633E-16 # J
+    mb = bDict['m'] * m_p # kg
+    bDict['v'] = thermalVelocity(Tb * K, mb)
 
     # Assemble terms
     refColFreq = nu0_ab(eDict, bDict)
