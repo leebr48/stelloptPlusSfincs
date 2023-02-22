@@ -202,12 +202,11 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
     Outputs:
         The value of inVar in SI units. 
     '''
-    
-    import numpy as np
 
-    # Other important quantities
-    e = 1.602176634e-19 # C (proton charge)
-    vBar = np.sqrt(2 * TBar / mBar) # m/s by default
+    from scipy.constants import e # elementary charge in Coulombs
+
+    # Important quantity
+    vBar = thermalVelocity(TBar, mBar) # m/s by default
 
     # Identify inVar
     if '_' not in inVar:
@@ -402,6 +401,18 @@ def combineAndSort(IVvec, DVarr):
 
     return combined
 
+def thermalVelocity(T, m):
+
+    '''
+    Inputs:
+        T: Temperature in joules.
+        m: Mass in kilograms.
+    Ouptuts:
+        Thermal velocity in m/s.
+    '''
+
+    return (2 * T / m) ** (1/2)
+
 def coulombLog(eDict, iDict):
 
     '''
@@ -421,10 +432,15 @@ def coulombLog(eDict, iDict):
                collisions will be considered.
     Outputs:
         An approximation of the Coulomb Logarithm based on
-        https://farside.ph.utexas.edu/teaching/plasma/Plasma/node39.html
+        https://farside.ph.utexas.edu/teaching/plasma/Plasma/node39.html.
+        Note that ion/ion calculations are ignored because their
+        contribution to the total collision frequency tends to be very small
+        and can be approximated using other methods.
     '''
 
-    import math
+    from scipy.constants import m_e # Electron mass in kg
+    from scipy.constants import m_p # Proton mass in kg
+    from math import log
     
     # Convert units so the formulas are easy to use
     ne = eDict['n'] * 1e14 # cm^-3
@@ -433,11 +449,11 @@ def coulombLog(eDict, iDict):
     ti = iDict['t'] * 1000 # eV
     zi = iDict['z']
     mi_mp = iDict['m']
-    me_mp = 0.000544617021
+    me_mp = m_e / m_p
 
     # Initial check
-    if ne <= 0 or ni < 0 or te < 0 or ti < 0 or zi < 0 or mi_mp < 0:
-        raise IOError('Densities, temperatures, and masses cannot be negative. Electron density must be nonzero. Ion charge cannot be negative. Please check the inputs.')
+    if ne <= 0 or ni < 0 or te < 0 or ti < 0 or mi_mp < 0:
+        raise IOError('Densities, temperatures, and masses cannot be negative. Electron density must be nonzero. Please check the inputs.')
 
     # Specify some frequently used quantities
     me_mi = me_mp / mi_mp
@@ -446,13 +462,13 @@ def coulombLog(eDict, iDict):
 
     # Do the calculations
     if ni == 0 and te < 10:
-        return 23 - math.log(ne**(1/2) * te**(-3/2))
+        return 23 - log(ne**(1/2) * te**(-3/2))
     elif (ni == 0 and te > 10) or (ni != 0 and ti_me_mi < zfac < te):
-        return 24 - math.log(ne**(1/2) * te**(-1))
+        return 24 - log(ne**(1/2) * te**(-1))
     elif ni != 0 and te < ti_me_mi:
-        return 30 - math.log(ne**(1/2) * ti**(-3/2) * zi**(3/2) * mi_mp)
+        return 30 - log(ne**(1/2) * ti**(-3/2) * zi**(3/2) * mi_mp)
     elif ni != 0 and ti_me_mi < te < zfac:
-        return 23 - math.log(ne**(1/2) * zi * te**(-3/2))
+        return 23 - log(ne**(1/2) * zi * te**(-3/2))
     else:
         raise ValueError('The algorithm could not determine which formula to use for the Coulomb Logarithm. This sometimes happens in edge cases. Try tweaking the inputs and running again.')
 
@@ -476,3 +492,124 @@ def K_ab(aDict, bDict, K):
     '''
     
     return bDict['m'] / aDict['m'] * aDict['t'] / bDict['t'] * K
+
+def nu0_ab(eDict, bDict):
+
+    '''
+    Inputs:
+        eDict: Dictionary containing density
+               (key 'n', val in units of 10^20 m^-3) and temperature
+               (key 't', val in units of keV) information for
+               electrons.
+        bDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), mass (key 'm',
+               val in units of proton masses), and velocity
+               (key 'v', val in units of m/s) information
+               for another species. If 'm' is less than 0.001,
+               this species is assumed to be electrons.
+    Outputs:
+        The reference collision frequency nu_0^(alpha/beta) in 
+        Beidler et al, Nuclear Fusion 51 (2011) 076001. Note
+        that ion/ion calculations are ignored because their
+        contribution to the total collision frequency tends to be
+        very small and can be approximated using other methods.
+    '''
+
+    from scipy.constants import e # Elementary charge in Coulombs
+    from scipy.constants import pi
+    from scipy.constants import epsilon_0 # In SI units (F/m)
+    from scipy.constants import m_p # Proton mass in kg
+
+    # Get inputs in SI units
+    nbeta = eDict['n'] * 1e20
+    qalpha = bDict['z'] * e
+    qbeta = -1 * e
+    if bDict['m'] < 0.001: # Assume species b is electrons
+        bDict['n'] = 0
+    coulLog = coulombLog(eDict, bDict)
+    malpha = bDict['m'] * m_p
+    v = bDict['v']
+    
+    # Initial check
+    if nbeta <= 0 or malpha <= 0 or v <= 0:
+        raise IOError('Electron density and species b mass and velocity must be positive.')
+
+    # Perform calculations
+    num = nbeta * (qalpha * qbeta)**2 * coulLog
+    denom = 4 * pi * (epsilon_0 * malpha)**2 * v**3
+
+    return num / denom
+
+def nu_ab(eDict, bDict, K):
+    
+    '''
+    Inputs:
+        eDict: Dictionary containing density
+               (key 'n', val in units of 10^20 m^-3) and temperature
+               (key 't', val in units of keV) information for
+               electrons.
+        bDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), mass (key 'm',
+               val in units of proton masses), and velocity
+               (key 'v', val in units of m/s) information
+               for another species.
+        K: Normalized kinetic energy (mv^2/2)/T of the second species.
+           A value of 1 is commmon because thermal interactions
+           are frequently of interest. Because the Coulomb Logarithm
+           calculation is for thermal collisions, keeping K=1 is
+           recommended.
+    Outputs:
+        The collision frequency nu^(alpha/beta) in 
+        Beidler et al, Nuclear Fusion 51 (2011) 076001. Note
+        that ion/ion calculations are ignored because their
+        contribution to the total collision frequency tends to be
+        very small and can be approximated using other methods.
+    '''
+
+    from scipy.constants import m_e # Electron mass in kg
+    from scipy.constants import m_p # Proton mass in kg
+    from scipy.constants import pi
+    from scipy.special import erf
+    from math import exp
+    
+    # Add mass key to eDict
+    me_mp = m_e / m_p
+    eDict['m'] = me_mp
+
+    # Assemble terms
+    refColFreq = nu0_ab(eDict, bDict)
+    k = K_ab(bDict, eDict, K)
+    t1 = erf(k**(1/2)) * (1 - 1/(2 * k))
+    t2 = (pi * k)**(-1/2) * exp(-k)
+
+    # Calculate output
+    return refColFreq * (t1 + t2)
+
+def approx_nu_ii(nu_ei, eDict, iDict):
+
+    '''
+    Inputs:
+        nu_ei: Collisionality of the electrons described in eDict
+               and the ion species described in iDict.
+        eDict: Dictionary containing temperature
+               (key 't', val in arbitrary units) information for
+               electrons.
+        iDict: Dictionary containing mass (key 'm', val in units of
+               proton masses), temperature (key 't', val in same units
+               as 't' for eDict), and charge (key 'z', val unitless)
+               information for an ion species.
+    Outputs:
+        Approximate value of the collisionality nu_ii based on a
+        scaling law, in the same units as nu_ei.
+    '''
+
+    from scipy.constants import m_e # Electron mass in kg
+    from scipy.constants import m_p # Proton mass in kg
+    
+    me_mp = m_e / m_p
+    
+    return (me_mp / iDict['m'])**(1/2) * iDict['z']**2 * (eDict['t'] / iDict['t'])**(3/2) * nu_ei
