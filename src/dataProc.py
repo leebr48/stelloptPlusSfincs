@@ -401,76 +401,137 @@ def combineAndSort(IVvec, DVarr):
 
     return combined
 
-def thermalVelocity(T, m):
+def thermalVelocity(T, m, units='SI'):
 
     '''
     Inputs:
-        T: Temperature in joules.
-        m: Mass in kilograms.
+        T: Temperature, with units determined by <units>.
+        m: Mass, with units determined by <units>.
+        units: Defines the unit system used. Options:
+               SI: T in joules, m in kilograms.
+               keV_mp: T in keV, m in proton masses.
     Ouptuts:
         Thermal velocity in m/s.
     '''
 
+    if units == 'SI':
+        pass
+    elif units == 'keV_mp':
+        from scipy.constants import m_p # Proton mass in kg
+        T = T * 1.602176633E-16 # J
+        m = m * m_p # kg
+    else:
+        raise IOError('The requested input unit convention was not recognized.')
+    
     return (2 * T / m) ** (1/2)
-
-def coulombLog(eDict, iDict):
+    
+def coulombLog(aDict, bDict):
 
     '''
     Inputs:
-        eDict: Dictionary containing electron density
-               (key 'n', val in units of 10^20 m^-3) and temperature
-               (key 't', val in units of keV) information for
-               electrons.
-        iDict: Dictionary containing ion density (key 'n', 
+        aDict: Dictionary containing density (key 'n', 
                val in units of 10^20 m^-3), temperature
                (key 't', val in units of keV), charge number
                (key 'z', val unitless), and mass (key 'm',
                val in units of proton masses) information
-               for one ion species. If 'n' is zero for iDict,
-               thermal electron-electron collisions will be
-               considered. Otherwise, thermal electron-ion
-               collisions will be considered.
+               for one species.
+        bDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), and mass (key 'm',
+               val in units of proton masses) information
+               for another species. If 'z' is -1 in both aDict
+               and bDict, the values from aDict alone will be
+               used to perform calculations for thermal electron-
+               electron collisions. Otherwise, information from
+               both dictionaries will be used.
     Outputs:
         An approximation of the Coulomb Logarithm based on
         https://farside.ph.utexas.edu/teaching/plasma/Plasma/node39.html.
-        Note that ion/ion calculations are ignored because their
-        contribution to the total collision frequency tends to be very small
-        and can be approximated using other methods.
+        Ion-ion collisions are treated by a formula taken from the
+        Neotransp library by Hakan Smith.
     '''
 
-    from scipy.constants import m_e # Electron mass in kg
     from scipy.constants import m_p # Proton mass in kg
     from math import log
     
     # Convert units so the formulas are easy to use
-    ne = eDict['n'] * 1e14 # cm^-3
-    ni = iDict['n'] * 1e14 # cm^-3
-    te = eDict['t'] * 1000 # eV
-    ti = iDict['t'] * 1000 # eV
-    zi = iDict['z']
-    mi_mp = iDict['m']
-    me_mp = m_e / m_p
+    na = aDict['n'] * 1e14 # cm^-3
+    nb = bDict['n'] * 1e14 # cm^-3
+    ta = aDict['t'] * 1000 # eV
+    tb = bDict['t'] * 1000 # eV
+    za = aDict['z']
+    zb = bDict['z']
+    ma_mp = aDict['m']
+    mb_mp = bDict['m']
 
     # Initial check
-    if ne <= 0 or ni < 0 or te < 0 or ti < 0 or mi_mp < 0:
-        raise IOError('Densities, temperatures, and masses cannot be negative. Electron density must be nonzero. Please check the inputs.')
+    if na < 0 or nb < 0 or ta < 0 or tb < 0 or ma_mp < 0 or mb_mp < 0:
+        raise IOError('Densities, temperatures, and masses cannot be negative. Please check the inputs.')
+    
+    # Determine which formula to use and do the calculations
+    if za == -1 and zb == -1: # Both species are electrons
+        
+        if ta < 10:
+            return 23 - log(na**(1/2) * ta**(-3/2))
+        elif ta > 10:
+            return 24 - log(na**(1/2) * ta**(-1))
+        else:
+            raise ValueError('The algorithm could not determine which formula to use for the Coulomb Logarithm. This sometimes happens in edge cases. Try tweaking the inputs and running again.')
+    
+    elif za == -1 or zb == -1: # One species is electrons
+        
+        # Sort out which species is which
+        if za == -1:
+            te = ta
+            ti = tb
+            ne = na
+            ni = nb
+            ze = za
+            zi = zb
+            me_mp = ma_mp
+            mi_mp = mb_mp
+        else:
+            ti = ta
+            te = tb
+            ni = na
+            ne = nb
+            zi = za
+            ze = zb
+            mi_mp = ma_mp
+            me_mp = mb_mp
 
-    # Specify some frequently used quantities
-    me_mi = me_mp / mi_mp
-    ti_me_mi = ti * me_mi
-    zfac = 10 * zi**2
+        # Specify some reused quantities
+        me_mi = me_mp / mi_mp
+        ti_me_mi = ti * me_mi
+        zfac = 10 * zi**2
 
-    # Do the calculations
-    if ni == 0 and te < 10:
-        return 23 - log(ne**(1/2) * te**(-3/2))
-    elif (ni == 0 and te > 10) or (ni != 0 and ti_me_mi < zfac < te):
-        return 24 - log(ne**(1/2) * te**(-1))
-    elif ni != 0 and te < ti_me_mi:
-        return 30 - log(ne**(1/2) * ti**(-3/2) * zi**(3/2) * mi_mp)
-    elif ni != 0 and ti_me_mi < te < zfac:
-        return 23 - log(ne**(1/2) * zi * te**(-3/2))
-    else:
-        raise ValueError('The algorithm could not determine which formula to use for the Coulomb Logarithm. This sometimes happens in edge cases. Try tweaking the inputs and running again.')
+        # Do the calculations
+        if te < ti_me_mi:
+            return 30 - log(ne**(1/2) * ti**(-3/2) * zi**(3/2) * mi_mp)
+        elif ti_me_mi < te < zfac:
+            return 23 - log(ne**(1/2) * zi * te**(-3/2))
+        elif ti_me_mi < zfac < te:
+            return 24 - log(ne**(1/2) * te**(-1))
+        else:
+            raise ValueError('The algorithm could not determine which formula to use for the Coulomb Logarithm. This sometimes happens in edge cases. Try tweaking the inputs and running again.')
+
+    else: # Both species are ions
+
+        # Convert some units again for use with a different formula
+        ma = ma_mp * m_p # kg
+        mb = mb_mp * m_p # kg
+        na = na * 1e6 # m^-3
+        nb = nb * 1e6 # m^-3
+
+        # Calculations
+        t1 = za * zb * (ma + mb)
+        t2 = ma * tb + mb * ta
+        t3a = na * za**2 / ta
+        t3b = nb * zb**2 / tb
+        t3 = (t3a + t3b)**(1/2)
+
+        return 30.3 - log(t1 / t2 * t3)
 
 def K_ab(aDict, bDict, K):
     
@@ -493,7 +554,7 @@ def K_ab(aDict, bDict, K):
     
     return bDict['m'] / aDict['m'] * aDict['t'] / bDict['t'] * K
 
-def nu0_ab(eDict, bDict):
+def nu0_ab(eDict, bDict): # FIXME rewrite this for general species, and pretty much everything after
 
     '''
     Inputs:
@@ -580,9 +641,7 @@ def nu_ab(eDict, bDict, K):
     eDict['m'] = me_mp
     
     # Add velocity key to bDict
-    Tb = bDict['t'] * 1.602176633E-16 # J
-    mb = bDict['m'] * m_p # kg
-    bDict['v'] = thermalVelocity(Tb * K, mb)
+    bDict['v'] = thermalVelocity(bDict['t'] * K, bDict['m'], units='keV_mp')
 
     # Assemble terms
     refColFreq = nu0_ab(eDict, bDict)
