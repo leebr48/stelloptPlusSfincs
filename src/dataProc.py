@@ -554,28 +554,31 @@ def K_ab(aDict, bDict, K):
     
     return bDict['m'] / aDict['m'] * aDict['t'] / bDict['t'] * K
 
-def nu0_ab(eDict, bDict): # FIXME rewrite this for general species, and pretty much everything after
+def nu0_ab(aDict, bDict): 
 
     '''
     Inputs:
-        eDict: Dictionary containing density
-               (key 'n', val in units of 10^20 m^-3) and temperature
-               (key 't', val in units of keV) information for
-               electrons.
-        bDict: Dictionary containing density (key 'n', 
+        aDict: Dictionary containing density (key 'n', 
                val in units of 10^20 m^-3), temperature
                (key 't', val in units of keV), charge number
                (key 'z', val unitless), mass (key 'm',
                val in units of proton masses), and velocity
                (key 'v', val in units of m/s) information
-               for another species. If 'm' is less than 0.001,
-               this species is assumed to be electrons.
+               for one species. Specifically, this is the
+               'species of interest' (alpha) from
+               Beidler et al, Nuclear Fusion 51 (2011) 076001.
+               Note that v must be consistent with the
+               normalized kinetic energy K.
+        bDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), mass (key 'm',
+               val in units of proton masses) information
+               for another species. Specifically, this is one
+               'background species' (beta) from Beidler et al.
     Outputs:
         The reference collision frequency nu_0^(alpha/beta) in 
-        Beidler et al, Nuclear Fusion 51 (2011) 076001. Note
-        that ion/ion calculations are ignored because their
-        contribution to the total collision frequency tends to be
-        very small and can be approximated using other methods.
+        Beidler et al.
     '''
 
     from scipy.constants import e # Elementary charge in Coulombs
@@ -584,18 +587,16 @@ def nu0_ab(eDict, bDict): # FIXME rewrite this for general species, and pretty m
     from scipy.constants import m_p # Proton mass in kg
 
     # Get inputs in SI units
-    nbeta = eDict['n'] * 1e20
-    qalpha = bDict['z'] * e
-    qbeta = -1 * e
-    if bDict['m'] < 0.001: # Assume species b is electrons
-        bDict['n'] = 0
-    coulLog = coulombLog(eDict, bDict)
-    malpha = bDict['m'] * m_p
-    v = bDict['v']
+    nbeta = bDict['n'] * 1e20
+    qalpha = aDict['z'] * e
+    qbeta = bDict['z'] * e
+    coulLog = coulombLog(aDict, bDict)
+    malpha = aDict['m'] * m_p
+    v = aDict['v']
     
-    # Initial check
+    # Safety checks
     if nbeta <= 0 or malpha <= 0 or v <= 0:
-        raise IOError('Electron density and species b mass and velocity must be positive.')
+        raise IOError('Species "a" mass, species "a" velocity, and species "b" density must be positive.')
 
     # Perform calculations
     num = nbeta * (qalpha * qbeta)**2 * coulLog
@@ -603,31 +604,33 @@ def nu0_ab(eDict, bDict): # FIXME rewrite this for general species, and pretty m
 
     return num / denom
 
-def nu_ab(eDict, bDict, K):
+def nu_ab(aDict, bDict, K):
     
     '''
     Inputs:
-        eDict: Dictionary containing density
-               (key 'n', val in units of 10^20 m^-3) and temperature
-               (key 't', val in units of keV) information for
-               electrons.
+        aDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), and mass (key 'm',
+               val in units of proton masses) information
+               for one species. Specifically, this is the
+               'species of interest' (alpha) from
+               Beidler et al, Nuclear Fusion 51 (2011) 076001.
         bDict: Dictionary containing density (key 'n', 
                val in units of 10^20 m^-3), temperature
                (key 't', val in units of keV), charge number
                (key 'z', val unitless), and mass (key 'm',
                val in units of proton masses) information
-               for another species.
-        K: Normalized kinetic energy (mv^2/2)/T of the second species.
+               for another species. Specifically, this is one
+               'background species' (beta) from Beidler et al.
+        K: Normalized kinetic energy (mv^2/2)/T of the first species.
            A value of 1 is commmon because thermal interactions
-           are frequently of interest. Because the Coulomb Logarithm
-           calculation is for thermal collisions, keeping K=1 is
-           recommended.
+           are frequently of interest. Because the implemented
+           Coulomb Logarithm calculation is for thermal collisions,
+           keeping K=1 is recommended.
     Outputs:
         The collision frequency nu^(alpha/beta) in 
-        Beidler et al, Nuclear Fusion 51 (2011) 076001. Note
-        that ion/ion calculations are ignored because their
-        contribution to the total collision frequency tends to be
-        very small and can be approximated using other methods.
+        Beidler et al, Nuclear Fusion 51 (2011) 076001.
     '''
 
     from scipy.constants import m_e # Electron mass in kg
@@ -636,43 +639,14 @@ def nu_ab(eDict, bDict, K):
     from scipy.special import erf
     from math import exp
     
-    # Add mass key to eDict
-    me_mp = m_e / m_p
-    eDict['m'] = me_mp
-    
-    # Add velocity key to bDict
-    bDict['v'] = thermalVelocity(bDict['t'] * K, bDict['m'], units='keV_mp')
+    # Add velocity key to aDict
+    aDict['v'] = thermalVelocity(aDict['t'] * K, aDict['m'], units='keV_mp')
 
     # Assemble terms
-    refColFreq = nu0_ab(eDict, bDict)
-    k = K_ab(bDict, eDict, K)
+    refColFreq = nu0_ab(aDict, bDict)
+    k = K_ab(aDict, bDict, K)
     t1 = erf(k**(1/2)) * (1 - 1/(2 * k))
     t2 = (pi * k)**(-1/2) * exp(-k)
 
     # Calculate output
     return refColFreq * (t1 + t2)
-
-def approx_nu_ii(nu_ei, eDict, iDict):
-
-    '''
-    Inputs:
-        nu_ei: Collisionality of the electrons described in eDict
-               and the ion species described in iDict.
-        eDict: Dictionary containing temperature
-               (key 't', val in arbitrary units) information for
-               electrons.
-        iDict: Dictionary containing mass (key 'm', val in units of
-               proton masses), temperature (key 't', val in same units
-               as 't' for eDict), and charge (key 'z', val unitless)
-               information for an ion species.
-    Outputs:
-        Approximate value of the collisionality nu_ii based on a
-        scaling law, in the same units as nu_ei.
-    '''
-
-    from scipy.constants import m_e # Electron mass in kg
-    from scipy.constants import m_p # Proton mass in kg
-    
-    me_mp = m_e / m_p
-    
-    return (me_mp / iDict['m'])**(1/2) * iDict['z']**2 * (eDict['t'] / iDict['t'])**(3/2) * nu_ei
