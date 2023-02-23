@@ -310,6 +310,31 @@ def getChooseErArgs():
     
     return args
 
+def getCollisionalityArgs():
+
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for calculating collisionalities.
+    '''
+
+    import argparse
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--zs', type=float, nargs='+', required=True, help='Charge number of each species in the plasma. Order matters!')
+    parser.add_argument('--ms', type=float, nargs='+', required=True, help='Mass of each species in the plasma in units of proton mass. If you enter a negative number, electron mass will be used. Order matters!')
+    parser.add_argument('--ns', type=float, nargs='+', required=True, help='Density of each species in the plasma in units of 10^20 m^-3. Order matters!')
+    parser.add_argument('--ts', type=float, nargs='+', required=True, help='Temperature of each species in the plasma in keV. Order matters!')
+    parser.add_argument('--Ks', type=float, nargs='+', required=True, help='Normalized kinetic energy (mv^2/2)/T of each species in the plasma. Choosing 1 for each is recommended. Order matters!')
+    args = parser.parse_args()
+
+    if not (len(args.zs) == len(args.ms) == len(args.ns) == len(args.ts) == len(args.Ks)):
+        raise IOError('The length of each input must be the same. That is, all input quantities must be specified for all species.')
+    
+    return args
+
+
 def getFileInfo(inFile, saveLoc, outFileName):
 
     '''
