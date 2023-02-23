@@ -1,5 +1,6 @@
-# FIXME this simple script computes the collisionality of particles at given conditions
+# This simple script computes the collisionality of the input particles. It is assumed that all the particles live together in the same plasma.
 
+# Load necessary modules
 from scipy.constants import m_e # Electron mass in kg
 from scipy.constants import m_p # Proton mass in kg
 from os.path import dirname, abspath, join
@@ -8,29 +9,36 @@ import sys
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from dataProc import nu_ab, approx_nu_ii
+from IO import getCollisionalityArgs, messagePrinter
+from dataProc import nu_ab, thermalVelocity
 
 # Sort out inputs
-ne = 1.8 # FIXME make arg
-te = 11 # FIXME make arg
-nis = [0.8, 0.09] # FIXME make arg
-tis = [11, 11] #FIXME make arg
-zis = [2, 2] # FIXME make arg
-mis = [2, 3] # FIXME make arg
-K = 1 # FIXME make arg
+args = getCollisionalityArgs()
+ns = args.ns
+ts = args.ts
+zs = args.zs
+ms = [m_e / m_p if x < 0 else x for x in args.ms]
+Ks = args.Ks
 
-# Set up other quantities
-ze = -1
-me = m_e / m_p
+# Perform calculations
+nus = []
+nu_vs = []
+for na, ta, za, ma, Ka in zip(ns, ts, zs, ms, Ks):
+    aDict = {'n':na, 't':ta, 'z':za, 'm':ma}
+    nua = 0
+    for nb, tb, zb, mb in zip(ns, ts, zs, ms):
+        bDict = {'n':nb, 't':tb, 'z':zb, 'm':mb}
+        nuab = nu_ab(aDict, bDict, Ka)
+        nua += nuab
+    nua_va = nua / thermalVelocity(ta * Ka, ma, units='keV_mp')
+    nus.append(nua)
+    nu_vs.append(nua_va)
 
-# Set up electron dictionary
-eDict = {'n':ne, 't':te}
+# Report results
+nus_msg = 'The collisionalities (nu, in Hz) of the input particles, in order, are:\n'
+nus_msg += str(nus)
+messagePrinter(nus_msg)
 
-# Perform nu_ee calculations first # FIXME probably not?...
-aDict = {'n':ne, 't':te, 'z':ze, 'm':me}
-bDict = {'n':ne, 't':te, 'z':ze, 'm':me}
-
-nu_ee = nu_ab(aDict, bDict, K)
-print(nu_ee)
-
-#for nb, tb, zb, mb in zip(nis, tis, zis, mis):
+nu_vs_msg = 'The collisionalities (nu/v, in 1/m) of the input particles, in order, are:\n'
+nu_vs_msg += str(nu_vs)
+messagePrinter(nu_vs_msg)
