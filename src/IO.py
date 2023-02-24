@@ -310,7 +310,7 @@ def getChooseErArgs():
     
     return args
 
-def getAddIonsArgs():
+def getCollisionalityArgs():
 
     '''
     Inputs:
@@ -334,7 +334,7 @@ def getAddIonsArgs():
     
     return args
 
-def getCollisionalityArgs():
+def getAddIonsArgs():
 
     '''
     Inputs:
