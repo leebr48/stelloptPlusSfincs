@@ -143,7 +143,7 @@ def constructBSpline(ivVec, dvVec, k=3, s=0):
     
     return tck
 
-def nonlinearInterp(inputData, ders, k=3, s=0):
+def nonlinearInterp(inputData, ders, k=3, s=0, pchip=False):
 
     '''
     Inputs:
@@ -160,20 +160,27 @@ def nonlinearInterp(inputData, ders, k=3, s=0):
            scipy.interpolate.splrep. s=0 corresponds to no
            smoothing, meaning that the interpolation function
            will go through every data point.
+        pchip: If True, the SciPy PchipInterpolator will
+               be used rather than a BSpline.
     Outputs:
         inputData, but with lists of SciPy interpolation
         objects in place of the data.
     '''
 
     from scipy.interpolate import splev
+    from scipy.interpolate import PchipInterpolator
 
     outputData = {}
     for key, data in inputData.items():
         
         interpObjs = []
         for ivVec,dvVec in zip(data['iv'], data['dv']):
-            tck = constructBSpline(ivVec, dvVec, k=k, s=s)
-            interpObj = lambda x, tck=tck, der=ders[key]: splev(x, tck, der=der, ext=2) # Will raise an error if extrapolation is requested
+            if not pchip:
+                tck = constructBSpline(ivVec, dvVec, k=k, s=s)
+                interpObj = lambda x, tck=tck, der=ders[key]: splev(x, tck, der=der, ext=2) # Will raise an error if extrapolation is requested
+            else:
+                f = PchipInterpolator(ivVec, dvVec, extrapolate=False) # Will raise an error if extrapolation is requested
+                interpObj = f.derivative(nu=ders[key])
             interpObjs.append(interpObj)
         
         outputData[key] = interpObjs
@@ -400,6 +407,24 @@ def combineAndSort(IVvec, DVarr):
     combined = combined[combined[:, 0].argsort()] # This sorts the data so that IVvec values are strictly increasing
 
     return combined
+
+def relDiff(n1, n2):
+
+    '''
+    Inputs:
+        n1 and n2: Ints, floats, or NumPy arrays of
+                   the same shape.
+    Outputs:
+        Relative difference of n1 and n2 (or their
+        entries) with the same shape as n1 and n2.
+    '''
+
+    import numpy as np
+
+    num = n1 - n2
+    denom = 0.5 * (n1 + n2)
+    
+    return np.abs(num / denom)
 
 def thermalVelocity(T, m, units='SI'):
 
