@@ -15,16 +15,17 @@ from scipy.linalg import solve
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, extractScalarData
+from IO import cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, extractScalarData, messagePrinter
 from dataProc import nonlinearInterp, relDiff
 
 # Important constant
 eVToJ = 1.602176634e-19 # In STELLOPT, temperatures are written in eV but pressures are written in Pa
 
-# Desired new ion parameters
+# Sort out inputs
+inFile = '/raven/u/lebra/src/stelloptPlusSfincs/temp/input.DT' # FIXME use args
 newMasses = [6.64647907E-27] # kg # FIXME pull from args
-newCharges = [1.0, 2.0] # FIXME pull from args # FIXME ensure these are ints
-newFracs = [0.475, 0.05] # FIXME pull from args # FIXME ensure the sum of these is less than or equal to 1
+newCharges = [2.0] # FIXME pull from args # FIXME ensure these are ints
+newFracs = [0.05] # FIXME pull from args # FIXME ensure the sum of these is less than or equal to 1
 
 # Handy functions
 def cleanup(inAr, integer=False):
@@ -46,10 +47,10 @@ def makeString(varName, data, integer=False, namePrefix=' '*2, nameSuffix=' = ',
 
 def checkQN(NE, ionZs, NIs, thresh=1e-6, failmsg='Quasineutrality check failed.'):
     QN = -1 * NE + np.dot(ionZs, NIs)
-    assert np.abs(QN) < thresh, failmsg # thresh is not zero because of numerical error
+    relQN = np.abs(QN / (NE + np.sum(NIs)))
+    assert relQN < thresh, failmsg # thresh is not zero because of numerical error
 
 # Retrieve data
-inFile = '/raven/u/lebra/src/stelloptPlusSfincs/temp/input.Donly' # FIXME use args
 profileVarsToFind = ['NE', 'NI', 'TE', 'TI']
 massInName = 'NI_AUX_M'
 chargeInName = 'NI_AUX_Z'
@@ -79,7 +80,8 @@ for sInd, sVal in enumerate(sVec): # Calculations must be done one flux surface 
 
     # Initial quasineutrality check
     localNE = float(profileFitFuncs['ne'][0](sVal))
-    checkQN(localNE, scalarData['z'], [oldIonFunc(sVal) for oldIonFunc in profileFitFuncs['ni']], failmsg='The inputs do not appear to fulfill quasineutrality.')
+    localNIs = [oldIonFunc(sVal) for oldIonFunc in profileFitFuncs['ni']]
+    checkQN(localNE, scalarData['z'], localNIs, failmsg='The inputs do not appear to fulfill quasineutrality.')
     
     # Declare terms of the equation Ax=b
     A = []
@@ -137,7 +139,7 @@ assert dens.shape[1] == totalNumIons, 'The ion density array does not seem to co
 profileString = makeString('NI_AUX_S', sVec)
 for ionInd in range(totalNumIons):
     fortranInd = ionInd + 1
-    profileString += makeString('NI_AUX_F({},:)'.format(fortranInd), dens[:, ionInd]) # FIXME be certain to delete old ion stuff from the file or this won't work!
+    profileString += makeString('NI_AUX_F({},:)'.format(fortranInd), dens[:, ionInd])
 profileString += makeString(massInName, ionMs)
 profileString += makeString(chargeInName, ionZs, integer=True)
 
@@ -146,4 +148,13 @@ presString += makeString('PRES_SCALE', [1])
 presString += makeString('AM_AUX_S', sVec)
 presString += makeString('AM_AUX_F', pres)
 
-# FIXME maybe print to a file by default and have a print option in args? Or maybe you could just create a new version of input.* automatically? Can shove the ion stuff right behind the electron stuff.
+# Print outputs
+presMsg = 'The pressure information (relevant for VMEC) is:\n'
+presMsg += presString
+messagePrinter(presMsg)
+
+profMsg = 'The profile and species information (relevant for BEAMS3D) is:\n'
+profMsg += profileString
+messagePrinter(profMsg)
+
+messagePrinter('Note that you MUST delete the old versions of these lines from the namelist before adding the new ones!')
