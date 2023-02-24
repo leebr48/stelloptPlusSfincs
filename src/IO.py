@@ -334,7 +334,6 @@ def getCollisionalityArgs():
     
     return args
 
-
 def getFileInfo(inFile, saveLoc, outFileName):
 
     '''
