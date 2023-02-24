@@ -1,10 +1,7 @@
-# FIXME this script adds new ions to plasma profiles. The outputs are in STELLOPT format.
-# FIXME inputs should be quasineutral (and this is checked)
-# FIXME probably note that ne is fixed
-# FIXME note that the S values for NE will be the points on which the pressure profile is evaluated 
-# FIXME for the purposes of determining the pressure, the temperature profile for all ion species is assumed to match that of the first ion species. (T same for all species in a reactor anyway)
-
-# FIXME ensure the args have checks on the length of inputs and so on
+# This script adds new ions to plasma profiles. The outputs are in STELLOPT format. Input profiles should be quasineutral (and this is checked).
+# The electron density profile will not be changed, but already-present ion density profiles may be. Also, the S knot values for the electron
+# density profile will be used for all other profiles. Please note that for the purposes of determining the pressure profile, it is assumed that
+# the temperature profile for all the ion species matches that of the first ion species.
 
 # Import necessary modules
 import numpy as np
@@ -15,17 +12,18 @@ from scipy.linalg import solve
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, extractScalarData, messagePrinter
+from IO import getAddIonsArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, extractScalarData, messagePrinter
 from dataProc import nonlinearInterp, relDiff
 
 # Important constant
 eVToJ = 1.602176634e-19 # In STELLOPT, temperatures are written in eV but pressures are written in Pa
 
 # Sort out inputs
-inFile = '/raven/u/lebra/src/stelloptPlusSfincs/temp/input.DT' # FIXME use args
-newMasses = [6.64647907E-27] # kg # FIXME pull from args
-newCharges = [2.0] # FIXME pull from args # FIXME ensure these are ints
-newFracs = [0.05] # FIXME pull from args # FIXME ensure the sum of these is less than or equal to 1
+args = getAddIonsArgs()
+inFile, _, _, _, _ = getFileInfo(args.profilesIn[0], '/arbitrary/path', 'arbitrary')
+newMasses = args.ms # kg
+newCharges = args.zs
+newFracs = args.fs
 
 # Handy functions
 def cleanup(inAr, integer=False):
@@ -157,4 +155,4 @@ profMsg = 'The profile and species information (relevant for BEAMS3D) is:\n'
 profMsg += profileString
 messagePrinter(profMsg)
 
-messagePrinter('Note that you MUST delete the old versions of these lines from the namelist before adding the new ones!')
+messagePrinter('Please replace the appropriate lines in the namelist with the ones printed above.')

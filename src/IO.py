@@ -310,6 +310,40 @@ def getChooseErArgs():
     
     return args
 
+def getAddIonsArgs():
+
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for adding ions to a given set of profiles.
+    '''
+
+    import argparse
+    from os.path import isdir
+    import numpy as np
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--profilesIn', type=str, nargs=1, required=True, help='File with relevant profiles written as in STELLOPT, with path(s) if necessary. This script currently reads the VMEC and BEAMS3D sections of STELLOPT namelist files. Note that you must specify densities rather than Zeff.')
+    parser.add_argument('--zs', type=float, nargs='+', required=True, help='Charge number of each ion species to be added to the plasma. Order matters!')
+    parser.add_argument('--ms', type=float, nargs='+', required=True, help='Mass of each ion species to be added to the plasma in units of kilograms. Order matters!')
+    parser.add_argument('--fs', type=float, nargs='+', required=True, help='Desired fractions of the total ion number density for each ion species to be added to the plasma. Note that while the density profiles of already-present ions may be modified, the electron density profile is never changed. Order matters!')
+    args = parser.parse_args()
+
+    if isdir(args.profilesIn[0]):
+        raise IOError('The input to <profilesIn> must be a file, not a directory.')
+
+    if np.any(np.array(args.zs) <= 0):
+        raise IOError('All <zs> must be positive.')
+
+    if not (len(args.zs) == len(args.ms) == len(args.fs)):
+        raise IOError('The length of <zs>, <ms>, and <fs> must be the same. That is, these quantities must be specified for all species.')
+
+    if np.sum(args.fs) > 1:
+        raise IOError('The sum of the entries in <fs> cannot be greater than 1.')
+    
+    return args
+
 def getFileInfo(inFile, saveLoc, outFileName):
 
     '''
