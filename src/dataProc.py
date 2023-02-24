@@ -209,12 +209,11 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
     Outputs:
         The value of inVar in SI units. 
     '''
-    
-    import numpy as np
 
-    # Other important quantities
-    e = 1.602176634e-19 # C (proton charge)
-    vBar = np.sqrt(2 * TBar / mBar) # m/s by default
+    from scipy.constants import e # elementary charge in Coulombs
+
+    # Important quantity
+    vBar = thermalVelocity(TBar, mBar) # m/s by default
 
     # Identify inVar
     if '_' not in inVar:
@@ -426,3 +425,253 @@ def relDiff(n1, n2):
     denom = 0.5 * (n1 + n2)
     
     return np.abs(num / denom)
+
+def thermalVelocity(T, m, units='SI'):
+
+    '''
+    Inputs:
+        T: Temperature, with units determined by <units>.
+        m: Mass, with units determined by <units>.
+        units: Defines the unit system used. Options:
+               SI: T in joules, m in kilograms.
+               keV_mp: T in keV, m in proton masses.
+    Ouptuts:
+        Thermal velocity in m/s.
+    '''
+
+    if units == 'SI':
+        pass
+    elif units == 'keV_mp':
+        from scipy.constants import m_p # Proton mass in kg
+        T = T * 1.602176633E-16 # J
+        m = m * m_p # kg
+    else:
+        raise IOError('The requested input unit convention was not recognized.')
+    
+    return (2 * T / m) ** (1/2)
+    
+def coulombLog(aDict, bDict):
+
+    '''
+    Inputs:
+        aDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), and mass (key 'm',
+               val in units of proton masses) information
+               for one species.
+        bDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), and mass (key 'm',
+               val in units of proton masses) information
+               for another species. If 'z' is -1 in both aDict
+               and bDict, the values from aDict alone will be
+               used to perform calculations for thermal electron-
+               electron collisions. Otherwise, information from
+               both dictionaries will be used.
+    Outputs:
+        An approximation of the Coulomb Logarithm based on
+        https://farside.ph.utexas.edu/teaching/plasma/Plasma/node39.html.
+        Ion-ion collisions are treated by a formula taken from the
+        Neotransp library by Hakan Smith.
+    '''
+
+    from scipy.constants import m_p # Proton mass in kg
+    from math import log
+    
+    # Convert units so the formulas are easy to use
+    na = aDict['n'] * 1e14 # cm^-3
+    nb = bDict['n'] * 1e14 # cm^-3
+    ta = aDict['t'] * 1000 # eV
+    tb = bDict['t'] * 1000 # eV
+    za = aDict['z']
+    zb = bDict['z']
+    ma_mp = aDict['m']
+    mb_mp = bDict['m']
+
+    # Initial check
+    if na < 0 or nb < 0 or ta < 0 or tb < 0 or ma_mp < 0 or mb_mp < 0:
+        raise IOError('Densities, temperatures, and masses cannot be negative. Please check the inputs.')
+    
+    # Determine which formula to use and do the calculations
+    if za == -1 and zb == -1: # Both species are electrons
+        
+        if ta < 10:
+            return 23 - log(na**(1/2) * ta**(-3/2))
+        elif ta > 10:
+            return 24 - log(na**(1/2) * ta**(-1))
+        else:
+            raise ValueError('The algorithm could not determine which formula to use for the Coulomb Logarithm. This sometimes happens in edge cases. Try tweaking the inputs and running again.')
+    
+    elif za == -1 or zb == -1: # One species is electrons
+        
+        # Sort out which species is which
+        if za == -1:
+            te = ta
+            ti = tb
+            ne = na
+            ni = nb
+            ze = za
+            zi = zb
+            me_mp = ma_mp
+            mi_mp = mb_mp
+        else:
+            ti = ta
+            te = tb
+            ni = na
+            ne = nb
+            zi = za
+            ze = zb
+            mi_mp = ma_mp
+            me_mp = mb_mp
+
+        # Specify some reused quantities
+        me_mi = me_mp / mi_mp
+        ti_me_mi = ti * me_mi
+        zfac = 10 * zi**2
+
+        # Do the calculations
+        if te < ti_me_mi:
+            return 30 - log(ne**(1/2) * ti**(-3/2) * zi**(3/2) * mi_mp)
+        elif ti_me_mi < te < zfac:
+            return 23 - log(ne**(1/2) * zi * te**(-3/2))
+        elif ti_me_mi < zfac < te:
+            return 24 - log(ne**(1/2) * te**(-1))
+        else:
+            raise ValueError('The algorithm could not determine which formula to use for the Coulomb Logarithm. This sometimes happens in edge cases. Try tweaking the inputs and running again.')
+
+    else: # Both species are ions
+
+        # Convert some units again for use with a different formula
+        ma = ma_mp * m_p # kg
+        mb = mb_mp * m_p # kg
+        na = na * 1e6 # m^-3
+        nb = nb * 1e6 # m^-3
+
+        # Calculations
+        t1 = za * zb * (ma + mb)
+        t2 = ma * tb + mb * ta
+        t3a = na * za**2 / ta
+        t3b = nb * zb**2 / tb
+        t3 = (t3a + t3b)**(1/2)
+
+        return 30.3 - log(t1 / t2 * t3)
+
+def K_ab(aDict, bDict, K):
+    
+    '''
+    Inputs:
+        aDict: Dictionary containing mass (key 'm', val
+               float in arbitrary units) and temperature
+               (key 't', val float in arbitrary units)
+               information for one species.
+        bDict: Same as aDict, but for a second species.
+               The units used for 'm' and 't' must be
+               the same in both dictionaries.
+        K: Normalized kinetic energy (mv^2/2)/T of the species
+           corresponding to aDict. A value of 1 is often used
+           because thermal interactions are frequently of interest.
+    Outputs:
+        The dimesnionless quantity K^(alpha/beta) in
+        Beidler et al, Nuclear Fusion 51 (2011) 076001.
+    '''
+    
+    return bDict['m'] / aDict['m'] * aDict['t'] / bDict['t'] * K
+
+def nu0_ab(aDict, bDict): 
+
+    '''
+    Inputs:
+        aDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), mass (key 'm',
+               val in units of proton masses), and velocity
+               (key 'v', val in units of m/s) information
+               for one species. Specifically, this is the
+               'species of interest' (alpha) from
+               Beidler et al, Nuclear Fusion 51 (2011) 076001.
+               Note that v must be consistent with the
+               normalized kinetic energy K.
+        bDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), mass (key 'm',
+               val in units of proton masses) information
+               for another species. Specifically, this is one
+               'background species' (beta) from Beidler et al.
+    Outputs:
+        The reference collision frequency nu_0^(alpha/beta) in 
+        Beidler et al.
+    '''
+
+    from scipy.constants import e # Elementary charge in Coulombs
+    from scipy.constants import pi
+    from scipy.constants import epsilon_0 # In SI units (F/m)
+    from scipy.constants import m_p # Proton mass in kg
+
+    # Get inputs in SI units
+    nbeta = bDict['n'] * 1e20
+    qalpha = aDict['z'] * e
+    qbeta = bDict['z'] * e
+    coulLog = coulombLog(aDict, bDict)
+    malpha = aDict['m'] * m_p
+    v = aDict['v']
+    
+    # Safety checks
+    if nbeta <= 0 or malpha <= 0 or v <= 0:
+        raise IOError('Species "a" mass, species "a" velocity, and species "b" density must be positive.')
+
+    # Perform calculations
+    num = nbeta * (qalpha * qbeta)**2 * coulLog
+    denom = 4 * pi * (epsilon_0 * malpha)**2 * v**3
+
+    return num / denom
+
+def nu_ab(aDict, bDict, K):
+    
+    '''
+    Inputs:
+        aDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), and mass (key 'm',
+               val in units of proton masses) information
+               for one species. Specifically, this is the
+               'species of interest' (alpha) from
+               Beidler et al, Nuclear Fusion 51 (2011) 076001.
+        bDict: Dictionary containing density (key 'n', 
+               val in units of 10^20 m^-3), temperature
+               (key 't', val in units of keV), charge number
+               (key 'z', val unitless), and mass (key 'm',
+               val in units of proton masses) information
+               for another species. Specifically, this is one
+               'background species' (beta) from Beidler et al.
+        K: Normalized kinetic energy (mv^2/2)/T of the first species.
+           A value of 1 is commmon because thermal interactions
+           are frequently of interest. Because the implemented
+           Coulomb Logarithm calculation is for thermal collisions,
+           keeping K=1 is recommended.
+    Outputs:
+        The collision frequency nu^(alpha/beta) in 
+        Beidler et al, Nuclear Fusion 51 (2011) 076001.
+    '''
+
+    from scipy.constants import m_e # Electron mass in kg
+    from scipy.constants import m_p # Proton mass in kg
+    from scipy.constants import pi
+    from scipy.special import erf
+    from math import exp
+    
+    # Add velocity key to aDict
+    aDict['v'] = thermalVelocity(aDict['t'] * K, aDict['m'], units='keV_mp')
+
+    # Assemble terms
+    refColFreq = nu0_ab(aDict, bDict)
+    k = K_ab(aDict, bDict, K)
+    t1 = erf(k**(1/2)) * (1 - 1/(2 * k))
+    t2 = (pi * k)**(-1/2) * exp(-k)
+
+    # Calculate output
+    return refColFreq * (t1 + t2)

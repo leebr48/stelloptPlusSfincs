@@ -1,16 +1,17 @@
 # This script helps the user identify the root(s) of the ambipolar electric field in a given configuration. Note that each flux surface in a device should have either 1 or 3 roots.
 # In the former case, the root is identified with confidence by the script. In the latter case, eq. (A2) of Turkin et al., PoP 18, 022505 (2011) is used to determine the correct root.
 # A normal workflow would be to use run.py for a given configuration to generate many scans over flux surfaces and radial electric field values (WITHOUT using ambipolarSolve), running
-# this script repeatedly until all the roots are identified (which may sometimes require looking at the plots produced and choosing radial electric field values manually), running
+# this script repeatedly until all the roots are identified (which may require looking at the plots produced and choosing radial electric field values manually), running
 # this script with the <filter> option to copy only the information for the "correct" electric field values to a new directory, and running ploy.py on that directory to get the
-# "correct" system behavior. The plots of Jr vs the radial electric field will typically show a spike when the electric field variable is zero. It is suggested that the scanned
-# electric field values span into part of this upward spike, but do not get too close to the peak. This is because polynomial integration is used for most of the points on this
-# plot, but the polynomials cannot fit the full spike properly. So, placing some points near the peak, but not so near that the fit polynomials become inaccurate, should give the
-# best results. Note that the final electric field should be relatively smooth, except if the system "switches" between the electron and ion roots - this will look like a step
-# change since the equation from Turkin et al. assumes the diffusion coefficient D_E = 0. If the electric field is jagged, the script may have chosen the wrong root. In this case,
-# consider switching the value of the electric field on that flux surface (in rootsToUse.txt) to the alternative (found in electronRoots.txt or ionRoots.txt). Keep in mind
-# that you may need to substantially modify the run time for SFINCS when includePhi1 is turned on. Also keep in mind that you should NOT use ambipolarSolve with this script - 
-# doing so will create complications that can be unpleasant to deal with. It is easier and more reliable to simply run this script repeatedly.
+# "correct" system behavior. The plots of Jr vs the radial electric field will typically show a spike when the electric field variable is zero. It is highly suggested that the scanned
+# electric field values cover much of this upward spike. Ensuring good scan resolution in this region will help the root finding and integration algorithms. Please note that the spike
+# may be extremely thin, especially for inner flux surfaces (since we expect Er=0 on the magnetic axis). Similarly, if you notice that many root guesses are close together and the next
+# guess in the region is strictly less than or greater than all the others in that region, consider manually running a case further from these guesses to help the root finding algorithm
+# converge faster. Note that the final electric field should be relatively smooth, except if the system "switches" between the electron and ion roots - this will look like a step change
+# since the equation from Turkin et al. assumes the diffusion coefficient D_E = 0. If the electric field is jagged, the script may have chosen the wrong root. In this case, consider
+# switching the value of the electric field on that flux surface (in rootsToUse.txt) to the alternative (found in electronRoots.txt or ionRoots.txt). Keep in mind that you may need to
+# substantially increase the run time for SFINCS when includePhi1 is turned on. Again, you should NOT use ambipolarSolve with this script - doing so will create complications that can
+# be unpleasant to deal with. It is easier and more reliable to simply run this script repeatedly.
 
 # Load necessary modules
 from os.path import dirname, abspath, join, basename
@@ -38,7 +39,7 @@ def findRoots(dataMat, xScan):
     yEst = f(xScan)
     return f, estRoots, yEst
 
-def getErJrData(dataMat, negative=True, numInterpPoints=100):
+def getErJrData(dataMat, negative=True, numInterpPoints=1000):
 
     if negative:
         ErsData = dataMat[np.where(dataMat[:,0] <= 0)]
@@ -118,7 +119,7 @@ def determineLabels(sfincsDir):
     radSubdirTitles = [address.split('/')[1] for address in subdirsFirst]
     elecSubdirTitles = [address.split('/')[2] for address in subdirsFirst]
     radSubdirLabels = [title.split('_')[0] for title in radSubdirTitles]
-    elecSubdirLabels = [''.join(i for i in label if not i.isdigit()).replace('-','') for label in elecSubdirTitles]
+    elecSubdirLabels = [''.join(i for i in label if not i.isdigit()).replace('-','').replace('.','') for label in elecSubdirTitles]
     countRadLabels = Counter(radSubdirLabels)
     countElecLabels = Counter(elecSubdirLabels)
     mostCommonRadLabel = max(countRadLabels, key=countRadLabels.get)
@@ -241,7 +242,10 @@ if not args.filter:
             msg = 'For {} = {}, it appears that the following electric field subdirectories contained a run with zero radial current:\n'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
             msg += str(exactlyZeroErVals) + '\n'
             msg += 'This indicates a SFINCS error. Please check and fix these run(s) to get reliable results.'
+            msg += 'In the meantime, this subdirectory will be skipped because it will break the root finding algorithm.'
             messagePrinter(msg)
+            recordNoEr(allRootsLists)
+            continue
         rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
         allRootErs = np.array(ErVals)[rootInds] # Could contain (effective) duplicates in rare cases
         allRootJrs = np.array(JrVals)[rootInds]
@@ -306,7 +310,6 @@ if not args.filter:
             if numUniqueRootGuesses == 0: # No root (real or estimated) can be identified - this is a problem
                 printMoreRunsMessage('No root could be identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                 recordNoEr(allRootsLists)
-                continue
             
             else: # A root guess has been identified - launch a run for it
                 launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
@@ -319,7 +322,6 @@ if not args.filter:
                 if numStableRoots == 0: # The only root that can be found or guessed is unstable - this is a problem
                     printMoreRunsMessage('Only a single, unstable root could be identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                     recordNoEr(allRootsLists)
-                    continue
 
                 else: # The identified root is stable, and no other guesses are apparent - assume the identified root is the only one
                     soloRoots.append(rootErs[0])
@@ -336,14 +338,12 @@ if not args.filter:
             if numStableRoots == 0: # Impossible - something is wrong
                 printMoreRunsMessage('Two unstable roots were identified for {} = {}, which should not be possible.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                 recordNoEr(allRootsLists)
-                continue
 
             elif numStableRoots == 1: # The other stable root has not been found yet
 
                 if numUniqueRootGuesses == 0: # This is a problem
                     printMoreRunsMessage('Only one stable and one unstable root were identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                     recordNoEr(allRootsLists)
-                    continue
 
                 else: # Investigate the guesses, which will hopefully allow the other stable root to be identified
                     launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
@@ -354,7 +354,6 @@ if not args.filter:
                 if numUniqueRootGuesses == 0: # This is a problem
                     printMoreRunsMessage('Two stable roots and no unstable roots were identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                     recordNoEr(allRootsLists)
-                    continue
 
                 else: # Investigate the guesses, which will hopefully allow the unstable root to be identified
                     launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
@@ -365,7 +364,6 @@ if not args.filter:
             if numStableRoots in (0, 1, 3): # Does not make sense, something strange is going on
                 printMoreRunsMessage('Three roots were identified for {} = {}. {} of these appear to be stable, which should not be possible.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0], numStableRoots))
                 recordNoEr(allRootsLists)
-                continue
 
             else: # We have a valid number of total and stable roots
                
@@ -402,9 +400,9 @@ if not args.filter:
                             ionRoot = upperRoot
                             electronRoot = lowerRoot
                             
-                            ionRoots.append(ionRoot)
-                            electronRoots.append(electronRoot)
-                            soloRoots.append(np.nan)
+                        ionRoots.append(ionRoot)
+                        electronRoots.append(electronRoot)
+                        soloRoots.append(np.nan)
                         
                         if intVal > 0:
                             rootsToUse.append(ionRoot)
@@ -414,12 +412,10 @@ if not args.filter:
                     else:
                         printMoreRunsMessage('For {} = {}, three roots were found and two were stable, but the unstable root was not between the stable ones.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
                         recordNoEr(allRootsLists)
-                        continue
 
         else: # More than three roots should not be possible
             printMoreRunsMessage('More than three roots were identified for {} = {}, which should not be possible.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
             recordNoEr(allRootsLists)
-            continue
 
     # Now perform some checks and save the Er information that was found
     assert ds.Nradii == len(rootsToUse), 'The vector to be written in rootsToUse.txt was the wrong length. Something is wrong.'
