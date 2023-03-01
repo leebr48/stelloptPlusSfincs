@@ -208,8 +208,15 @@ radLabel, electricFieldLabel = determineLabels(inDir)
 # Load tools from external library
 ds = sfincsRadialAndErScan(inDir, verbose=0, ErDefForJr=electricFieldLabel)
 
+# Do work
 if not args.filter:
     
+    # Initial check
+    if len(ds.Erscans) == 0:
+        msg = 'It appears that there are no electric field subdirectories in this SFINCS directory. '
+        msg += 'Therefore, this script cannot be used.'
+        raise IOError(msg)
+
     # Determine where the satisfactory roots are for each radial subdirectory
     rootsToUse = [] 
     ionRoots = []
