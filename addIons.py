@@ -12,7 +12,7 @@ from scipy.linalg import solve
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getAddIonsArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, extractScalarData, messagePrinter
+from IO import getAddIonsArgs, getFileInfo, cleanStrings, listifyBEAMS3DFile, makeProfileNames, extractProfileData, extractScalarData, makeStringForStellopt, messagePrinter
 from dataProc import nonlinearInterp, relDiff
 
 # Important constant
@@ -25,24 +25,7 @@ newMasses = args.ms # kg
 newCharges = args.zs
 newFracs = args.fs
 
-# Handy functions
-def cleanup(inAr, integer=False):
-    ar = np.array(inAr)
-    if integer:
-        precision = 0
-        ar = ar.astype(int)
-    else:
-        precision = 10 # Standard precision for STELLOPT
-    newstr = np.array2string(ar, separator='     ', precision=precision, max_line_width=100).replace('[','').replace(']','')
-    return newstr
-
-def makeString(varName, data, integer=False, namePrefix=' '*2, nameSuffix=' = ', eol='\n'):
-    if type(data) != str:
-        dataStr = cleanup(data, integer=integer)
-    else:
-        dataStr = data
-    return namePrefix + varName + nameSuffix + dataStr + eol
-
+# Handy function
 def checkQN(NE, ionZs, NIs, thresh=1e-6, failmsg='Quasineutrality check failed.'):
     QN = -1 * NE + np.dot(ionZs, NIs)
     relQN = np.abs(QN / (NE + np.sum(NIs)))
@@ -134,17 +117,17 @@ assert dens.shape[0] == len(pres), 'The density and pressure arrays have inconsi
 assert dens.shape[1] == totalNumIons, 'The ion density array does not seem to contain the correct number of species. Something is wrong.'
 
 # Prepare outputs
-profileString = makeString('NI_AUX_S', sVec)
+profileString = makeStringForStellopt('NI_AUX_S', sVec)
 for ionInd in range(totalNumIons):
     fortranInd = ionInd + 1
-    profileString += makeString('NI_AUX_F({},:)'.format(fortranInd), dens[:, ionInd])
-profileString += makeString(massInName, ionMs)
-profileString += makeString(chargeInName, ionZs, integer=True)
+    profileString += makeStringForStellopt('NI_AUX_F({},:)'.format(fortranInd), dens[:, ionInd])
+profileString += makeStringForStellopt(massInName, ionMs)
+profileString += makeStringForStellopt(chargeInName, ionZs, integer=True)
 
-presString = makeString('PMASS_TYPE', "'akima_spline'")
-presString += makeString('PRES_SCALE', [1])
-presString += makeString('AM_AUX_S', sVec)
-presString += makeString('AM_AUX_F', pres)
+presString = makeStringForStellopt('PMASS_TYPE', "'akima_spline'")
+presString += makeStringForStellopt('PRES_SCALE', [1])
+presString += makeStringForStellopt('AM_AUX_S', sVec)
+presString += makeStringForStellopt('AM_AUX_F', pres)
 
 # Print outputs
 presMsg = 'The pressure information (relevant for VMEC) is:\n'

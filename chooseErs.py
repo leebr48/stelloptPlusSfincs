@@ -114,6 +114,7 @@ def recordNoEr(listOfLists):
 def determineLabels(sfincsDir):
     # This will only work if the radial directories are named 'var_val', rather than just given an integer number.
     # Directories created with stelloptPlusSfincs will always follow this naming convention.
+    # Note that if no electric field scan is present, this function will return nonsense. This behavior is caught another way later, though.
     dataFiles = findFiles('sfincsOutput.h5', sfincsDir, raiseError=True) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
     subdirsFirst = [address.replace(sfincsDir, '') for address in dataFiles]
     radSubdirTitles = [address.split('/')[1] for address in subdirsFirst]
@@ -208,15 +209,15 @@ radLabel, electricFieldLabel = determineLabels(inDir)
 # Load tools from external library
 ds = sfincsRadialAndErScan(inDir, verbose=0, ErDefForJr=electricFieldLabel)
 
+# Initial check
+if len(ds.Erscans) == 0:
+    msg = 'It appears that there are no electric field subdirectories in this SFINCS directory. '
+    msg += 'Therefore, this script cannot be used.'
+    raise IOError(msg)
+
 # Do work
 if not args.filter:
     
-    # Initial check
-    if len(ds.Erscans) == 0:
-        msg = 'It appears that there are no electric field subdirectories in this SFINCS directory. '
-        msg += 'Therefore, this script cannot be used.'
-        raise IOError(msg)
-
     # Determine where the satisfactory roots are for each radial subdirectory
     rootsToUse = [] 
     ionRoots = []

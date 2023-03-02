@@ -233,6 +233,9 @@ def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e
     if shouldHaveUnits == 'Er':
         return phiBar / RBar * inFloat # V/m
     
+    elif shouldHaveUnits == 'FSABHat2':
+        return BBar * inFloat # T^2
+
     elif shouldHaveUnits == 'FSABFlow':
         return nBar * vBar * BBar * inFloat # T*m^-2*s^-1
     

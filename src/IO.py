@@ -1061,3 +1061,59 @@ def saveTimeStampFile(saveLoc, fileName, initialString):
     stringToWrite = initialString + now() + '\n'
 
     writeFile(outFile, stringToWrite, silent=True)
+
+def cleanupForStellopt(inAr, integer=False):
+
+    '''
+    Inputs:
+        inAr: List or 1D array.
+        integer: Boolean describing if the elements of
+                 inAr should be treated as integers.
+    Outputs:
+        String containing the contents of inAr in a
+        format very close to that of STELLOPT.
+    '''
+
+    import numpy as np
+    
+    ar = np.array(inAr)
+
+    if ar.ndim != 1:
+        raise IOError('This function only works for 1D arrays.')
+        
+    if integer:
+        precision = 0
+        ar = ar.astype(int)
+    else:
+        precision = 10 # Standard precision for STELLOPT
+    
+    newstr = np.array2string(ar, separator='     ', precision=precision, max_line_width=100).replace('[','').replace(']','')
+    
+    return newstr
+
+def makeStringForStellopt(varName, data, integer=False, namePrefix=' '*2, nameSuffix=' = ', eol='\n'):
+
+    '''
+    Inputs:
+        varName: String; STELLOPT variable name.
+        data: String or list of data which will be
+              assigned to the variable specified in
+              varName.
+        integer: Boolean describing if data (or its
+                 elements) should be treated as integers.
+        namePrefix: String to be inserted before the
+                    variable name - this is typically
+                    whitespace characters.
+        nameSuffix: String to follow the data.
+        eol: End of line character(s).
+    Outputs:
+        A string that can be pasted directly into a
+        STELLOPT namelist.
+    '''
+    
+    if type(data) != str:
+        dataStr = cleanupForStellopt(data, integer=integer)
+    else:
+        dataStr = data
+    
+    return namePrefix + varName + nameSuffix + dataStr + eol
