@@ -302,13 +302,14 @@ if not args.filter:
         useMax = dataMax + marg * dataRange
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
-        plt.xlabel(prettyDataLabel(electricFieldLabel))
+        unitmsg = ' (SFINCS internal units)'
+        plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
         if electricFieldLabel == 'Er':
             coord = 'rHat'
         else:
             coord = electricFieldLabel.split('d')[-1]
         yName = 'radialCurrent_vm_'+coord # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
-        plt.ylabel(prettyDataLabel(yName))
+        plt.ylabel(prettyDataLabel(yName, units=False) + unitmsg)
         plotName = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel + '.pdf'
         plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
 
