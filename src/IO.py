@@ -368,6 +368,31 @@ def getAddIonsArgs():
     
     return args
 
+def getBootstrapArgs():
+
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for determining the bootstrap current of a given configuration.
+    '''
+
+    import argparse
+    from os.path import isdir
+    
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--eqIn', type=str, nargs=1, required=True, help='VMEC wout file from which to load the magnetic equilibrium.')
+    parser.add_argument('--sfincsDir', type=str, nargs=1, required=True, help='Top directory for SFINCS run, with path if necessary. This directory must contain flux surface subdirectories, each of which contain SFINCS output files (*.h5). Directories with an electric field scan CANNOT be used.')
+    args = parser.parse_args()
+
+    if isdir(args.eqIn[0]):
+        raise IOError('The input to <eqIn> must be a file, not a directory.')
+
+    if not isdir(args.sfincsDir[0]):
+        raise IOError('The input given in <sfincsDir> must be a directory.')
+    
+    return args
+
 def getFileInfo(inFile, saveLoc, outFileName):
 
     '''

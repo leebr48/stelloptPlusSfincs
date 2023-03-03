@@ -1,15 +1,13 @@
-# FIXME Given pressure and toroidal flux information from a VMEC wout_* file and bootstrap information from a SFINCS directory,
+# Given pressure and toroidal flux information from a VMEC wout_* file and bootstrap information from a SFINCS directory,
 # this script will calculate the "correct" bootstrap current for the given magnetic configuration. This could be used, for
 # instance, to refine an optimized configuration until the bootstrap is self-consistent. The information is output in STELLOPT
-# format so it can be used with VMEC.
+# format so it can be used with VMEC. Please note that to get an accurate picture of the bootstrap current inside a stellarator,
+# one must formally integrate neoclassically-derived quantities from the magnetic axis to the last closed flux surface. SFINCS
+# should therefore be run over as much of the volume as possible. Polynomial extrapolation will be used to "fill in the ends" 
+# since SFINCS is not typically run too close to the magnetic axis, and is often not run too close to the last closed flux surface
+# either.
 # This script numerically integrates equation (17) in "Computing vmec’s ac current profile and curtor from a bootstrap current code"
 # by Matt Landreman, which is included in the STELLOPT directory in SHARE/doc/computing_vmec_AC_profile_from_a_bootstrap_current_code.
-
-#FIXME note that this script will not work with an Er scan
-#FIXME note that extrapolation is used!
-#FIXME note that you need sfincs runs throughtout the volume to get a decent result!
-
-# FIXME perhaps test on self-consistent bootstrap configuration?
 
 # Load necessary modules
 from os.path import dirname, abspath, join, basename
@@ -25,10 +23,12 @@ thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
 from sfincsOutputLib import sfincsRadialAndErScan, sfincsScan
 from dataProc import fixOutputUnits
+from IO import getBootstrapArgs, getFileInfo, makeStringForStellopt, messagePrinter
 
-# Sort out inputs # FIXME command line!
-sfincsDir = '/u/lebra/src/stelloptPlusSfincs/outsideTest/seventhObj2_d_correctEr'
-woutFile = '/u/lebra/src/stelloptPlusSfincs/outsideTest/seventhObj2_d/wout_W7X_REACTOR_woptim_forSfincs.00126.nc'
+# Sort out inputs
+args = getBootstrapArgs()
+woutFile, _, _, _, _ = getFileInfo(args.eqIn[0], '/arbitrary/path', 'arbitrary')
+_, _, _, sfincsDir, _ = getFileInfo('arbitrary', args.sfincsDir[0], 'arbitrary')
 
 # Iniital check
 test = sfincsRadialAndErScan(sfincsDir, verbose=0)
@@ -68,7 +68,6 @@ Isolved = odeint(f_dIds, I0, eval_s)
 
 # Get output quantities
 f_I = PchipInterpolator(eval_s, Isolved)
-f_dIds_out = f_I.derivative()
 s_for_file = ds.psiN.tolist()
 if 0 not in s_for_file:
     s_for_file.insert(0,0)
@@ -76,5 +75,13 @@ if 1 not in s_for_file:
     s_for_file.append(1)
 
 curtor = signgs * f_I(1) # equation (24) in Matt's document
-outI = f_dIds_out(s_for_file)
-# FIXME finish! Can use that makeString function
+outI = f_I(s_for_file).flatten()
+
+# Print output quantities
+curString = 'The current information (relevant for VMEC) is:\n'
+curString += makeStringForStellopt('CURTOR', curtor)
+curString += makeStringForStellopt('PCURR_TYPE', "'akima_spline_I'")
+curString += makeStringForStellopt('AC_AUX_S', s_for_file)
+curString += makeStringForStellopt('AC_AUX_F', outI)
+messagePrinter(curString)
+messagePrinter('Please replace the appropriate lines in the namelist with the ones printed above.')

@@ -134,7 +134,7 @@ presMsg = 'The pressure information (relevant for VMEC) is:\n'
 presMsg += presString
 messagePrinter(presMsg)
 
-profMsg = 'The profile and species information (relevant for BEAMS3D) is:\n'
+profMsg = 'The species information (relevant for BEAMS3D) is:\n'
 profMsg += profileString
 messagePrinter(profMsg)
 
