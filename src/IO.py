@@ -368,6 +368,31 @@ def getAddIonsArgs():
     
     return args
 
+def getBootstrapArgs():
+
+    '''
+    Inputs:
+        [No direct inputs. See below for command line inputs.]
+    Outputs:
+        Arguments that can be passed to other scripts for determining the bootstrap current of a given configuration.
+    '''
+
+    import argparse
+    from os.path import isdir
+    
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--eqIn', type=str, nargs=1, required=True, help='VMEC wout file from which to load the magnetic equilibrium.')
+    parser.add_argument('--sfincsDir', type=str, nargs=1, required=True, help='Top directory for SFINCS run, with path if necessary. This directory must contain flux surface subdirectories, each of which contain SFINCS output files (*.h5). Directories with an electric field scan CANNOT be used.')
+    args = parser.parse_args()
+
+    if isdir(args.eqIn[0]):
+        raise IOError('The input to <eqIn> must be a file, not a directory.')
+
+    if not isdir(args.sfincsDir[0]):
+        raise IOError('The input given in <sfincsDir> must be a directory.')
+    
+    return args
+
 def getFileInfo(inFile, saveLoc, outFileName):
 
     '''
@@ -882,17 +907,25 @@ def prettyRadialVar(inString, innerOnly=False):
     else:
         raise IOError('Invalid radial coordinate input.')
 
-def prettyDataLabel(inString):
+def prettyDataLabel(inString, units=True):
 
     '''
     Inputs:
-        String containing a variable name from the SFINCS
-        output (*.h5) file. Note that only a few variables
-        are currently supported.
+        inString: String containing a variable name from the SFINCS
+                  output (*.h5) file. Note that only a few variables
+                  are currently supported.
+        units: Boolean; if True, units should be included with the
+               label.
     Outputs:
         Raw string that can be used to print a formatted
         form of inString, such as with Matplotlib.
     '''
+
+    def makeStr(text, unitStatement):
+        ret = text
+        if units:
+            ret += unitStatement
+        return ret
 
     if '_' not in inString:
         
@@ -906,7 +939,7 @@ def prettyDataLabel(inString):
         extensiveRadialCurrentUnits = r' $\mathrm{\left(A\right)}$'
 
         if inString == 'Er':
-            return r'Radial electric field $\mathrm{\left(\frac{V}{m}\right)}$'
+            return makeStr(r'Radial electric field', r' $\mathrm{\left(\frac{V}{m}\right)}$')
 
         elif inString == 'dPhiHatdpsiHat':
             return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiHat', innerOnly=True))
@@ -921,37 +954,37 @@ def prettyDataLabel(inString):
             return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rN', innerOnly=True))
         
         elif inString == 'FSABFlow':
-            return r'FSAB parallel flow $\mathrm{\left(\frac{T}{m^{2} s}\right)}$'
+            return makeStr(r'FSAB parallel flow', r' $\mathrm{\left(\frac{T}{m^{2} s}\right)}$')
         
         elif inString == 'FSABjHat':
-            return r'FSAB bootstrap current $\mathrm{\left(\frac{T A}{m^{2}}\right)}$'
+            return makeStr(r'FSAB bootstrap current', r' $\mathrm{\left(\frac{T A}{m^{2}}\right)}$')
 
         elif inString in ['FSABjHatOverRootFSAB2', 'FSABjHatOverB0']:
-            return r'Bootstrap current $\mathrm{\left(\frac{A}{m^{2}}\right)}$'
+            return makeStr(r'Bootstrap current', r' $\mathrm{\left(\frac{A}{m^{2}}\right)}$')
         
         elif inString == 'extensiveParticleFlux':
-            return r'Neoclassical particle flux' + extensiveParticleFluxUnits
+            return makeStr(r'Neoclassical particle flux', extensiveParticleFluxUnits)
 
         elif inString == 'extensiveClassicalParticleFlux':
-            return r'Classical particle flux' + extensiveParticleFluxUnits
+            return makeStr(r'Classical particle flux', extensiveParticleFluxUnits)
         
         elif inString == 'extensiveTotalParticleFlux':
-            return r'Total particle flux' + extensiveParticleFluxUnits
+            return makeStr(r'Total particle flux', extensiveParticleFluxUnits)
         
         elif inString == 'extensiveHeatFlux':
-            return r'Neoclassical energy flux' + extensiveHeatFluxUnits
+            return makeStr(r'Neoclassical energy flux', extensiveHeatFluxUnits)
         
         elif inString == 'extensiveClassicalHeatFlux':
-            return r'Classical energy flux' + extensiveHeatFluxUnits
+            return makeStr(r'Classical energy flux', extensiveHeatFluxUnits)
         
         elif inString == 'extensiveTotalHeatFlux':
-            return r'Total energy flux' + extensiveHeatFluxUnits
+            return makeStr(r'Total energy flux', extensiveHeatFluxUnits)
         
         elif inString == 'extensiveMomentumFlux':
-            return r'Neoclassical momentum flux' + extensiveMomentumFluxUnits
+            return makeStr(r'Neoclassical momentum flux', extensiveMomentumFluxUnits)
         
         elif inString == 'extensiveRadialCurrent':
-            return r'Radial current' + extensiveRadialCurrentUnits
+            return makeStr(r'Radial current', extensiveRadialCurrentUnits)
         
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
@@ -979,34 +1012,34 @@ def prettyDataLabel(inString):
 
         # Write the output
         if label == 'particleFlux':
-            return r'Neoclassical particle flux' + directionStatement + particleFluxUnits
+            return makeStr(r'Neoclassical particle flux' + directionStatement, particleFluxUnits)
 
         elif label == 'classicalParticleFlux':
-            return r'Classical particle flux' + directionStatement + particleFluxUnits
+            return makeStr(r'Classical particle flux' + directionStatement, particleFluxUnits)
         
         elif label == 'classicalParticleFluxNoPhi1':
-            return r'Classical particle flux (neglecting $\Phi_{1}$)' + directionStatement + particleFluxUnits
+            return makeStr(r'Classical particle flux (neglecting $\Phi_{1}$)' + directionStatement, particleFluxUnits)
 
         elif label == 'totalParticleFlux':
-            return r'Total particle flux' + directionStatement + particleFluxUnits
+            return makeStr(r'Total particle flux' + directionStatement, particleFluxUnits)
 
         elif label == 'heatFlux':
-            return r'Neoclassical energy flux' + directionStatement + heatFluxUnits
+            return makeStr(r'Neoclassical energy flux' + directionStatement, heatFluxUnits)
 
         elif label == 'classicalHeatFlux':
-            return r'Classical energy flux' + directionStatement + heatFluxUnits
+            return makeStr(r'Classical energy flux' + directionStatement, heatFluxUnits)
         
         elif label == 'classicalHeatFluxNoPhi1':
-            return r'Classical energy flux (neglecting $\Phi_{1}$)' + directionStatement + heatFluxUnits
+            return makeStr(r'Classical energy flux (neglecting $\Phi_{1}$)' + directionStatement, heatFluxUnits)
 
         elif label == 'totalHeatFlux':
-            return r'Total energy flux' + directionStatement + heatFluxUnits
+            return makeStr(r'Total energy flux' + directionStatement, heatFluxUnits)
 
         elif label == 'momentumFlux':
-            return r'Neoclassical momentum flux' + directionStatement + momentumFluxUnits
+            return makeStr(r'Neoclassical momentum flux' + directionStatement, momentumFluxUnits)
 
         elif label == 'radialCurrent':
-            return r'Radial current' + directionStatement + radialCurrentUnits
+            return makeStr(r'Radial current' + directionStatement, radialCurrentUnits)
 
         else:
             raise IOError('Formatting has not yet been specified for the variable {}.'.format(inString))
@@ -1061,3 +1094,59 @@ def saveTimeStampFile(saveLoc, fileName, initialString):
     stringToWrite = initialString + now() + '\n'
 
     writeFile(outFile, stringToWrite, silent=True)
+
+def cleanupForStellopt(inAr, integer=False):
+
+    '''
+    Inputs:
+        inAr: List or 1D array.
+        integer: Boolean describing if the elements of
+                 inAr should be treated as integers.
+    Outputs:
+        String containing the contents of inAr in a
+        format very close to that of STELLOPT.
+    '''
+
+    import numpy as np
+    
+    ar = np.array(inAr)
+
+    if ar.ndim != 1:
+        raise IOError('This function only works for 1D arrays.')
+        
+    if integer:
+        precision = 0
+        ar = ar.astype(int)
+    else:
+        precision = 10 # Standard precision for STELLOPT
+    
+    newstr = np.array2string(ar, separator='     ', precision=precision, max_line_width=100).replace('[','').replace(']','')
+    
+    return newstr
+
+def makeStringForStellopt(varName, data, integer=False, namePrefix=' '*2, nameSuffix=' = ', eol='\n'):
+
+    '''
+    Inputs:
+        varName: String; STELLOPT variable name.
+        data: String or list of data which will be
+              assigned to the variable specified in
+              varName.
+        integer: Boolean describing if data (or its
+                 elements) should be treated as integers.
+        namePrefix: String to be inserted before the
+                    variable name - this is typically
+                    whitespace characters.
+        nameSuffix: String to follow the data.
+        eol: End of line character(s).
+    Outputs:
+        A string that can be pasted directly into a
+        STELLOPT namelist.
+    '''
+    
+    if type(data) != str:
+        dataStr = cleanupForStellopt(data, integer=integer)
+    else:
+        dataStr = data
+    
+    return namePrefix + varName + nameSuffix + dataStr + eol

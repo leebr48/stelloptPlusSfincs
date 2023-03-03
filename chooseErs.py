@@ -114,6 +114,7 @@ def recordNoEr(listOfLists):
 def determineLabels(sfincsDir):
     # This will only work if the radial directories are named 'var_val', rather than just given an integer number.
     # Directories created with stelloptPlusSfincs will always follow this naming convention.
+    # Note that if no electric field scan is present, this function will return nonsense. This behavior is caught another way later, though.
     dataFiles = findFiles('sfincsOutput.h5', sfincsDir, raiseError=True) # Note that sfincsScan breaks if you use a different output file name, so the default is hard-coded in
     subdirsFirst = [address.replace(sfincsDir, '') for address in dataFiles]
     radSubdirTitles = [address.split('/')[1] for address in subdirsFirst]
@@ -208,6 +209,13 @@ radLabel, electricFieldLabel = determineLabels(inDir)
 # Load tools from external library
 ds = sfincsRadialAndErScan(inDir, verbose=0, ErDefForJr=electricFieldLabel)
 
+# Initial check
+if len(ds.Erscans) == 0:
+    msg = 'It appears that there are no electric field subdirectories in this SFINCS directory. '
+    msg += 'Therefore, this script cannot be used.'
+    raise IOError(msg)
+
+# Do work
 if not args.filter:
     
     # Determine where the satisfactory roots are for each radial subdirectory
@@ -294,13 +302,14 @@ if not args.filter:
         useMax = dataMax + marg * dataRange
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
-        plt.xlabel(prettyDataLabel(electricFieldLabel))
+        unitmsg = ' (SFINCS internal units)'
+        plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
         if electricFieldLabel == 'Er':
             coord = 'rHat'
         else:
             coord = electricFieldLabel.split('d')[-1]
         yName = 'radialCurrent_vm_'+coord # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
-        plt.ylabel(prettyDataLabel(yName))
+        plt.ylabel(prettyDataLabel(yName, units=False) + unitmsg)
         plotName = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel + '.pdf'
         plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
 
