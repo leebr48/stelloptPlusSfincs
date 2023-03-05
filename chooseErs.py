@@ -448,8 +448,8 @@ if not args.filter:
 else:
     
     # Load correct electric field quantities
-    loadedErQuantities = np.loadtxt(join(inDir, 'determineEr/rootsToUse.txt'))
-    assert any(np.isnan(loadedErQuantities)) == False, 'At least one of the flux surfaces in <sfincsDir> did not have a "correct" electric field specified in rootsToUse.txt.'
+    loadedErQuantities = np.loadtxt(join(inDir, 'determineEr/rootsToUse.txt'), ndmin=1)
+    assert np.any(np.isnan(loadedErQuantities)) == False, 'At least one of the flux surfaces in <sfincsDir> did not have a "correct" electric field specified in rootsToUse.txt.'
 
     # Copy the correct directories
     for radInd in range(ds.Nradii):
