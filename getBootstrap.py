@@ -70,14 +70,14 @@ eval_s = linspace(0, 1, num=10*ns)
 Isolved = odeint(f_dIds, I0, eval_s)
 
 # Get output quantities
-f_I = PchipInterpolator(eval_s, Isolved)
+f_I = PchipInterpolator(eval_s, signgs * Isolved)
 s_for_file = ds.psiN.tolist()
 if 0 not in s_for_file:
     s_for_file.insert(0,0)
 if 1 not in s_for_file:
     s_for_file.append(1)
 
-curtor = signgs * f_I(1) # equation (24) in Matt's document
+curtor = f_I(1) # equation (24) in Matt's document, but signgs is already built in
 outI = f_I(s_for_file).flatten()
 
 # Print output quantities
