@@ -53,11 +53,14 @@ woutFile = netcdf_file(woutFile, mmap=False)
 
 signgs = woutFile.variables['signgs'][()]
 ns = woutFile.variables['ns'][()]
-pres = woutFile.variables['pres'][()]
+pres = woutFile.variables['pres'][()] # Pressure on the half grid
 dpsids = woutFile.variables['phips'][()][-1] # Any valid index except 0 will return the same (correct) value
 
-vmec_s = linspace(0, 1, num=ns)
-f_p = PchipInterpolator(vmec_s, pres)
+fullgrid = linspace(0, 1, num=ns)
+diff = (fullgrid[1] - fullgrid[0]) / 2
+halfgrid = fullgrid - diff
+halfgrid[0] = 0
+f_p = PchipInterpolator(halfgrid, pres)
 f_dpds = f_p.derivative()
 
 # Integrate
