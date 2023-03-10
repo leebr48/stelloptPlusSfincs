@@ -78,7 +78,6 @@ def run(profilesInUse, saveLocUse):
         stringToWrite += 'module load anaconda/3/2020.02\n'
         stringToWrite += 'module load petsc-real/3.13.5\n'
         stringToWrite += 'module load mumps-32-noomp/5.1.2\n'
-        stringToWrite += 'module load netcdf-mpi/4.7.0\n'
         stringToWrite += '\n'
     
     else:
