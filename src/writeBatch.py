@@ -27,6 +27,8 @@ def run(profilesInUse, saveLocUse):
     # Create string to be written
     stringToWrite = '#!/bin/bash -l\n'
     
+    stringToWrite += '# Clear environment variables:\n'
+    stringToWrite += '#SBATCH --export=NONE\n'
     stringToWrite += '# Standard output and error:\n'
     stringToWrite += '#SBATCH -o ./sfincsJob.out.%j\n'
     stringToWrite += '#SBATCH -e ./sfincsJob.err.%j\n'
@@ -68,7 +70,6 @@ def run(profilesInUse, saveLocUse):
     stringToWrite += 'module purge\n'
 
     if machine == 'raven' or machine == 'cobra':
-        stringToWrite += 'module load git\n'
         stringToWrite += 'module load intel/19.1.2\n'
         stringToWrite += 'module load mkl\n'
         stringToWrite += 'module load impi/2019.8\n'
