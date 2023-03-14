@@ -177,7 +177,7 @@ def run(profilesInUse, saveLocUse, eqInUse, bcSymUse):
     stringToWrite += '!ss NLMinFactor = {}\n'.format(NLScanVars['min'])
     stringToWrite += '!ss NLMaxFactor = {}\n'.format(NLScanVars['max'])
     stringToWrite += '!ss NLNumRuns = {}\n'.format(NLScanVars['num'])
-    stringToWrite += '\tsolverTolerance = {} ! Tolerance used to define convergence of the iterative solver\n'.format(solverTol)
+    stringToWrite += '\tsolverTolerance = {} ! Tolerance that specifies convergence for the iterative solver\n'.format(solverTol)
     stringToWrite += '!ss solverToleranceMinFactor = {}\n'.format(SolverTolScanVars['min'])
     stringToWrite += '!ss solverToleranceMaxFactor = {}\n'.format(SolverTolScanVars['max'])
     stringToWrite += '!ss solverToleranceNumRuns = {}\n'.format(SolverTolScanVars['num'])

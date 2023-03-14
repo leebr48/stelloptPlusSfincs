@@ -69,6 +69,8 @@ def run(profilesInUse, saveLocUse):
     stringToWrite += '# Load necessary modules (typically must be the same as those used for compiling the code):\n'
     stringToWrite += 'module purge\n'
 
+    # These packages allowed for SFINCS, STELLOPT, and Simsopt to be used simultaneously.
+    # That is why so many are loaded.
     if machine == 'raven' or machine == 'cobra':
         stringToWrite += 'module load intel/19.1.2\n'
         stringToWrite += 'module load mkl/2020.4\n'
