@@ -274,12 +274,12 @@ if not args.filter:
         uniqueRootGuesses = findUniqueRoots(rootErs, estRoots)
         numUniqueRootGuesses = len(uniqueRootGuesses)
 
-        # Plot data for interpretation
+        # Plot and save data for interpretation later
         plt.figure()
-        plt.axhline(y=0, color='black', linestyle='-')
-        plt.scatter(ErJrVals[:,0], ErJrVals[:,1])
+        plt.axhline(y=0, color='black', linestyle='-', zorder=0)
+        plt.scatter(ErJrVals[:,0], ErJrVals[:,1], zorder=5)
         for ErPart, JrPart in zip(ErScan, JrScan):
-            plt.plot(ErPart, JrPart, color='tab:blue')
+            plt.plot(ErPart, JrPart, color='tab:blue', zorder=10)
         for root in estRoots:
             if root in rootErs:
                 ls = '-'
@@ -293,7 +293,7 @@ if not args.filter:
                 ls = ':'
                 clr = 'black'
                 lbl = 'Root Guess'
-            plt.axvline(x=root, color=clr, linestyle=ls, label=lbl)
+            plt.axvline(x=root, color=clr, linestyle=ls, label=lbl, zorder=15)
         dataMin = np.min(ErJrVals[:,1])
         dataMax = np.max(ErJrVals[:,1])
         dataRange = dataMax - dataMin
@@ -310,8 +310,11 @@ if not args.filter:
             coord = electricFieldLabel.split('d')[-1]
         yName = 'radialCurrent_vm_'+coord # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
         plt.ylabel(prettyDataLabel(yName, units=False) + unitmsg)
-        plotName = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel + '.pdf'
+        nameBits = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel
+        plotName = nameBits + '.pdf'
+        dataName = nameBits + '.dat'
         plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
+        np.savetxt(join(outDir, dataName), ErJrVals)
 
         # Determine if new runs should be launched, or the data processed as-is
         if numActualRoots == 0:
