@@ -14,7 +14,7 @@ from os.path import dirname, abspath, join, basename
 from inspect import getfile, currentframe
 import sys
 from scipy.interpolate import PchipInterpolator
-from scipy.io.netcdf import netcdf_file
+from scipy.io import netcdf_file
 from scipy.constants import mu_0
 from scipy.integrate import odeint
 from numpy import linspace, pi

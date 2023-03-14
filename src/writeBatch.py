@@ -27,8 +27,6 @@ def run(profilesInUse, saveLocUse):
     # Create string to be written
     stringToWrite = '#!/bin/bash -l\n\n'
     
-    stringToWrite += '# Clear environment variables:\n'
-    stringToWrite += '#SBATCH --export=NONE\n'
     stringToWrite += '# Standard output and error:\n'
     stringToWrite += '#SBATCH -o ./sfincsJob.out.%j\n'
     stringToWrite += '#SBATCH -e ./sfincsJob.err.%j\n'
