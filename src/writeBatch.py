@@ -25,7 +25,7 @@ def run(profilesInUse, saveLocUse):
     machine = environ[machineVar]
 
     # Create string to be written
-    stringToWrite = '#!/bin/bash -l\n'
+    stringToWrite = '#!/bin/bash -l\n\n'
     
     stringToWrite += '# Clear environment variables:\n'
     stringToWrite += '#SBATCH --export=NONE\n'
@@ -71,14 +71,15 @@ def run(profilesInUse, saveLocUse):
 
     if machine == 'raven' or machine == 'cobra':
         stringToWrite += 'module load intel/19.1.2\n'
-        stringToWrite += 'module load mkl\n'
+        stringToWrite += 'module load mkl/2020.4\n'
         stringToWrite += 'module load impi/2019.8\n'
-        stringToWrite += 'module load hdf5-mpi/1.10.6\n'
-        stringToWrite += 'module load netcdf-mpi/4.7.0\n'
+        stringToWrite += 'module load hdf5-mpi/1.8.22\n'
+        stringToWrite += 'module load netcdf-mpi/4.4.1\n'
         stringToWrite += 'module load fftw-mpi\n'
         stringToWrite += 'module load anaconda/3/2020.02\n'
         stringToWrite += 'module load petsc-real/3.13.5\n'
         stringToWrite += 'module load mumps-32-noomp/5.1.2\n'
+        stringToWrite += 'module load gcc/11\n'
         stringToWrite += '\n'
     
     else:
