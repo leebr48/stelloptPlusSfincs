@@ -73,7 +73,7 @@ def getRunArgs():
     if len(args.bcSymmetry) not in [1, len(args.eqIn)]:
         raise IOError('The length of <bcSymmetry> must either be 1 or the same as <eqIn>.')
 
-    if (numCalcSurf[0] > 1) and (minRad[0] == maxRad[0]):
+    if (args.numCalcSurf[0] > 1) and (args.minRad[0] == args.maxRad[0]):
         raise IOError('You have set both <numCalcSurf> > 1 and <minRad> = <maxRad>. This does not make sense.')
 
     if args.driftScheme[0] < 0 or args.driftScheme[0] > 9:
