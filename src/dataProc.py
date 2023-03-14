@@ -72,7 +72,7 @@ def findNumCalcs(baseVal, minMaxList, powersMode=False):
 
     return {'min':minMult, 'max':maxMult, 'num':out}
 
-def scaleInputData(dataOfInterest, profiles=True, phiBar=1, nBar=1e20, TBar=1, mBar=1.672621911e-27, ZBar=1):
+def scaleInputData(dataOfInterest, profiles=True, phiBar=1, nBar=1e20, TBar=1, mBar=1.67262192369e-27, ZBar=1):
 
     '''
     Inputs:
@@ -187,7 +187,7 @@ def nonlinearInterp(inputData, ders, k=3, s=0, pchip=False):
 
     return outputData
 
-def fixOutputUnits(inVar, inFloat, mBar=1.672621911e-27, BBar=1, RBar=1, nBar=1e20, TBar=1.60217733e-16, phiBar=1000):
+def fixOutputUnits(inVar, inFloat, mBar=1.67262192369e-27, BBar=1, RBar=1, nBar=1e20, TBar=1.602176634e-16, phiBar=1000):
 
     '''
     Inputs:
