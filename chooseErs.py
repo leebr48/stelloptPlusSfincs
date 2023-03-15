@@ -254,6 +254,8 @@ if not args.filter:
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
+        
+        # Sort out roots
         rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
         allRootErs = np.array(ErVals)[rootInds] # Could contain (effective) duplicates in rare cases
         allRootJrs = np.array(JrVals)[rootInds]
