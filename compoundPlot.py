@@ -24,7 +24,7 @@ def setLength(inList, desiredLength):
     elif len(inList) == desiredLength:
         outList = inList
     else:
-        raise IOError('If you manually specify <colors>, <lineStyles>, or <markers>, you must input either one argument (for all curves) or one argument for each curve. In this case, there are {} curves.'.format(desiredLength))
+        raise IOError('If you manually specify <colors>, <lineStyles>, <markers>, or <zorder> you must input either one argument (for all curves) or one argument for each curve. In this case, there are {} curves.'.format(desiredLength))
 
     return outList
 
@@ -55,6 +55,7 @@ if args.legend != [''] and len(args.legend) != lineCount:
 colors = setLength(args.colors, lineCount)
 lineStyles = setLength(args.lineStyles, lineCount)
 markers = setLength(args.markers, lineCount)
+zorders = setLength(args.zorders, lineCount)
 
 # Plot
 plt.rcParams['font.size'] = str(args.fontSize)
@@ -67,7 +68,7 @@ for IV, subDVs in zip(IVs, DVs):
     for DV in subDVs.T:
         
         plotArgs = [IV, DV]
-        plotKwargs = {'color':colors[styleInd], 'linestyle':lineStyles[styleInd], 'marker':markers[styleInd]}
+        plotKwargs = {'color':colors[styleInd], 'linestyle':lineStyles[styleInd], 'marker':markers[styleInd], 'zorder':zorders[styleInd]}
 
         if args.plotType[0] == 'linear':
             ax.plot(*plotArgs, **plotKwargs)
@@ -100,4 +101,5 @@ if args.ymargin != None:
 
 ax.xaxis.set_major_locator(MultipleLocator(args.xtick[0]))
 
+plt.tight_layout()
 fig.savefig(outFile, bbox_inches='tight', pad_inches=0, dpi=400)
