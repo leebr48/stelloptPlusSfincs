@@ -76,6 +76,14 @@ for IV, subDVs in zip(IVs, DVs):
 
         styleInd += 1
 
+if args.hlines != ['']:
+    for yval in args.hlines:
+        ax.axhline(y=yval, color='black', linestyle='-', zorder=0)
+
+if args.vlines != ['']:
+    for xval in args.vlines:
+        ax.axvline(x=xval, color='black', linestyle='-', zorder=0)
+
 ax.set_xlabel(args.xlabel[0])
 ax.set_ylabel(args.ylabel[0])
 

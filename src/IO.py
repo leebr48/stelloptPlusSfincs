@@ -262,6 +262,8 @@ def getCompoundPlotArgs():
     parser.add_argument('--xtick', type=float, nargs=1, required=False, default=[0.1], help='Sets spacing of the horizontal ticks.')
     parser.add_argument('--xmin', type=float, nargs=1, required=False, default=[None], help='Sets minimum value on the horizontal axis.')
     parser.add_argument('--legend', nargs='+', required=False, default=[''], help='Legend entries. Can accept one or more arguments. Be sure to write each argument in quotes!')
+    parser.add_argument('--hlines', type=float, nargs='+', required=False, default=[''], help='Y values where horizontal lines should appear. Can accept one or more arguments.')
+    parser.add_argument('--vlines', type=float, nargs='+', required=False, default=[''], help='X values where vertical lines should appear. Can accept one or more arguments.')
     parser.add_argument('--saveLoc', type=str, required=False, default='.', help='Location in which to save the produced plot. Defaults to the current working directory.')
     parser.add_argument('--fileName', type=str, required=False, default='compositePlot', help='Name of the produced plot without a file extension.')
     parser.add_argument('--fileType', type=str, required=False, default='pdf', help='Type of file you wish to save. Options are "pdf" and "png".')
