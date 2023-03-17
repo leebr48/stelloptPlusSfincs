@@ -1007,11 +1007,11 @@ def prettyDataLabel(inString, units=True):
         radVar = prettyRadialVar(parts[-1], innerOnly=True)
         
         # Write some label strings that will be used below
-        directionStatement = r' in $\nabla {}$ direction '.format(radVar) # Note that this includes spaces on either side for convenience
-        particleFluxUnits = r'$\mathrm{\left(\frac{1}{m^{3} s}\right)}$'
-        heatFluxUnits = r'$\mathrm{\left(\frac{W}{m^{3}}\right)}$'
-        momentumFluxUnits = r'$\mathrm{\left(\frac{kg T}{m^{2} s^{2}}\right)}$'
-        radialCurrentUnits = r'$\mathrm{\left(\frac{A}{m^{3}}\right)}$'
+        directionStatement = r' in $\nabla {}$ direction'.format(radVar) # Note that this includes spaces on either side for convenience
+        particleFluxUnits = r' $\mathrm{\left(\frac{1}{m^{3} s}\right)}$'
+        heatFluxUnits = r' $\mathrm{\left(\frac{W}{m^{3}}\right)}$'
+        momentumFluxUnits = r' $\mathrm{\left(\frac{kg T}{m^{2} s^{2}}\right)}$'
+        radialCurrentUnits = r' $\mathrm{\left(\frac{A}{m^{3}}\right)}$'
 
         # Write the output
         if label == 'particleFlux':

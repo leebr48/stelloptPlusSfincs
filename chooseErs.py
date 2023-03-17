@@ -22,6 +22,7 @@ import numpy as np
 from scipy.interpolate import PchipInterpolator
 from collections import Counter
 from shutil import copy
+from warnings import warn
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
@@ -31,6 +32,9 @@ from sfincsOutputLib import sfincsRadialAndErScan
 
 # Get arguments
 args = getChooseErArgs()
+        
+# The Matplotlib margins function would not work properly for some reason, so it has to be done manually
+marg = 0.02
 
 # Locally useful functions
 def findRoots(dataMat, xScan):
@@ -190,6 +194,15 @@ def evaluateIntegral(negF, posF, lowerBound, upperBound):
     else:
         return np.nan
 
+def findPlotMinMax(inData, margin):
+    dataMin = np.min(inData)
+    dataMax = np.max(inData)
+    dataRange = dataMax - dataMin
+    useMin = dataMin - margin * dataRange
+    useMax = dataMax + margin * dataRange
+
+    return useMin, useMax
+
 # Sort out directories
 _, _, _, inDir, _ = getFileInfo('/arbitrary/path', args.sfincsDir[0], 'arbitrary')
 
@@ -234,6 +247,12 @@ if not args.filter:
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
+        if 0 in ds.Erscans[radInd].Zs:
+            msg = 'A zero-charge particle was found in the output of the {} = {} subdirectory, '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+            msg += 'so this subdirectory will be skipped.'
+            messagePrinter(msg)
+            recordNoEr(allRootsLists)
+            continue
         actualEr = getattr(ds.Erscans[radInd], 'Er') # This is just for comparison purposes
         ErQuantityHasSameSignAsEr = determineErQuantitySign(ErVals, actualEr)
         if np.isnan(ErQuantityHasSameSignAsEr):
@@ -254,6 +273,17 @@ if not args.filter:
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
+        if ds.Erscans[radInd].includePhi1:
+            distr = 'vd'
+        else:
+            distr = 'vm'
+        if electricFieldLabel == 'Er':
+            coord = 'rHat'
+        else:
+            coord = electricFieldLabel.split('d')[-1]
+        particleFluxVar = 'particleFlux_'+distr+'_'+coord
+        unsortedParticleFluxes = getattr(ds.Erscans[radInd], particleFluxVar)
+        ErParticleFluxes = combineAndSort(ErVals, unsortedParticleFluxes)
         
         # Sort out roots
         rootInds = np.where(np.abs(np.array(JrVals)) <= args.maxRootJr[0])
@@ -276,7 +306,7 @@ if not args.filter:
         uniqueRootGuesses = findUniqueRoots(rootErs, estRoots)
         numUniqueRootGuesses = len(uniqueRootGuesses)
 
-        # Plot and save data for interpretation later
+        # Plot and save total current data for interpretation later
         plt.figure()
         plt.axhline(y=0, color='black', linestyle='-', zorder=0)
         plt.scatter(ErJrVals[:,0], ErJrVals[:,1], zorder=5)
@@ -296,27 +326,62 @@ if not args.filter:
                 clr = 'black'
                 lbl = 'Root Guess'
             plt.axvline(x=root, color=clr, linestyle=ls, label=lbl, zorder=15)
-        dataMin = np.min(ErJrVals[:,1])
-        dataMax = np.max(ErJrVals[:,1])
-        dataRange = dataMax - dataMin
-        marg = 0.02 # The Matplotlib margins function would not work properly for some reason, so it has to be done manually
-        useMin = dataMin - marg * dataRange
-        useMax = dataMax + marg * dataRange
+        useMin, useMax = findPlotMinMax(ErJrVals[:,1], marg)
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
         unitmsg = ' (SFINCS internal units)'
         plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
-        if electricFieldLabel == 'Er':
-            coord = 'rHat'
-        else:
-            coord = electricFieldLabel.split('d')[-1]
-        yName = 'radialCurrent_vm_'+coord # vm or vd (no Phi1 or Phi1) shouldn't matter in this case
+        yName = 'radialCurrent_'+distr+'_'+coord
         plt.ylabel(prettyDataLabel(yName, units=False) + unitmsg)
         nameBits = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel
         plotName = nameBits + '.pdf'
         dataName = nameBits + '.dat'
         plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
         np.savetxt(join(outDir, dataName), ErJrVals)
+
+        # Also plot individual species flux data
+        plt.figure()
+        plt.axhline(y=0, color='black', linestyle='-', zorder=0)
+        for i in range(1, ErParticleFluxes.shape[1]):
+            lbl = 'Spec. ' + str(i)
+            plt.plot(ErParticleFluxes[:,0], ErParticleFluxes[:,i], label=lbl, zorder=5)
+        useMin, useMax = findPlotMinMax(ErParticleFluxes[:,1:], marg)
+        plt.ylim(bottom=useMin, top=useMax)
+        plt.legend(loc='best')
+        plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
+        plt.ylabel(prettyDataLabel(particleFluxVar, units=False) + unitmsg)
+        nameBits = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'particleFluxes-vs-' + electricFieldLabel
+        plotName = nameBits + '.pdf'
+        dataName = nameBits + '.dat'
+        plt.tight_layout()
+        plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
+        np.savetxt(join(outDir, dataName), ErParticleFluxes)
+        
+        # Also plot grouped (ion and electron) flux data
+        plt.figure()
+        plt.axhline(y=0, color='black', linestyle='-', zorder=0)
+        eInds = np.where(ds.Erscans[radInd].Zs < 0)
+        iInds = np.where(ds.Erscans[radInd].Zs > 0)
+        if eInds[0].size > 1:
+            msg = 'Multiple negative-charge species were detected in the output of the {} = {} subdirectory. '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+            msg += 'This is unusual. They will all be labeled "electrons" in the grouped flux plots.'
+            warn(msg)
+        eFlux = np.sum(ErParticleFluxes[:,1:].T[eInds], axis=0)
+        iFlux = np.sum(ErParticleFluxes[:,1:].T[iInds], axis=0)
+        plt.plot(ErParticleFluxes[:,0], eFlux, label='Electrons', zorder=5)
+        plt.plot(ErParticleFluxes[:,0], iFlux, label='Ions', zorder=6)
+        eiFlux = np.column_stack((eFlux, iFlux))
+        useMin, useMax = findPlotMinMax(eiFlux, marg)
+        plt.ylim(bottom=useMin, top=useMax)
+        plt.legend(loc='best')
+        plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
+        plt.ylabel(prettyDataLabel(particleFluxVar, units=False) + unitmsg)
+        nameBits = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'groupedParticleFluxes-vs-' + electricFieldLabel
+        plotName = nameBits + '.pdf'
+        dataName = nameBits + '.dat'
+        plt.tight_layout()
+        plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
+        np.savetxt(join(outDir, dataName), np.column_stack((ErParticleFluxes[:,0], eiFlux)))
 
         # Determine if new runs should be launched, or the data processed as-is
         if numActualRoots == 0:
