@@ -338,6 +338,7 @@ if not args.filter:
         dataName = nameBits + '.dat'
         plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
         np.savetxt(join(outDir, dataName), ErJrVals)
+        plt.close()
 
         # Also plot individual species flux data
         plt.figure()
@@ -356,6 +357,7 @@ if not args.filter:
         plt.tight_layout()
         plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
         np.savetxt(join(outDir, dataName), ErParticleFluxes)
+        plt.close()
         
         # Also plot grouped (ion and electron) flux data
         plt.figure()
@@ -382,6 +384,7 @@ if not args.filter:
         plt.tight_layout()
         plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
         np.savetxt(join(outDir, dataName), np.column_stack((ErParticleFluxes[:,0], eiFlux)))
+        plt.close()
 
         # Determine if new runs should be launched, or the data processed as-is
         if numActualRoots == 0:
