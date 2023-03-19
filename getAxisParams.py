@@ -5,7 +5,7 @@
 from os.path import dirname, abspath, join
 from inspect import getfile, currentframe
 import sys
-from scipy.io import netcdf
+from scipy.io import netcdf_file
 import numpy as np
 
 thisDir = dirname(abspath(getfile(currentframe())))
@@ -16,7 +16,7 @@ from IO import getAxisParamsArgs
 args = getAxisParamsArgs()
 
 # Read wout file
-f = netcdf.netcdf_file(args.wout[0], mode='r', mmap=False)
+f = netcdf_file(args.wout[0], mode='r', mmap=False)
 
 # Get the axis variables
 rax = f.variables['raxis_cc'][()]
