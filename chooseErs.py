@@ -234,9 +234,10 @@ if not args.filter:
     # Determine where the satisfactory roots are for each radial subdirectory
     rootsToUse = [] 
     ionRoots = []
+    unstableRoots = []
     electronRoots = []
     soloRoots = []
-    allRootsLists = [rootsToUse, ionRoots, electronRoots, soloRoots]
+    allRootsLists = [rootsToUse, ionRoots, unstableRoots, electronRoots, soloRoots]
     for radInd in range(ds.Nradii):
         
         # Load and sort data from the given radial directory
@@ -409,6 +410,7 @@ if not args.filter:
                     soloRoots.append(rootErs[0])
                     rootsToUse.append(rootErs[0])
                     ionRoots.append(np.nan)
+                    unstableRoots.append(np.nan)
                     electronRoots.append(np.nan)
 
             else: # If there are other guesses for roots, they should be investigated
@@ -483,6 +485,7 @@ if not args.filter:
                             electronRoot = lowerRoot
                             
                         ionRoots.append(ionRoot)
+                        unstableRoots.append(unstableRoot)
                         electronRoots.append(electronRoot)
                         soloRoots.append(np.nan)
                         
@@ -502,11 +505,13 @@ if not args.filter:
     # Now perform some checks and save the Er information that was found
     assert ds.Nradii == len(rootsToUse), 'The vector to be written in rootsToUse.txt was the wrong length. Something is wrong.'
     assert ds.Nradii == len(ionRoots), 'The vector to be written in ionRoots.txt was the wrong length. Something is wrong.'
+    assert ds.Nradii == len(unstableRoots), 'The vector to be written in unstableRoots.txt was the wrong length. Something is wrong.'
     assert ds.Nradii == len(electronRoots), 'The vector to be written in electronRoots.txt was the wrong length. Something is wrong.'
     assert ds.Nradii == len(soloRoots), 'The vector to be written in soloRoots.txt was the wrong length. Something is wrong.'
 
     np.savetxt(join(outDir, 'rootsToUse.txt'), rootsToUse)
     np.savetxt(join(outDir, 'ionRoots.txt'), ionRoots)
+    np.savetxt(join(outDir, 'unstableRoots.txt'), unstableRoots)
     np.savetxt(join(outDir, 'electronRoots.txt'), electronRoots)
     np.savetxt(join(outDir, 'soloRoots.txt'), soloRoots)
 
