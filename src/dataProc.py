@@ -193,7 +193,7 @@ def fixOutputUnits(inVar, inFloat, mBar=1.67262192369e-27, BBar=1, RBar=1, nBar=
     Inputs:
         inVar: name (string) of a SFINCS variable from its output (*.h5)
                file. Note that only a few variables are currently supported.
-        inFloat: numerical value of inVar.
+        inFloat: float or numpy array; numerical value of inVar.
         mBar: reference mass. Default is the proton mass in kilograms.
               The default value is highly recommended.
         BBar: reference magnetic field in tesla.
@@ -207,7 +207,8 @@ def fixOutputUnits(inVar, inFloat, mBar=1.67262192369e-27, BBar=1, RBar=1, nBar=
         phiBar: reference electric potential in volts. Default
                 is 1 kV. The default value is highly recommended.
     Outputs:
-        The value of inVar in SI units. 
+        The value of inVar in SI units, with the same data type
+        as inFloat.
     '''
 
     from scipy.constants import e # elementary charge in Coulombs
@@ -230,8 +231,14 @@ def fixOutputUnits(inVar, inFloat, mBar=1.67262192369e-27, BBar=1, RBar=1, nBar=
     # use extensive units for fluxes or multiply the intensive values by RBar to recover the
     # standard m^-2 units.
     
-    if shouldHaveUnits == 'Er':
-        return phiBar / RBar * inFloat # V/m
+    if shouldHaveUnits in ['Er', 'dPhiHatdrHat']:
+        return phiBar / RBar * inFloat # V*m^-1
+    
+    elif shouldHaveUnits in ['dPhiHatdpsiN', 'dPhiHatdrN']:
+        return phiBar * inFloat # V
+
+    elif shouldHaveUnits == 'dPhiHatdpsiHat':
+        return phiBar / BBar / RBar**2 * inFloat # V*T^-1*m^-2
     
     elif shouldHaveUnits == 'FSABHat2':
         return BBar * inFloat # T^2

@@ -241,7 +241,9 @@ if not args.filter:
     for radInd in range(ds.Nradii):
         
         # Load and sort data from the given radial directory
-        if ds.Erscans[radInd].includePhi1:
+        dataContainer = ds.Erscans[radInd]
+        radVal = getattr(dataContainer, radLabel)[0]
+        if dataContainer.includePhi1:
             distr = 'vd'
         else:
             distr = 'vm'
@@ -251,40 +253,40 @@ if not args.filter:
             coord = electricFieldLabel.split('d')[-1]
         particleFluxVar = 'particleFlux_'+distr+'_'+coord
         radialCurrentVar = 'radialCurrent_'+distr+'_'+coord
-        ErVals = getattr(ds.Erscans[radInd], electricFieldLabel) # Note this doesn't literally have to be Er, it could be various derivatives of the electric potential
+        ErVals = fixOutputUnits(electricFieldLabel, getattr(dataContainer, electricFieldLabel)) # Note this doesn't literally have to be Er, it could be various derivatives of the electric potential
         if 0 not in ErVals:
-            msg = 'No zero-electric-field case was found in the {} = {} subdirectory, '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+            msg = 'No zero-electric-field case was found in the {} = {} subdirectory, '.format(radLabel, radVal)
             msg += 'so this subdirectory will be skipped.'
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
-        if 0 in ds.Erscans[radInd].Zs:
-            msg = 'A zero-charge particle was found in the output of the {} = {} subdirectory, '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+        if 0 in dataContainer.Zs:
+            msg = 'A zero-charge particle was found in the output of the {} = {} subdirectory, '.format(radLabel, radVal)
             msg += 'so this subdirectory will be skipped.'
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
-        actualEr = getattr(ds.Erscans[radInd], 'Er') # This is just for comparison purposes
+        actualEr = fixOutputUnits('Er', getattr(dataContainer, 'Er')) # This is just for comparison purposes
         ErQuantityHasSameSignAsEr = determineErQuantitySign(ErVals, actualEr)
         if np.isnan(ErQuantityHasSameSignAsEr):
-            msg = 'For {} = {}, the radial electric field as represented by {} did not seem to be consistent '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0], electricFieldLabel)
+            msg = 'For {} = {}, the radial electric field as represented by {} did not seem to be consistent '.format(radLabel, radVal, electricFieldLabel)
             msg += 'with the standard definition. It may have been zero in odd places or not followed the proper sign convention. Please investigate. '
             msg += 'In the meantime, this subdirectory will be skipped.'
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
-        JrVals = fixOutputUnits(radialCurrentVar, ds.Erscans[radInd].Jr)
+        JrVals = fixOutputUnits(radialCurrentVar, dataContainer.Jr)
         exactlyZeroCurrentInds = np.where(np.array(JrVals) == 0)
         exactlyZeroErVals = np.array(ErVals)[exactlyZeroCurrentInds]
         if len(exactlyZeroErVals) != 0:
-            msg = 'For {} = {}, it appears that the following electric field subdirectories contained a run with zero radial current:\n'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+            msg = 'For {} = {}, it appears that the following electric field subdirectories contained a run with zero radial current:\n'.format(radLabel, radVal)
             msg += str(exactlyZeroErVals) + '\n'
             msg += 'This indicates a SFINCS error. Please check and fix these run(s) to get reliable results.'
             msg += 'In the meantime, this subdirectory will be skipped because it will break the root finding algorithm.'
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
-        unsortedParticleFluxes = fixOutputUnits(particleFluxVar, getattr(ds.Erscans[radInd], particleFluxVar))
+        unsortedParticleFluxes = fixOutputUnits(particleFluxVar, getattr(dataContainer, particleFluxVar))
         ErParticleFluxes = combineAndSort(ErVals, unsortedParticleFluxes)
         
         # Sort out roots
@@ -295,7 +297,7 @@ if not args.filter:
         numActualRoots = len(rootErs)
         ErJrVals = combineAndSort(ErVals, JrVals)
         if args.print:
-            msg = 'For {} = {}, the radial electric field (or proxy) values are:\n'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+            msg = 'For {} = {}, the radial electric field (or proxy) values are:\n'.format(radLabel, radVal)
             msg += str(ErJrVals[:,0])+'\n'
             msg += 'The corresponding radial current values are:\n'
             msg += str(ErJrVals[:,1])
@@ -331,10 +333,9 @@ if not args.filter:
         useMin, useMax = findPlotMinMax(ErJrVals[:,1], marg)
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
-        unitmsg = ' (SFINCS internal units)'
-        plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
+        plt.xlabel(prettyDataLabel(electricFieldLabel))
         plt.ylabel(prettyDataLabel(radialCurrentVar))
-        nameBits = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel
+        nameBits = basename(inDir) + '-' + radLabel + '_' + str(radVal) + '-' + 'Jr-vs-' + electricFieldLabel
         plotName = nameBits + '.pdf'
         dataName = nameBits + '.dat'
         plt.savefig(join(outDir, plotName), bbox_inches='tight', dpi=400)
@@ -350,9 +351,9 @@ if not args.filter:
         useMin, useMax = findPlotMinMax(ErParticleFluxes[:,1:], marg)
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
-        plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
+        plt.xlabel(prettyDataLabel(electricFieldLabel))
         plt.ylabel(prettyDataLabel(particleFluxVar))
-        nameBits = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'particleFluxes-vs-' + electricFieldLabel
+        nameBits = basename(inDir) + '-' + radLabel + '_' + str(radVal) + '-' + 'particleFluxes-vs-' + electricFieldLabel
         plotName = nameBits + '.pdf'
         dataName = nameBits + '.dat'
         plt.tight_layout()
@@ -363,10 +364,10 @@ if not args.filter:
         # Also plot grouped (ion and electron) flux data
         plt.figure()
         plt.axhline(y=0, color='black', linestyle='-', zorder=0)
-        eInds = np.where(ds.Erscans[radInd].Zs < 0)
-        iInds = np.where(ds.Erscans[radInd].Zs > 0)
+        eInds = np.where(dataContainer.Zs < 0)
+        iInds = np.where(dataContainer.Zs > 0)
         if eInds[0].size > 1:
-            msg = 'Multiple negative-charge species were detected in the output of the {} = {} subdirectory. '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+            msg = 'Multiple negative-charge species were detected in the output of the {} = {} subdirectory. '.format(radLabel, radVal)
             msg += 'This is unusual. They will all be labeled "electrons" in the grouped flux plots.'
             warn(msg)
         eFlux = np.sum(ErParticleFluxes[:,1:].T[eInds], axis=0)
@@ -377,9 +378,9 @@ if not args.filter:
         useMin, useMax = findPlotMinMax(eiFlux, marg)
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
-        plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
+        plt.xlabel(prettyDataLabel(electricFieldLabel))
         plt.ylabel(prettyDataLabel(particleFluxVar))
-        nameBits = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'groupedParticleFluxes-vs-' + electricFieldLabel
+        nameBits = basename(inDir) + '-' + radLabel + '_' + str(radVal) + '-' + 'groupedParticleFluxes-vs-' + electricFieldLabel
         plotName = nameBits + '.pdf'
         dataName = nameBits + '.dat'
         plt.tight_layout()
@@ -391,11 +392,11 @@ if not args.filter:
         if numActualRoots == 0:
             
             if numUniqueRootGuesses == 0: # No root (real or estimated) can be identified - this is a problem
-                printMoreRunsMessage('No root could be identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
+                printMoreRunsMessage('No root could be identified for {} = {}.'.format(radLabel, radVal))
                 recordNoEr(allRootsLists)
             
             else: # A root guess has been identified - launch a run for it
-                launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
+                launchNewRuns(uniqueRootGuesses, dataContainer, electricFieldLabel)
                 recordNoEr(allRootsLists)
        
         elif numActualRoots == 1:
@@ -403,7 +404,7 @@ if not args.filter:
             if numUniqueRootGuesses == 0: # The fit polynomials could not find any roots beyond the one already identified
                 
                 if numStableRoots == 0: # The only root that can be found or guessed is unstable - this is a problem
-                    printMoreRunsMessage('Only a single, unstable root could be identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
+                    printMoreRunsMessage('Only a single, unstable root could be identified for {} = {}.'.format(radLabel, radVal))
                     recordNoEr(allRootsLists)
 
                 else: # The identified root is stable, and no other guesses are apparent - assume the identified root is the only one
@@ -414,45 +415,45 @@ if not args.filter:
                     electronRoots.append(np.nan)
 
             else: # If there are other guesses for roots, they should be investigated
-                launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
+                launchNewRuns(uniqueRootGuesses, dataContainer, electricFieldLabel)
                 recordNoEr(allRootsLists)
 
         elif numActualRoots == 2:
 
             if numStableRoots == 0: # Impossible - something is wrong
-                printMoreRunsMessage('Two unstable roots were identified for {} = {}, which should not be possible.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
+                printMoreRunsMessage('Two unstable roots were identified for {} = {}, which should not be possible.'.format(radLabel, radVal))
                 recordNoEr(allRootsLists)
 
             elif numStableRoots == 1: # The other stable root has not been found yet
 
                 if numUniqueRootGuesses == 0: # This is a problem
-                    printMoreRunsMessage('Only one stable and one unstable root were identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
+                    printMoreRunsMessage('Only one stable and one unstable root were identified for {} = {}.'.format(radLabel, radVal))
                     recordNoEr(allRootsLists)
 
                 else: # Investigate the guesses, which will hopefully allow the other stable root to be identified
-                    launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
+                    launchNewRuns(uniqueRootGuesses, dataContainer, electricFieldLabel)
                     recordNoEr(allRootsLists)
 
             else: # Both roots are stable, which likely means the data is incomplete
                 
                 if numUniqueRootGuesses == 0: # This is a problem
-                    printMoreRunsMessage('Two stable roots and no unstable roots were identified for {} = {}.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
+                    printMoreRunsMessage('Two stable roots and no unstable roots were identified for {} = {}.'.format(radLabel, radVal))
                     recordNoEr(allRootsLists)
 
                 else: # Investigate the guesses, which will hopefully allow the unstable root to be identified
-                    launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
+                    launchNewRuns(uniqueRootGuesses, dataContainer, electricFieldLabel)
                     recordNoEr(allRootsLists)
                     
         elif numActualRoots == 3:
             
             if numStableRoots in (0, 1, 3): # Does not make sense, something strange is going on
-                printMoreRunsMessage('Three roots were identified for {} = {}. {} of these appear to be stable, which should not be possible.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0], numStableRoots))
+                printMoreRunsMessage('Three roots were identified for {} = {}. {} of these appear to be stable, which should not be possible.'.format(radLabel, radVal, numStableRoots))
                 recordNoEr(allRootsLists)
 
             else: # We have a valid number of total and stable roots
                
                 if numUniqueRootGuesses != 0: # Probably a good idea to investigate these guesses just to get better data resolution (since we can only have 1 or 3 roots)
-                    launchNewRuns(uniqueRootGuesses, ds.Erscans[radInd], electricFieldLabel)
+                    launchNewRuns(uniqueRootGuesses, dataContainer, electricFieldLabel)
                     recordNoEr(allRootsLists)
 
                 else: # So far, it looks like we have three roots with the right stability properties
@@ -471,7 +472,7 @@ if not args.filter:
                         # so this ^ form of the integral should be correct.
                         
                         if np.isnan(intVal) or intVal == 0:
-                            msg = 'For {} = {}, the integral of Jr with respect to Er was NaN or identically zero. '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
+                            msg = 'For {} = {}, the integral of Jr with respect to Er was NaN or identically zero. '.format(radLabel, radVal)
                             msg += 'Something is wrong, so this subdirectory will be skipped.'
                             messagePrinter(msg)
                             recordNoEr(allRootsLists)
@@ -495,11 +496,11 @@ if not args.filter:
                             rootsToUse.append(electronRoot)
 
                     else:
-                        printMoreRunsMessage('For {} = {}, three roots were found and two were stable, but the unstable root was not between the stable ones.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
+                        printMoreRunsMessage('For {} = {}, three roots were found and two were stable, but the unstable root was not between the stable ones.'.format(radLabel, radVal))
                         recordNoEr(allRootsLists)
 
         else: # More than three roots should not be possible
-            printMoreRunsMessage('More than three roots were identified for {} = {}, which should not be possible.'.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0]))
+            printMoreRunsMessage('More than three roots were identified for {} = {}, which should not be possible.'.format(radLabel, radVal))
             recordNoEr(allRootsLists)
 
     # Now perform some checks and save the Er information that was found
@@ -532,13 +533,15 @@ else:
     # Copy the correct directories
     for radInd in range(ds.Nradii):
         
-        ErVals = getattr(ds.Erscans[radInd], electricFieldLabel)
+        dataContainer = ds.Erscans[radInd]
+
+        ErVals = getattr(dataContainer, electricFieldLabel)
         correctErQuantity = loadedErQuantities[radInd]
 
         correctInd = np.argmin((ErVals - correctErQuantity) ** 2)
-        correctErDir = ds.Erscans[radInd].DataDirs[correctInd]
+        correctErDir = dataContainer.DataDirs[correctInd]
         
-        dirToCopyFrom = join(ds.Erscans[radInd].mainDir, correctErDir)
+        dirToCopyFrom = join(dataContainer.mainDir, correctErDir)
         dirToCopyTo = dirname(dirToCopyFrom.replace(inDir, outDir)) # Using dirname gets rid of the electric field subdirectory - it is no longer needed
         _ = makeDir(dirToCopyTo)
         copy(join(dirToCopyFrom, 'sfincsOutput.h5'), join(dirToCopyTo, 'sfincsOutput.h5')) # Note that this script has file overwrite powers!

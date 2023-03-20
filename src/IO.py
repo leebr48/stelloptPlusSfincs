@@ -936,8 +936,11 @@ def prettyDataLabel(inString, units=True):
     if '_' not in inString:
         
         PhiHat = r'\hat{\Phi}'
-        def derFormat(top, bottom):
-            return r'$\frac{d %s}{d %s}$' % (top, bottom)
+        def derFormat(top, bottom, neg=False):
+            if neg:
+                return r'$-\frac{d %s}{d %s}$' % (top, bottom)
+            else:
+                return r'$\frac{d %s}{d %s}$' % (top, bottom)
         
         extensiveParticleFluxUnits = r' $\mathrm{\left(\frac{1}{s}\right)}$'
         extensiveHeatFluxUnits = r' $\mathrm{\left(W\right)}$'
@@ -945,19 +948,29 @@ def prettyDataLabel(inString, units=True):
         extensiveRadialCurrentUnits = r' $\mathrm{\left(A\right)}$'
 
         if inString == 'Er':
-            return makeStr(r'Radial electric field', r' $\mathrm{\left(\frac{V}{m}\right)}$')
+            name = 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rHat', innerOnly=True), neg=True)
+            units = r' $\mathrm{\left(\frac{V}{m}\right)}$'
+            return makeStr(name, units)
 
         elif inString == 'dPhiHatdpsiHat':
-            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiHat', innerOnly=True))
+            name = 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiHat', innerOnly=True))
+            units = r' $\mathrm{\left(\frac{V}{T m^{2}}\right)}$'
+            return makeStr(name, units)
 
         elif inString == 'dPhiHatdpsiN':
-            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiN', innerOnly=True))
+            name = 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiN', innerOnly=True))
+            units = r' $\mathrm{\left(V\right)}$'
+            return makeStr(name, units)
         
         elif inString == 'dPhiHatdrHat':
-            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rHat', innerOnly=True))
+            name = 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rHat', innerOnly=True))
+            units = r' $\mathrm{\left(\frac{V}{m}\right)}$'
+            return makeStr(name, units)
         
         elif inString == 'dPhiHatdrN':
-            return 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rN', innerOnly=True))
+            name = 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rN', innerOnly=True))
+            units = r' $\mathrm{\left(V\right)}$'
+            return makeStr(name, units)
         
         elif inString == 'FSABFlow':
             return makeStr(r'FSAB parallel flow', r' $\mathrm{\left(\frac{T}{m^{2} s}\right)}$')
