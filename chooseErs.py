@@ -98,10 +98,12 @@ def determineRootStability(f, knownRoots, ErQuantityHasSameSignAsEr):
     return stableRoots
 
 def launchNewRuns(uniqueRootGuesses, sfincsScanInstance, electricFieldVar):
-    ErVals = getattr(sfincsScanInstance, electricFieldVar)
-    for root in uniqueRootGuesses:
-        closestInd = np.argmin(np.abs(root - ErVals))
-        sfincsScanInstance.launchRun(electricFieldVar, root, 'nearest', closestInd, sendRunToScheduler=(not args.noRun), launchCommand='sbatch')
+    ErVals = getattr(sfincsScanInstance, electricFieldVar) # In SFINCS internal units
+    conversionFactor = fixOutputUnits(electricFieldVar, 1)
+    for root in uniqueRootGuesses: # In physical units
+        adjustedUnitsRoot = root / conversionFactor
+        closestInd = np.argmin(np.abs(adjustedUnitsRoot - ErVals))
+        sfincsScanInstance.launchRun(electricFieldVar, adjustedUnitsRoot, 'nearest', closestInd, sendRunToScheduler=(not args.noRun), launchCommand='sbatch')
 
 def printMoreRunsMessage(customString):
     standardLittleDataErrorMsg = ' This likely means not enough data was available.'
