@@ -26,12 +26,12 @@ from warnings import warn
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from dataProc import combineAndSort, constructBSpline, relDiff
-from IO import getChooseErArgs, getFileInfo, makeDir, findFiles, messagePrinter, prettyDataLabel, saveTimeStampFile
+from dataProc import combineAndSort, constructBSpline, relDiff, fixOutputUnits
+from IO import getChooseErsArgs, getFileInfo, makeDir, findFiles, messagePrinter, prettyDataLabel, saveTimeStampFile
 from sfincsOutputLib import sfincsRadialAndErScan
 
 # Get arguments
-args = getChooseErArgs()
+args = getChooseErsArgs()
         
 # The Matplotlib margins function would not work properly for some reason, so it has to be done manually
 marg = 0.02
@@ -241,6 +241,16 @@ if not args.filter:
     for radInd in range(ds.Nradii):
         
         # Load and sort data from the given radial directory
+        if ds.Erscans[radInd].includePhi1:
+            distr = 'vd'
+        else:
+            distr = 'vm'
+        if electricFieldLabel == 'Er':
+            coord = 'rHat'
+        else:
+            coord = electricFieldLabel.split('d')[-1]
+        particleFluxVar = 'particleFlux_'+distr+'_'+coord
+        radialCurrentVar = 'radialCurrent_'+distr+'_'+coord
         ErVals = getattr(ds.Erscans[radInd], electricFieldLabel) # Note this doesn't literally have to be Er, it could be various derivatives of the electric potential
         if 0 not in ErVals:
             msg = 'No zero-electric-field case was found in the {} = {} subdirectory, '.format(radLabel, getattr(ds.Erscans[radInd], radLabel)[0])
@@ -263,7 +273,7 @@ if not args.filter:
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
-        JrVals = ds.Erscans[radInd].Jr
+        JrVals = fixOutputUnits(radialCurrentVar, ds.Erscans[radInd].Jr)
         exactlyZeroCurrentInds = np.where(np.array(JrVals) == 0)
         exactlyZeroErVals = np.array(ErVals)[exactlyZeroCurrentInds]
         if len(exactlyZeroErVals) != 0:
@@ -274,16 +284,7 @@ if not args.filter:
             messagePrinter(msg)
             recordNoEr(allRootsLists)
             continue
-        if ds.Erscans[radInd].includePhi1:
-            distr = 'vd'
-        else:
-            distr = 'vm'
-        if electricFieldLabel == 'Er':
-            coord = 'rHat'
-        else:
-            coord = electricFieldLabel.split('d')[-1]
-        particleFluxVar = 'particleFlux_'+distr+'_'+coord
-        unsortedParticleFluxes = getattr(ds.Erscans[radInd], particleFluxVar)
+        unsortedParticleFluxes = fixOutputUnits(particleFluxVar, getattr(ds.Erscans[radInd], particleFluxVar))
         ErParticleFluxes = combineAndSort(ErVals, unsortedParticleFluxes)
         
         # Sort out roots
@@ -332,8 +333,7 @@ if not args.filter:
         plt.legend(loc='best')
         unitmsg = ' (SFINCS internal units)'
         plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
-        yName = 'radialCurrent_'+distr+'_'+coord
-        plt.ylabel(prettyDataLabel(yName, units=False) + unitmsg)
+        plt.ylabel(prettyDataLabel(radialCurrentVar))
         nameBits = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'Jr-vs-' + electricFieldLabel
         plotName = nameBits + '.pdf'
         dataName = nameBits + '.dat'
@@ -351,7 +351,7 @@ if not args.filter:
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
         plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
-        plt.ylabel(prettyDataLabel(particleFluxVar, units=False) + unitmsg)
+        plt.ylabel(prettyDataLabel(particleFluxVar))
         nameBits = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'particleFluxes-vs-' + electricFieldLabel
         plotName = nameBits + '.pdf'
         dataName = nameBits + '.dat'
@@ -378,7 +378,7 @@ if not args.filter:
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
         plt.xlabel(prettyDataLabel(electricFieldLabel, units=False) + unitmsg)
-        plt.ylabel(prettyDataLabel(particleFluxVar, units=False) + unitmsg)
+        plt.ylabel(prettyDataLabel(particleFluxVar))
         nameBits = basename(inDir) + '-' + radLabel + '_' + str(getattr(ds.Erscans[radInd], radLabel)[0]) + '-' + 'groupedParticleFluxes-vs-' + electricFieldLabel
         plotName = nameBits + '.pdf'
         dataName = nameBits + '.dat'
