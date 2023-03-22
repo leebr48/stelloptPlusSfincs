@@ -284,11 +284,15 @@ if not args.filter:
         if len(exactlyZeroErVals) != 0:
             msg = 'For {} = {}, it appears that the following electric field subdirectories contained a run with zero radial current:\n'.format(radLabel, radVal)
             msg += str(exactlyZeroErVals) + '\n'
-            msg += 'This indicates a SFINCS error. Please check and fix these run(s) to get reliable results. '
-            msg += 'In the meantime, this subdirectory will be skipped because it will break the root finding algorithm.'
-            messagePrinter(msg)
-            recordNoEr(allRootsLists)
-            continue
+            msg += 'This indicates a SFINCS error. Please check and fix these run(s) to get reliable results.\n'
+            if not args.allowZeroJr:
+                msg += 'In the meantime, this subdirectory will be skipped because it will break the root finding algorithm.'
+                messagePrinter(msg)
+                recordNoEr(allRootsLists)
+                continue
+            else:
+                msg += 'Because <allowZeroJr> was used, calculations for this subdirectory will continue even though the results will likely be incorrect.'
+                messagePrinter(msg)
         unsortedParticleFluxes = fixOutputUnits(particleFluxVar, getattr(dataContainer, particleFluxVar))
         ErParticleFluxes = combineAndSort(ErVals, unsortedParticleFluxes)
         
