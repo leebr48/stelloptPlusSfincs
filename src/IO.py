@@ -1153,7 +1153,7 @@ def cleanupForStellopt(inAr, integer=False):
     else:
         precision = 10 # Standard precision for STELLOPT
     
-    newstr = np.array2string(ar, separator='     ', precision=precision, max_line_width=100).replace('[','').replace(']','')
+    newstr = np.array2string(ar, separator='     ', precision=precision, max_line_width=np.inf).replace('[','').replace(']','')
     
     return newstr
 

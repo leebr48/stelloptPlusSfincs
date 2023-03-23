@@ -10,7 +10,7 @@ import numpy as np
 
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
-from IO import getAxisParamsArgs 
+from IO import getAxisParamsArgs, makeStringForStellopt, messagePrinter
 
 # Load argument
 args = getAxisParamsArgs()
@@ -23,8 +23,10 @@ rax = f.variables['raxis_cc'][()]
 zax = f.variables['zaxis_cs'][()]
 
 # Print the axis variables
-printR = 'RAXIS_CC = ' + np.array2string(rax, separator=' ', precision=14, max_line_width=100000).replace('[','').replace(']','')
-printZ = 'ZAXIS_CS = ' + np.array2string(zax, separator=' ', precision=14, max_line_width=100000).replace('[','').replace(']','')
+printR = makeStringForStellopt('RAXIS_CC', rax)
+printZ = makeStringForStellopt('ZAXIS_CS', zax)
 
-print(printR)
-print(printZ)
+msg = 'The Fourier coefficients for the magnetic axis are:\n'
+msg += printR
+msg += printZ
+messagePrinter(msg)
