@@ -871,11 +871,15 @@ def radialVarDict():
 
     return {0:'psiHat', 1:'psiN', 2:'rHat', 3:'rN', 4:'rHat'}
 
-def prettyRadialVar(inString, innerOnly=False):
+def prettyRadialVar(inString, unNormalize=False, innerOnly=False):
     
     '''
     Inputs:
         inString: string containing a value from radialVarDict.
+        unNormalize: if True, the 'hats' will be removed from
+                     rHat and psiHat. This may be useful for
+                     plotting against dimensional quantities,
+                     for example.
         innerOnly: if False, all the 'extras' needed for the
                    output to act as, say, an axis label will
                    be included. If True, these 'extras' will
@@ -887,8 +891,17 @@ def prettyRadialVar(inString, innerOnly=False):
         form of inString, such as with Matplotlib.
     '''
 
+    def makeCore(sym):
+        if unNormalize:
+            core = sym
+        else:
+            core = r'\hat{%s}' % sym
+
+        return core
+        
+
     if inString == 'psiHat':
-        core = r'\hat{\psi}'
+        core = makeCore(r'\psi')
         if innerOnly:
             return core
         else:
@@ -900,7 +913,7 @@ def prettyRadialVar(inString, innerOnly=False):
         else:
             return r'$%s = s = \left( r_{\mathrm{eff}}/a_{\mathrm{eff}}\right)^{2}$'%core
     elif inString == 'rHat':
-        core = r'\hat{r}'
+        core = makeCore(r'r')
         if innerOnly:
             return core
         else:
@@ -936,7 +949,7 @@ def prettyDataLabel(inString, units=True):
 
     if '_' not in inString:
         
-        PhiHat = r'\hat{\Phi}'
+        Phi = r'\Phi'
         def derFormat(top, bottom, neg=False):
             if neg:
                 return r'$-\frac{d %s}{d %s}$' % (top, bottom)
@@ -949,27 +962,27 @@ def prettyDataLabel(inString, units=True):
         extensiveRadialCurrentUnits = r' $\mathrm{\left(A\right)}$'
 
         if inString == 'Er':
-            name = 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rHat', innerOnly=True), neg=True)
+            name = 'Radial electric field ' + derFormat(Phi, prettyRadialVar('rHat', unNormalize=True, innerOnly=True), neg=True)
             units = r' $\mathrm{\left(\frac{V}{m}\right)}$'
             return makeStr(name, units)
 
         elif inString == 'dPhiHatdpsiHat':
-            name = 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiHat', innerOnly=True))
+            name = 'Radial electric field ' + derFormat(Phi, prettyRadialVar('psiHat', unNormalize=True, innerOnly=True))
             units = r' $\mathrm{\left(\frac{V}{T m^{2}}\right)}$'
             return makeStr(name, units)
 
         elif inString == 'dPhiHatdpsiN':
-            name = 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('psiN', innerOnly=True))
+            name = 'Radial electric field ' + derFormat(Phi, prettyRadialVar('psiN', innerOnly=True))
             units = r' $\mathrm{\left(V\right)}$'
             return makeStr(name, units)
         
         elif inString == 'dPhiHatdrHat':
-            name = 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rHat', innerOnly=True))
+            name = 'Radial electric field ' + derFormat(Phi, prettyRadialVar('rHat', unNormalize=True, innerOnly=True))
             units = r' $\mathrm{\left(\frac{V}{m}\right)}$'
             return makeStr(name, units)
         
         elif inString == 'dPhiHatdrN':
-            name = 'Radial electric field ' + derFormat(PhiHat, prettyRadialVar('rN', innerOnly=True))
+            name = 'Radial electric field ' + derFormat(Phi, prettyRadialVar('rN', innerOnly=True))
             units = r' $\mathrm{\left(V\right)}$'
             return makeStr(name, units)
         
