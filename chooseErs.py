@@ -1,5 +1,6 @@
 # This script helps the user identify the root(s) of the ambipolar electric field in a given configuration. Note that each flux surface in a device should have either 1 or 3 roots.
 # In the former case, the root is identified with confidence by the script. In the latter case, eq. (A2) of Turkin et al., PoP 18, 022505 (2011) is used to determine the correct root.
+# (Two roots are theoretically possible, but the second one would be metastable since it would only occur when the point corresponding to dJr/dEr=0 was on the horizontal axis.)
 # A normal workflow would be to use run.py for a given configuration to generate many scans over flux surfaces and radial electric field values (WITHOUT using ambipolarSolve), running
 # this script repeatedly until all the roots are identified (which may require looking at the plots produced and choosing radial electric field values manually), running this script
 # with the <filter> option to copy only the information for the "correct" electric field values to a new directory, and running ploy.py on that directory to get the "correct" system
@@ -7,11 +8,12 @@
 # values cover much of this upward spike. Ensuring good scan resolution in this region will help the root finding and integration algorithms. Please note that the spike may be extremely
 # thin, especially for inner flux surfaces (since we expect Er=0 on the magnetic axis). The roots will likely be difficult to find in this region. Similarly, if you notice that many
 # root guesses are close together and the next guess in the region is strictly less than or greater than all the others in that region, consider manually running a case further from
-# these guesses to help the root finding algorithm converge faster. Note that the final electric field should be relatively smooth, except if the system "switches" between the electron
-# and ion roots - this will look like a step change since the equation from Turkin et al. assumes the diffusion coefficient D_E = 0. If the electric field is jagged, the script may have
-# chosen the wrong root. In this case, consider switching the value of the electric field on that flux surface (in rootsToUse.txt) to the alternative (found in electronRoots.txt or
-# ionRoots.txt). Keep in mind that you may need to substantially increase the run time for SFINCS when includePhi1 is turned on. Again, you should NOT use ambipolarSolve with this
-# script - doing so will create complications that can be unpleasant to deal with. It is easier and more reliable to simply run this script repeatedly.
+# these guesses to help the root finding algorithm converge faster. If the algorithm still has convergence troubles, SFINCS may need to be run with higher resolution. Note that the
+# final electric field should be relatively smooth, except if the system "switches" between the electron and ion roots - this will look like a step change since the equation from
+# Turkin et al. assumes the diffusion coefficient D_E = 0. If the electric field is jagged, the script may have chosen the wrong root. In this case, consider switching the value of the
+# electric field on that flux surface (in rootsToUse.txt) to the alternative (found in electronRoots.txt or ionRoots.txt). Keep in mind that you may need to substantially increase the
+# run time for SFINCS when includePhi1 is turned on. Again, you should NOT use ambipolarSolve with this script - doing so will create complications that can be unpleasant to deal with.
+# It is easier and more reliable to simply run this script repeatedly.
 
 # Load necessary modules
 from os.path import dirname, abspath, join, basename
