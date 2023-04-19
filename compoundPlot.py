@@ -64,10 +64,14 @@ fig, ax = plt.subplots()
 
 styleInd = 0
 for IV, subDVs in zip(IVs, DVs):
+
+    scaledIV = list(np.array(IV) * args.xScale[0])
     
     for DV in subDVs.T:
+
+        scaledDV = list(np.array(DV) * args.yScale[0])
         
-        plotArgs = [IV, DV]
+        plotArgs = [scaledIV, scaledDV]
         plotKwargs = {'color':colors[styleInd], 'linestyle':lineStyles[styleInd], 'marker':markers[styleInd], 'zorder':zorders[styleInd]}
 
         if args.plotType[0] == 'linear':

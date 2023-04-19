@@ -257,6 +257,8 @@ def getCompoundPlotArgs():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--data', nargs='+', required=True, help='*.dat files to be plotted, with addresses if necessary. The first column of each file must be horizontal coordinate values, while the remaining columns must be corresponding vertical coordinate (data) values. The file plot.py produces properly-structured data files automatically. Note that you should choose *.dat files with the same horizontal coordinate. Each column (except the first) in the first file passed to this argument will become a curve in the output plot, then each column (except the first) in the second file, and so on -- this is how one can specify the order of the <legend> and <colors> arguments, for example.')
     parser.add_argument('--plotType', type=str, nargs=1, required=False, default=['linear'], help='Type of vertical axis. Options are "linear" and "semilogy".')
+    parser.add_argument('--xScale', type=float, nargs=1, required=False, default=[1], help='Factor multplied against all independent variable values.')
+    parser.add_argument('--yScale', type=float, nargs=1, required=False, default=[1], help='Factor multplied against all dependent variable values.')
     parser.add_argument('--xlabel', type=str, nargs=1, required=False, default=[''], help='Label for horizontal axis. Be sure to write in quotes!')
     parser.add_argument('--ylabel', type=str, nargs=1, required=False, default=[''], help='Label for vertical axis. Be sure to write in quotes!')
     parser.add_argument('--xtick', type=float, nargs=1, required=False, default=[0.1], help='Sets spacing of the horizontal ticks.')
