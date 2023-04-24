@@ -124,7 +124,8 @@ for ionInd in range(totalNumIons):
 profileString += makeStringForStellopt(massInName, ionMs)
 profileString += makeStringForStellopt(chargeInName, ionZs, integer=True)
 
-presString = makeStringForStellopt('PMASS_TYPE', "'akima_spline'")
+presString = makeStringForStellopt('GAMMA', [0])
+presString += makeStringForStellopt('PMASS_TYPE', "'akima_spline'")
 presString += makeStringForStellopt('PRES_SCALE', [1])
 presString += makeStringForStellopt('AM_AUX_S', sVec)
 presString += makeStringForStellopt('AM_AUX_F', pres)
