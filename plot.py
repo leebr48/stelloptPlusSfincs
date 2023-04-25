@@ -149,7 +149,7 @@ for i,unRegDirectory in enumerate(IOlists['sfincsDir']):
                 loadedData[totalParticleFlux] = loadedData[neoclassicalParticleFluxes[radInd]] + loadedData[classicalParticleFluxes[radInd]]
                 loadedData[totalHeatFlux] = loadedData[neoclassicalHeatFluxes[radInd]] + loadedData[classicalHeatFluxes[radInd]]
 
-            normalizedAreaFactor = loadedData['VPrimeHat'] # = dVHat/dpsiHat
+            normalizedAreaFactor = -1 * np.sign(loadedData['psiHat']) * loadedData['VPrimeHat'] # = sign(Jacobian) * sign(toroidal flux / 2pi) * dVHat/dpsiHat
             loadedData['extensiveParticleFlux'] = normalizedAreaFactor * loadedData['particleFlux'+distFunc+'psiHat']
             loadedData['extensiveHeatFlux'] = normalizedAreaFactor * loadedData['heatFlux'+distFunc+'psiHat']
             loadedData['extensiveMomentumFlux'] = normalizedAreaFactor * loadedData['momentumFlux'+distFunc+'psiHat']
