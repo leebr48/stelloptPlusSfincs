@@ -22,7 +22,7 @@ from numpy import linspace, pi
 thisDir = dirname(abspath(getfile(currentframe())))
 sys.path.append(join(thisDir, 'src/'))
 from sfincsOutputLib import sfincsRadialAndErScan, sfincsScan
-from dataProc import fixOutputUnits
+from dataProc import fixOutputUnits, createVMECGrids
 from IO import getBootstrapArgs, getFileInfo, makeStringForStellopt, messagePrinter
 
 # Sort out inputs
@@ -56,10 +56,7 @@ ns = woutFile.variables['ns'][()]
 pres = woutFile.variables['pres'][()] # Pressure on the half grid
 dpsids = woutFile.variables['phips'][()][-1] # Any valid index except 0 will return the same (correct) value
 
-fullgrid = linspace(0, 1, num=ns)
-diff = (fullgrid[1] - fullgrid[0]) / 2
-halfgrid = fullgrid - diff
-halfgrid[0] = 0
+halfgrid, _ = createVMECGrids(ns)
 f_p = PchipInterpolator(halfgrid, pres)
 f_dpds = f_p.derivative()
 
@@ -73,7 +70,7 @@ Isolved = odeint(f_dIds, I0, eval_s)
 f_I = PchipInterpolator(eval_s, signgs * Isolved)
 s_for_file = ds.psiN.tolist()
 if 0 not in s_for_file:
-    s_for_file.insert(0,0)
+    s_for_file.insert(0, 0)
 if 1 not in s_for_file:
     s_for_file.append(1)
 
@@ -82,6 +79,7 @@ outI = f_I(s_for_file).flatten()
 
 # Print output quantities
 curString = 'The current information (relevant for VMEC) is:\n'
+curString += makeStringForStellopt('NCURR', [1])
 curString += makeStringForStellopt('CURTOR', curtor)
 curString += makeStringForStellopt('PCURR_TYPE', "'akima_spline_I'")
 curString += makeStringForStellopt('AC_AUX_S', s_for_file)

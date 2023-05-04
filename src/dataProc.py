@@ -685,3 +685,20 @@ def nu_ab(aDict, bDict, K):
 
     # Calculate output
     return refColFreq * (t1 + t2)
+
+def createVMECGrids(ns):
+    '''
+    Inputs: The number of surfaces 'ns'.
+    Outputs: List with two 1D NumPy arrays: the first has the half grid S
+             (normalized toroidal flux) values, and the second has the
+             full grid S values.
+    '''
+
+    from numpy import linspace
+
+    fullgrid = linspace(0, 1, num=ns)
+    delta = (fullgrid[1] - fullgrid[0]) / 2 
+    halfgrid = fullgrid - delta
+    halfgrid[0] = 0 
+
+    return [halfgrid, fullgrid]
