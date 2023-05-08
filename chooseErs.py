@@ -13,7 +13,8 @@
 # Turkin et al. assumes the diffusion coefficient D_E = 0. If the electric field is jagged, the script may have chosen the wrong root. In this case, consider switching the value of the
 # electric field on that flux surface (in rootsToUse.txt) to the alternative (found in electronRoots.txt or ionRoots.txt). Keep in mind that you may need to substantially increase the
 # run time for SFINCS when includePhi1 is turned on. Again, you should NOT use ambipolarSolve with this script - doing so will create complications that can be unpleasant to deal with.
-# It is easier and more reliable to simply run this script repeatedly.
+# It is easier and more reliable to simply run this script repeatedly. As a final note, the internal units used in SFINCS and sfincsScan will almost certainly be different than those
+# this script uses when making plots.
 
 # Load necessary modules
 from os.path import dirname, abspath, join, basename
@@ -35,9 +36,6 @@ from sfincsOutputLib import sfincsRadialAndErScan
 # Get arguments
 args = getChooseErsArgs()
         
-# The Matplotlib margins function would not work properly for some reason, so it has to be done manually
-marg = 0.02
-
 # Locally useful functions
 def findRoots(dataMat, xScan):
     f = PchipInterpolator(dataMat[:,0], dataMat[:,1], extrapolate=False)
@@ -259,8 +257,9 @@ if not args.filter:
         particleFluxVar = 'particleFlux_'+distr+'_'+coord
         radialCurrentVar = 'radialCurrent_'+distr+'_'+coord
         ErVals = fixOutputUnits(electricFieldLabel, getattr(dataContainer, electricFieldLabel)) # Note this doesn't literally have to be Er, it could be various derivatives of the electric potential
-        if 0 not in ErVals:
-            msg = 'No zero-electric-field case was found in the {} = {} subdirectory, '.format(radLabel, radVal)
+        closeToZero = np.isclose(ErVals, 0, rtol=0, atol=args.zeroErTol[0])
+        if True not in closeToZero:
+            msg = 'No zero-electric-field case (or anything sufficiently close) was found in the {} = {} subdirectory, '.format(radLabel, radVal)
             msg += 'so this subdirectory will be skipped.'
             messagePrinter(msg)
             recordNoEr(allRootsLists)
@@ -339,7 +338,7 @@ if not args.filter:
                 clr = 'black'
                 lbl = 'Root Guess'
             plt.axvline(x=root, color=clr, linestyle=ls, label=lbl, zorder=15)
-        useMin, useMax = findPlotMinMax(ErJrVals[:,1], marg)
+        useMin, useMax = findPlotMinMax(ErJrVals[:,1], args.marg[0])
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
         plt.xlabel(prettyDataLabel(electricFieldLabel))
@@ -357,7 +356,7 @@ if not args.filter:
         for i in range(1, ErParticleFluxes.shape[1]):
             lbl = 'Spec. ' + str(i)
             plt.plot(ErParticleFluxes[:,0], ErParticleFluxes[:,i], label=lbl, zorder=5)
-        useMin, useMax = findPlotMinMax(ErParticleFluxes[:,1:], marg)
+        useMin, useMax = findPlotMinMax(ErParticleFluxes[:,1:], args.marg[0])
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
         plt.xlabel(prettyDataLabel(electricFieldLabel))
@@ -384,7 +383,7 @@ if not args.filter:
         plt.plot(ErParticleFluxes[:,0], eFlux, label='Electrons', zorder=5)
         plt.plot(ErParticleFluxes[:,0], iFlux, label='Ions', zorder=6)
         eiFlux = np.column_stack((eFlux, iFlux))
-        useMin, useMax = findPlotMinMax(eiFlux, marg)
+        useMin, useMax = findPlotMinMax(eiFlux, args.marg[0])
         plt.ylim(bottom=useMin, top=useMax)
         plt.legend(loc='best')
         plt.xlabel(prettyDataLabel(electricFieldLabel))
