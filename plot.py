@@ -6,7 +6,6 @@
 from os.path import dirname, abspath, join, basename
 from inspect import getfile, currentframe
 import sys
-import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
