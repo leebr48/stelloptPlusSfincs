@@ -8,6 +8,8 @@
 # either.
 # This script numerically integrates equation (17) in "Computing vmec’s ac current profile and curtor from a bootstrap current code"
 # by Matt Landreman, which is included in the STELLOPT directory in SHARE/doc/computing_vmec_AC_profile_from_a_bootstrap_current_code.
+# The results of this script should be fairly accurate - they are within a few percent of the results in https://doi.org/10.1063/5.0098166,
+# for instance, but the source of the discrepancy is not known.
 
 # Load necessary modules
 from os.path import dirname, abspath, join, basename
@@ -53,17 +55,17 @@ woutFile = netcdf_file(woutFile, mmap=False)
 
 signgs = woutFile.variables['signgs'][()]
 ns = woutFile.variables['ns'][()]
-pres = woutFile.variables['pres'][()] # Pressure on the half grid
+pres = woutFile.variables['presf'][()] # Pressure on the full grid - should be the "real" value (half grid is used for derivatives)
 dpsids = woutFile.variables['phips'][()][-1] # Any valid index except 0 will return the same (correct) value
 
-halfgrid, _ = createVMECGrids(ns)
-f_p = PchipInterpolator(halfgrid, pres)
+_, fullgrid = createVMECGrids(ns)
+f_p = PchipInterpolator(fullgrid, pres)
 f_dpds = f_p.derivative()
 
 # Integrate
 f_dIds = lambda I, s: (2 * pi * dpsids * f_jB(s) - mu_0 * I * f_dpds(s)) / f_B2(s)
 I0 = 0 # no enclosed current on the axis
-eval_s = linspace(0, 1, num=10*ns)
+eval_s = linspace(0, 1, num=100*ns)
 Isolved = odeint(f_dIds, I0, eval_s)
 
 # Get output quantities
