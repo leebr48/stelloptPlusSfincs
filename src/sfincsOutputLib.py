@@ -120,6 +120,7 @@ class sfincsScan:
 
       self.classicalParticleFlux_rHat=np.zeros((Nruns,Nspecies))
       self.classicalParticleFlux_rN  =np.zeros((Nruns,Nspecies))
+      self.classicalParticleFlux_psiHat=np.zeros((Nruns,Nspecies))
       self.classicalParticleFlux_psiN=np.zeros((Nruns,Nspecies))
 
       #These may not always need to be loaded:
@@ -339,6 +340,7 @@ class sfincsScan:
             if 'classicalParticleFlux_rHat' in file:
               self.classicalParticleFlux_rHat[ind]=file['classicalParticleFlux_rHat'][()][:,-1]
               self.classicalParticleFlux_rN[ind]  =file['classicalParticleFlux_rN'][()][:,-1]
+              self.classicalParticleFlux_psiHat[ind]=file['classicalParticleFlux_psiHat'][()][:,-1]
               self.classicalParticleFlux_psiN[ind]=file['classicalParticleFlux_psiN'][()][:,-1]
           else:#if self.includePhi1
             self.didNonlinearCalculationConverge[ind] = (file['didNonlinearCalculationConverge'][()]==integerToRepresentTrue)
@@ -356,6 +358,7 @@ class sfincsScan:
             if 'classicalParticleFlux_rHat' in file:
               self.classicalParticleFlux_rHat[ind]=file['classicalParticleFlux_rHat'][()][:,-1]
               self.classicalParticleFlux_rN[ind]  =file['classicalParticleFlux_rN'][()][:,-1]
+              self.classicalParticleFlux_psiHat[ind]=file['classicalParticleFlux_psiHat'][()][:,-1]
               self.classicalParticleFlux_psiN[ind]=file['classicalParticleFlux_psiN'][()][:,-1]
           #end if self.includePhi1
         #end if self.finished[ind]
@@ -401,14 +404,17 @@ class sfincsScan:
       self.reduced=True
     
     # Added here for ease
-    particleFluxName = 'particleFlux'
+    neoclassicalParticleFluxName = 'particleFlux'
+    classicalParticleFluxName = 'classicalParticleFlux_'
     if self.includePhi1:
-      particleFluxName += '_vd_'
+      neoclassicalParticleFluxName += '_vd_'
     else:
-      particleFluxName += '_vm_'
-    particleFluxName += self.ErDefForJr.split('d')[-1] # This adds the proper definition of 'radius'
-    particleFlux = getattr(self, particleFluxName)
-    self.Jr=np.sum(particleFlux*self.Zs,axis=1)
+      neoclassicalParticleFluxName += '_vm_'
+    neoclassicalParticleFluxName += self.ErDefForJr.split('d')[-1] # This adds the proper definition of 'radius'
+    classicalParticleFluxName += self.ErDefForJr.split('d')[-1]
+    neoclassicalParticleFlux = getattr(self,neoclassicalParticleFluxName)
+    classicalParticleFlux = getattr(self,classicalParticleFluxName)
+    self.Jr=np.sum((neoclassicalParticleFlux+classicalParticleFlux)*self.Zs,axis=1)
 
   def disp(self,radialCoord='rHat'):
     print('--------------------------------------------------------------------------------------')
