@@ -188,10 +188,12 @@ def evaluateIntegral(negF, posF, lowerBound, upperBound):
         return posF.integrate(lowerBound, upperBound, extrapolate=False)
 
     elif (lowerBound <= 0) and (upperBound >= 0):
-        return negF.integrate(lowerBound, 0, extrapolate=False) + posF.integrate(0, upperBound, extrapolate=False)
+        return negF.integrate(lowerBound, 0, extrapolate=True) + posF.integrate(0, upperBound, extrapolate=True)
+        # Jr is forced to be evaluated very near Er = 0, so extrapolation should be fine here.
 
     elif (lowerBound >= 0) and (upperBound <= 0):
-        return posF.integrate(lowerBound, 0, extrapolate=False) + negF.integrate(0, upperBound, extrapolate=False)
+        return posF.integrate(lowerBound, 0, extrapolate=True) + negF.integrate(0, upperBound, extrapolate=True)
+        # Jr is forced to be evaluated very near Er = 0, so extrapolation should be fine here.
 
     else:
         return np.nan
@@ -476,12 +478,12 @@ if not args.filter:
                         
                         negF = fs[0]
                         posF = fs[1]
-                        intVal = evaluateIntegral(negF, posF, lowerRoot, upperRoot) 
+                        intVal = evaluateIntegral(negF, posF, lowerRoot, upperRoot)
                         # Note that the bounds of the integral in Turkin et al. would switch when Er is defined as a derivative of the potential without the negative sign,
                         # so this ^ form of the integral should be correct.
                         
                         if np.isnan(intVal) or intVal == 0:
-                            msg = 'For {} = {}, the integral of Jr with respect to Er was NaN or identically zero. '.format(radLabel, radVal)
+                            msg = 'For {} = {}, the integral of Jr with respect to Er was {}. '.format(radLabel, radVal, intVal)
                             msg += 'Something is wrong, so this subdirectory will be skipped.'
                             messagePrinter(msg)
                             recordNoEr(allRootsLists)

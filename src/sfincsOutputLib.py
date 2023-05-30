@@ -579,7 +579,7 @@ class sfincsScan:
       launchindeed=True
     else:
       print('The directory {} already exists. It might contain a failed calculation.'.format(newDataDir))
-      answer=inp('Overwrite files and (if <noRun> was not used) run again? (ret=yes,n=no):') 
+      answer=inp('Overwrite files and (if <noRun> was not used) run again? (<press return>=yes, <type anything and then press return>=no):') 
       if len(answer)==0:
         launchindeed=True
     if launchindeed:
