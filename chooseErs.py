@@ -1,6 +1,7 @@
 # This script helps the user identify the root(s) of the ambipolar electric field in a given configuration. Note that each flux surface in a device should have either 1 or 3 roots.
 # In the former case, the root is identified with confidence by the script. In the latter case, eq. (A2) of Turkin et al., PoP 18, 022505 (2011) is used to determine the correct root.
 # (Two roots are theoretically possible, but the second one would be metastable since it would only occur when the point corresponding to dJr/dEr=0 was on the horizontal axis.)
+# Note that this method may produce incorrect results - see, for instance, Maassberg et al., PoP 7, 295-311 (2000).
 # A normal workflow would be to use run.py for a given configuration to generate many scans over flux surfaces and radial electric field values (WITHOUT using ambipolarSolve), running
 # this script repeatedly until all the roots are identified (which may require looking at the plots produced and choosing radial electric field values manually), running this script
 # with the <filter> option to copy only the information for the "correct" electric field values to a new directory, and running ploy.py on that directory to get the "correct" system
