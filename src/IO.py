@@ -486,8 +486,8 @@ def listifyBEAMS3DFile(inputFile):
     listifiedData = []
 
     for line in dataLines:
-        
-        if line[0] == '!':
+
+        if len(line) == 0 or line[0] == '!':
             continue
         
         precleaned = [i.strip() for i in line.split('=')]
